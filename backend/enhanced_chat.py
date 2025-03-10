@@ -11,7 +11,7 @@ from env_keys import get_anthropic_api_key, get_openai_api_key
 
 # Initialize Flask app
 app = Flask(__name__)
-CORS(app)
+CORS(app, origins=["https://katena-scout.vercel.app", "http://localhost:3000"])
 
 # ================ CONSTANTS ================
 POSITIONS_MAPPING = {
