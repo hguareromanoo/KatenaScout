@@ -554,6 +554,16 @@ soccer_scouting_examples = [
         elif player.get("contract") and isinstance(player.get("contract"), dict) and player.get("contract").get("contractExpiration"):
             contract_until = player.get("contract").get("contractExpiration")
         
+        # Get nationality info - try different possible field names
+        nationality = None
+        for field in ["passportArea", "birthArea", "nationality", "country", "countryOfBirth"]:
+            if player.get(field):
+                nationality = player.get(field)
+                break
+        
+        # Get preferred foot
+        foot = player.get("foot", "")  # Default to empty string if not available
+        
         player_info = {
             "name": player.get("name", unidecode.unidecode(player_id_str)),
             "age": player.get("age"),
@@ -561,7 +571,9 @@ soccer_scouting_examples = [
             "weight": player.get("weight"),
             "positions": positions,
             "club": club_name,
-            "contractUntil": contract_until
+            "contractUntil": contract_until,
+            "nationality": nationality,
+            "foot": foot
         }
         
         # Get relevant stats based on search parameters

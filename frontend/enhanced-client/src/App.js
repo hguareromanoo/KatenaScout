@@ -741,6 +741,84 @@ const ChatInterface = ({ onPlayerSelected, expanded, isPlayerFavorite, toggleFav
 
 // Player Dashboard Component with improved design, player photo, and radar chart
 const PlayerDashboard = ({ player, metrics, onClose, isPlayerFavorite, toggleFavorite, currentLanguage = 'english', onViewComplete }) => {
+  // Helper function to get a flag emoji based on country name
+  const getCountryFlag = (countryName) => {
+    // Map of common country names to their flag emojis
+    const countryFlags = {
+      'Brazil': '🇧🇷',
+      'Brasil': '🇧🇷',
+      'Argentina': '🇦🇷',
+      'Portugal': '🇵🇹',
+      'Spain': '🇪🇸',
+      'España': '🇪🇸',
+      'France': '🇫🇷',
+      'França': '🇫🇷',
+      'Germany': '🇩🇪',
+      'Alemanha': '🇩🇪',
+      'England': '🇬🇧',
+      'Inglaterra': '🇬🇧',
+      'Italy': '🇮🇹',
+      'Itália': '🇮🇹',
+      'Netherlands': '🇳🇱',
+      'Holanda': '🇳🇱',
+      'Belgium': '🇧🇪',
+      'Bélgica': '🇧🇪',
+      'Uruguay': '🇺🇾',
+      'Colombia': '🇨🇴',
+      'Colômbia': '🇨🇴',
+      'Ecuador': '🇪🇨',
+      'Equador': '🇪🇨',
+      'Chile': '🇨🇱',
+      'Peru': '🇵🇪',
+      'Mexico': '🇲🇽',
+      'México': '🇲🇽',
+      'United States': '🇺🇸',
+      'Estados Unidos': '🇺🇸',
+      'USA': '🇺🇸',
+      'EUA': '🇺🇸',
+      'Japan': '🇯🇵',
+      'Japão': '🇯🇵',
+      'South Korea': '🇰🇷',
+      'Coreia do Sul': '🇰🇷',
+      'Morocco': '🇲🇦',
+      'Marrocos': '🇲🇦',
+      'Senegal': '🇸🇳',
+      'Egypt': '🇪🇬',
+      'Egito': '🇪🇬',
+      'Ghana': '🇬🇭',
+      'Gana': '🇬🇭',
+      'Nigeria': '🇳🇬',
+      'Nigéria': '🇳🇬',
+      'Cameroon': '🇨🇲',
+      'Camarões': '🇨🇲',
+      'Australia': '🇦🇺',
+      'Austrália': '🇦🇺',
+      'New Zealand': '🇳🇿',
+      'Nova Zelândia': '🇳🇿',
+      'Croatia': '🇭🇷',
+      'Croácia': '🇭🇷',
+      'Serbia': '🇷🇸',
+      'Sérvia': '🇷🇸',
+      'Denmark': '🇩🇰',
+      'Dinamarca': '🇩🇰',
+      'Sweden': '🇸🇪',
+      'Suécia': '🇸🇪',
+      'Switzerland': '🇨🇭',
+      'Suíça': '🇨🇭',
+      'Poland': '🇵🇱',
+      'Polônia': '🇵🇱',
+      'Ukraine': '🇺🇦',
+      'Ucrânia': '🇺🇦',
+      'Russia': '🇷🇺',
+      'Rússia': '🇷🇺',
+      'Turkey': '🇹🇷',
+      'Turquia': '🇹🇷',
+    };
+    
+    // If we have a flag for this country, return it, otherwise return a globe
+    return countryFlags[countryName] || '🌍';
+  };
+
   // Helper function to get a color based on metric value
   const getMetricColor = (metric) => {
     // Placeholder logic - in a real app this would be based on comparison with league averages
@@ -1065,17 +1143,42 @@ const PlayerDashboard = ({ player, metrics, onClose, isPlayerFavorite, toggleFav
                   
                   {player.nationality && (
                     <div className="flex items-center bg-white bg-opacity-10 rounded-full px-3 py-1">
-                      <span className="text-sm font-medium">{player.nationality}</span>
+                      <span className="text-sm font-medium">
+                        {getCountryFlag(player.nationality)} {player.nationality}
+                      </span>
                     </div>
                   )}
                   
                   {player.foot && (
                     <div className="flex items-center bg-white bg-opacity-10 rounded-full px-3 py-1">
-                      <span className="text-sm font-medium">
-                        {player.foot === 'left' ? '👈 Canhoto' : 
-                         player.foot === 'right' ? '👉 Destro' : 
-                         '👟 ' + player.foot}
-                      </span>
+                      {player.foot === 'left' ? (
+                        <span className="text-sm font-medium flex items-center">
+                          <span className="w-4 h-4 mr-1 inline-flex items-center justify-center bg-blue-600 rounded-full text-white">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-2.5 w-2.5" viewBox="0 0 20 20" fill="currentColor">
+                              <path fillRule="evenodd" d="M9.707 14.707a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 1.414L7.414 9H15a1 1 0 110 2H7.414l2.293 2.293a1 1 0 010 1.414z" clipRule="evenodd" />
+                            </svg>
+                          </span>
+                          Canhoto
+                        </span>
+                      ) : player.foot === 'right' ? (
+                        <span className="text-sm font-medium flex items-center">
+                          <span className="w-4 h-4 mr-1 inline-flex items-center justify-center bg-green-600 rounded-full text-white">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-2.5 w-2.5" viewBox="0 0 20 20" fill="currentColor">
+                              <path fillRule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
+                            </svg>
+                          </span>
+                          Destro
+                        </span>
+                      ) : (
+                        <span className="text-sm font-medium flex items-center">
+                          <span className="w-4 h-4 mr-1 inline-flex items-center justify-center bg-purple-600 rounded-full text-white">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-2.5 w-2.5" viewBox="0 0 20 20" fill="currentColor">
+                              <path fillRule="evenodd" d="M3 7a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 13a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
+                            </svg>
+                          </span>
+                          {player.foot === 'both' ? 'Ambidestro' : player.foot}
+                        </span>
+                      )}
                     </div>
                   )}
                 </div>
@@ -1108,7 +1211,10 @@ const PlayerDashboard = ({ player, metrics, onClose, isPlayerFavorite, toggleFav
                           <Globe className="mr-2 text-blue-300" size={14} />
                           <span className="text-sm text-gray-300">Nacionalidade</span>
                         </div>
-                        <div className="font-medium">{player.nationality}</div>
+                        <div className="font-medium flex items-center">
+                          <span className="mr-2">{getCountryFlag(player.nationality)}</span>
+                          <span>{player.nationality}</span>
+                        </div>
                       </div>
                     )}
                     
@@ -1118,10 +1224,34 @@ const PlayerDashboard = ({ player, metrics, onClose, isPlayerFavorite, toggleFav
                           <Boot className="mr-2 text-blue-300" size={14} />
                           <span className="text-sm text-gray-300">Pé Preferido</span>
                         </div>
-                        <div className="font-medium">
-                          {player.foot === 'left' ? '👈 Canhoto' : 
-                           player.foot === 'right' ? '👉 Destro' : 
-                           player.foot}
+                        <div className="font-medium flex items-center">
+                          {player.foot === 'left' ? (
+                            <>
+                              <span className="w-5 h-5 mr-2 inline-flex items-center justify-center bg-blue-600 rounded-full text-white">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                                  <path fillRule="evenodd" d="M9.707 14.707a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 1.414L7.414 9H15a1 1 0 110 2H7.414l2.293 2.293a1 1 0 010 1.414z" clipRule="evenodd" />
+                                </svg>
+                              </span>
+                              <span>Canhoto</span>
+                            </>) : 
+                           player.foot === 'right' ? (
+                            <>
+                              <span className="w-5 h-5 mr-2 inline-flex items-center justify-center bg-green-600 rounded-full text-white">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                                  <path fillRule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
+                                </svg>
+                              </span>
+                              <span>Destro</span>
+                            </>) : (
+                            <>
+                              <span className="w-5 h-5 mr-2 inline-flex items-center justify-center bg-purple-600 rounded-full text-white">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                                  <path fillRule="evenodd" d="M3 7a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 13a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
+                                </svg>
+                              </span>
+                              <span>{player.foot === 'both' ? 'Ambidestro' : player.foot}</span>
+                            </>)
+                          }
                         </div>
                       </div>
                     )}
