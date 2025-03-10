@@ -227,7 +227,7 @@ function App() {
   };
 
   return onboardingComplete ? (
-    <div className="flex h-screen bg-gray-900">
+    <div className="flex flex-col md:flex-row h-screen bg-gray-900">
       {/* Sidebar */}
       <div className={`fixed inset-y-0 left-0 z-50 w-64 bg-gray-800 shadow-lg transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300 md:relative md:translate-x-0`}>
         <div className="flex flex-col h-full">
@@ -648,7 +648,7 @@ const ChatInterface = ({ onPlayerSelected, expanded, isPlayerFavorite, toggleFav
   };
 
   return (
-    <div className="flex flex-col w-full h-full transition-all duration-300 bg-gray-900 border-r border-gray-700 chat-container">
+    <div className="flex flex-col w-full h-full md:h-auto transition-all duration-300 bg-gray-900 border-r border-gray-700 chat-container overflow-hidden">
       {/* Header with soccer theme */}
       <div className="bg-gradient-to-r from-green-900 to-blue-900 p-4 flex items-center border-b border-gray-700 relative overflow-hidden">
         {/* Soccer field pattern in the background */}
@@ -742,8 +742,7 @@ const ChatInterface = ({ onPlayerSelected, expanded, isPlayerFavorite, toggleFav
                       <div
                         key={idx}
                         onClick={() => handlePlayerSelect(player)}
-                        className="text-left p-3 rounded bg-gray-700 bg-opacity-50 hover:bg-gray-600 transition-colors flex items-center border border-gray-600 hover:border-green-500 cursor-pointer relative"
-                      >
+                        className="text-left p-3 rounded bg-gray-700 bg-opacity-50 hover:bg-gray-600 transition-colors flex flex-wrap sm:flex-nowrap items-center border border-gray-600 hover:border-green-500 cursor-pointer relative">
                         {/* Player image */}
                         <div className="w-10 h-10 bg-blue-900 rounded-full flex items-center justify-center text-white text-xs font-bold mr-3 overflow-hidden">
                           {player.imageDataURL || player.id ? (
@@ -1140,7 +1139,7 @@ const PlayerDashboard = ({ player, metrics, onClose, isPlayerFavorite, toggleFav
     
     // Fixed height container instead of aspect ratio to prevent layout bugs
     return (
-      <div className="w-full h-[450px]">
+      <div className="w-full h-[300px] sm:h-[450px]">
         <ErrorBoundary fallback={
           <div className="flex items-center justify-center h-full bg-gray-800 rounded-xl">
             <div className="text-center p-6">
@@ -1311,10 +1310,10 @@ const PlayerDashboard = ({ player, metrics, onClose, isPlayerFavorite, toggleFav
             <div className="absolute left-0 top-0 bottom-0 w-1/3 bg-gradient-to-r from-black to-transparent opacity-50"></div>
             
             {/* Content wrapper */}
-            <div className="relative flex p-6">
+            <div className="relative flex flex-col sm:flex-row p-4 sm:p-6">
               {/* Player Photo - Larger and more prominent */}
-              <div className="mr-6">
-                <div className="w-36 h-44 overflow-hidden rounded-lg border-4 border-white bg-gray-800 shadow-xl relative">
+              <div className="mb-4 sm:mb-0 sm:mr-6">
+                <div className="w-28 h-36 sm:w-36 sm:h-44 mx-auto sm:mx-0 overflow-hidden rounded-lg border-4 border-white bg-gray-800 shadow-xl relative">
                   <ErrorBoundary fallback={
                     <div className="w-full h-full bg-gray-700 flex items-center justify-center">
                       <div className="text-white text-center">
@@ -1353,7 +1352,7 @@ const PlayerDashboard = ({ player, metrics, onClose, isPlayerFavorite, toggleFav
               
               {/* Player info */}
               <div className="flex-1">
-                <div className="flex items-center">
+                <div className="flex items-center justify-center sm:justify-start">
                   <div className="mr-3 p-1 bg-white bg-opacity-20 rounded">
                     <img 
                       src={`https://ui-avatars.com/api/?name=${encodeURIComponent(
@@ -1437,7 +1436,7 @@ const PlayerDashboard = ({ player, metrics, onClose, isPlayerFavorite, toggleFav
                   </h3>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <div className="flex items-center">
+                      <div className="flex items-center justify-center sm:justify-start">
                         <Package className="mr-2 text-blue-300" size={14} />
                         <span className="text-sm text-gray-300">Clube Atual</span>
                       </div>
@@ -1544,7 +1543,7 @@ const PlayerDashboard = ({ player, metrics, onClose, isPlayerFavorite, toggleFav
           
           {/* Added max-height and overflow for scrolling if too many metrics */}
           <div className="max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-            <div className="grid grid-cols-2 gap-x-10 gap-y-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 sm:gap-x-10 gap-y-2">
               {metrics.map((metric, idx) => (
                 <div key={idx} className="flex justify-between items-center py-2 border-b border-gray-700">
                   <span className="text-gray-300 pr-4">{metric.name}</span>
