@@ -96,4 +96,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## Acknowledgments
 
 - Powered by Claude AI for natural language processing
-- Data sourced from various football statistics providers
+- Data sourced from various football statistics providers# backend-katenascout
