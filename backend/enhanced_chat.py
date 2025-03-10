@@ -522,14 +522,31 @@ soccer_scouting_examples = [
         
         # Try different paths for club name
         
-            # We have a team ID but no name, try to look it up
+        # We have a team ID but no name, try to look it up
         team_id = player.get("currentTeamId")
-            # Use a hardcoded mapping for common team IDs
-        with open('team.json', 'r', encoding='utf-8') as f:
-            team_names = json.load(f)
-
-        if team_id and team_id in team_names:
-            club_name = team_names[team_id].get('name', 'Unknown')
+        
+        # Use a hardcoded mapping for common team IDs
+        # Try multiple file paths to find team.json
+        team_names = {}
+        team_json_paths = [
+            'team.json',  # Current directory
+            os.path.join(os.path.dirname(__file__), 'team.json'),  # Same directory as this file
+            os.path.join(os.path.dirname(os.path.dirname(__file__)), 'team.json'),  # Parent directory
+        ]
+        
+        for path in team_json_paths:
+            try:
+                with open(path, 'r', encoding='utf-8') as f:
+                    team_names = json.load(f)
+                    break  # Found and loaded the file, exit the loop
+            except (FileNotFoundError, IOError):
+                continue
+        
+        # Convert team_id to string for comparison
+        if team_id:
+            team_id_str = str(team_id)
+            if team_id_str in team_names:
+                club_name = team_names[team_id_str].get('name', 'Unknown')
         
         # Try different paths for contract expiration
         if player.get("contractUntil"):
@@ -1086,6 +1103,13 @@ def player_image(player_id):
     First tries to get the image from the database, then from local files,
     then returns a default image if none is found
     """
+    # Add proper CORS headers to allow the image to be accessed from frontend
+    def add_cors_headers(response):
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Methods', 'GET')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
+        return response
+        
     try:
         # Create a safe player ID string
         safe_id = str(player_id)
@@ -1124,9 +1148,9 @@ def player_image(player_id):
                         # Decode the base64 data
                         import base64
                         image_data = base64.b64decode(encoded)
-                        # Return the image
+                        # Return the image with CORS headers
                         response = app.response_class(image_data, mimetype=mime_type)
-                        return response
+                        return add_cors_headers(response)
                     except Exception as e:
                         print(f"Error decoding image data URL from {field}: {str(e)}")
                 
@@ -1139,9 +1163,9 @@ def player_image(player_id):
                         if img_response.status_code == 200:
                             # Get the content type
                             content_type = img_response.headers.get('Content-Type', 'image/jpeg')
-                            # Return the image
+                            # Return the image with CORS headers
                             response = app.response_class(img_response.content, mimetype=content_type)
-                            return response
+                            return add_cors_headers(response)
                     except Exception as e:
                         print(f"Error fetching image URL from {field}: {str(e)}")
         
@@ -1149,7 +1173,8 @@ def player_image(player_id):
         for ext in ['.jpg', '.png', '.jpeg']:
             image_path = os.path.join(PLAYER_IMAGES_DIR, f"{safe_id}{ext}")
             if os.path.exists(image_path):
-                return send_from_directory(PLAYER_IMAGES_DIR, f"{safe_id}{ext}")
+                response = send_from_directory(PLAYER_IMAGES_DIR, f"{safe_id}{ext}")
+                return add_cors_headers(response)
         
         # If no player-specific image is found, return a default image
         default_image = "default.jpg"
@@ -1160,15 +1185,16 @@ def player_image(player_id):
             # Return a placeholder image - base64 encoded transparent 1x1 pixel
             transparent_pixel = b'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII='
             response = app.response_class(transparent_pixel, mimetype='image/png')
-            return response
+            return add_cors_headers(response)
             
-        return send_from_directory(PLAYER_IMAGES_DIR, default_image)
+        response = send_from_directory(PLAYER_IMAGES_DIR, default_image)
+        return add_cors_headers(response)
     except Exception as e:
         print(f"Error serving player image: {str(e)}")
         # Return a transparent pixel as fallback
         transparent_pixel = b'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII='
         response = app.response_class(transparent_pixel, mimetype='image/png')
-        return response
+        return add_cors_headers(response)
 
 @app.route('/chat_history/<session_id>', methods=['GET'])
 def chat_history(session_id):
