@@ -26,6 +26,10 @@ KatenaScout is an AI-powered football scouting application that helps scouts and
 
 ### Backend Setup
 
+The backend is already deployed and available at: https://katenascout-backend.onrender.com
+
+If you want to run it locally for development:
+
 1. Navigate to the backend directory:
    ```
    cd backend
@@ -65,6 +69,8 @@ KatenaScout is an AI-powered football scouting application that helps scouts and
    ```
 
 4. Open your browser to http://localhost:3001
+   
+   Note: The backend is already deployed at https://katenascout-backend.onrender.com
 
 ## Usage
 
@@ -96,5 +102,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## Acknowledgments
 
 - Powered by Claude AI for natural language processing
-- Data sourced from various football statistics providers# backend-katenascout
-# backend-katena
+- Data sourced from various football statistics providers

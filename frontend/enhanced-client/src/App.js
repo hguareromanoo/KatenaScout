@@ -442,7 +442,7 @@ const ChatInterface = ({ onPlayerSelected, expanded, isPlayerFavorite, toggleFav
         language: currentLanguage
       };
 
-      const response = await fetch('http://localhost:5001/enhanced_search', {
+      const response = await fetch('https://katenascout-backend.onrender.com/enhanced_search', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -630,7 +630,7 @@ const ChatInterface = ({ onPlayerSelected, expanded, isPlayerFavorite, toggleFav
                         <div className="w-10 h-10 bg-blue-900 rounded-full flex items-center justify-center text-white text-xs font-bold mr-3 overflow-hidden">
                           {player.imageDataURL || player.id ? (
                             <img 
-                              src={player.imageDataURL || (player.id ? `http://localhost:5001/player-image/${player.id}` : null)}
+                              src={player.imageDataURL || (player.id ? `https://katenascout-backend.onrender.com/player-image/${player.id}` : null)}
                               alt={player.name}
                               className="w-full h-full object-cover"
                               onError={(e) => {
@@ -951,7 +951,7 @@ const PlayerDashboard = ({ player, metrics, onClose, isPlayerFavorite, toggleFav
     
     // Try to use player ID for the backend image API
     if (player.id) {
-      return `http://localhost:5001/player-image/${player.id}`;
+      return `https://katenascout-backend.onrender.com/player-image/${player.id}`;
     }
     
     // Last fallback to UI Avatars API for a consistent placeholder
@@ -1284,7 +1284,7 @@ const PlayerCompletePage = ({ player, onClose, isPlayerFavorite, toggleFavorite,
     
     // Try to use player ID for the backend image API
     if (player.id) {
-      return `http://localhost:5001/player-image/${player.id}`;
+      return `https://katenascout-backend.onrender.com/player-image/${player.id}`;
     }
     
     // Last fallback to UI Avatars API for a consistent placeholder
@@ -1815,7 +1815,7 @@ const FavoritesView = ({ favorites, onSelectPlayer, onRemoveFavorite, currentLan
                     {/* Player Image */}
                     <div className="w-16 h-16 bg-gray-700 rounded-full overflow-hidden mr-3">
                       <img 
-                        src={player.imageDataURL || player.photoUrl || (player.id ? `http://localhost:5001/player-image/${player.id}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(player.name)}&background=0D8ABC&color=fff&size=128`)}
+                        src={player.imageDataURL || player.photoUrl || (player.id ? `https://katenascout-backend.onrender.com/player-image/${player.id}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(player.name)}&background=0D8ABC&color=fff&size=128`)}
                         alt={player.name}
                         className="w-full h-full object-cover"
                         onError={(e) => {
@@ -1878,7 +1878,7 @@ const SettingsView = ({ currentLanguage, setCurrentLanguage }) => {
   useEffect(() => {
     const fetchLanguages = async () => {
       try {
-        const response = await fetch('http://localhost:5001/languages');
+        const response = await fetch('https://katenascout-backend.onrender.com/languages');
         const data = await response.json();
         
         if (data.success && data.languages) {

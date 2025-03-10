@@ -431,7 +431,7 @@ const ChatInterface = ({ onPlayerSelected, expanded, isPlayerFavorite, toggleFav
       
       setMessages(prev => [...prev, { text: input, sender: 'user' }]);
 
-      const response = await fetch('http://localhost:5001/enhanced_search', {
+      const response = await fetch('https://katenascout-backend.onrender.com/enhanced_search', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -971,7 +971,7 @@ const PlayerDashboard = ({ player, metrics, onClose, isPlayerFavorite, toggleFav
     const playerId = player.wyId || player.id;
     if (playerId) {
       // Try to use the backend API to get player image (assuming it's implemented)
-      return `http://localhost:5001/player-image/${playerId}`;
+      return `https://katenascout-backend.onrender.com/player-image/${playerId}`;
     }
     
     // Fallback to UI Avatars API
@@ -1320,7 +1320,7 @@ const PlayerCompletePage = ({ player, onClose, isPlayerFavorite, toggleFavorite,
     const playerId = player.wyId || player.id;
     if (playerId) {
       // Try to use the backend API to get player image (assuming it's implemented)
-      return `http://localhost:5001/player-image/${playerId}`;
+      return `https://katenascout-backend.onrender.com/player-image/${playerId}`;
     }
     
     // Fallback to UI Avatars API
@@ -1811,7 +1811,7 @@ const FavoritesView = ({ favorites, onSelectPlayer, onRemoveFavorite, currentLan
                         />
                       ) : (
                         <img 
-                          src={`http://localhost:5001/player-image/${player.id || player.wyId}`}
+                          src={`https://katenascout-backend.onrender.com/player-image/${player.id || player.wyId}`}
                           alt={player.name}
                           className="w-full h-full object-cover"
                           onError={(e) => {
@@ -1884,7 +1884,7 @@ const SettingsView = ({ currentLanguage, setCurrentLanguage }) => {
   useEffect(() => {
     const fetchLanguages = async () => {
       try {
-        const response = await fetch('http://localhost:5001/languages');
+        const response = await fetch('https://katenascout-backend.onrender.com/languages');
         const data = await response.json();
         
         if (data.success && data.languages) {
