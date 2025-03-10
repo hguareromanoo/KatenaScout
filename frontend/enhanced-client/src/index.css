@@ -55,3 +55,21 @@ code {
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(75, 85, 99, 0.8);
 }
+
+/* Make sure chat content grows properly */
+.message-content {
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+}
+
+/* Make sure player cards don't get too large */
+.player-card {
+  max-width: 100%;
+}
+
+/* Ensures the chat container takes available height */
+.chat-container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}

@@ -215,8 +215,13 @@ class ChatSession:
         
         raise FileNotFoundError(f"Could not find {filename} in any expected location")
     
-    def create_session(self, session_id: str) -> None:
-        """Create a new chat session"""
+    def create_session(self, session_id: str, language: str = 'english') -> None:
+        """Create a new chat session with language preference
+        
+        Args:
+            session_id: Unique session identifier
+            language: User's preferred language ('english', 'portuguese', 'spanish', 'bulgarian')
+        """
         if session_id not in self.sessions:
             self.sessions[session_id] = {
                 "search_history": [],  # List of search queries
@@ -225,12 +230,17 @@ class ChatSession:
                 "satisfaction": None,  # Whether the user was satisfied with the last results
                 "messages": [],  # Chat message history
                 "current_prompt": "",  # Current accumulated prompt
+                "language": language,  # User's preferred language
+                "is_follow_up": False,  # Whether this is a follow-up query
             }
     
-    def get_session(self, session_id: str) -> dict:
-        """Get session data, creating it if it doesn't exist"""
+    def get_session(self, session_id: str, language: str = 'english') -> dict:
+        """Get session data, creating it if it doesn't exist with the specified language"""
         if session_id not in self.sessions:
-            self.create_session(session_id)
+            self.create_session(session_id, language)
+        elif language != 'english':
+            # Update language if different from default and explicitly provided
+            self.sessions[session_id]["language"] = language
         return self.sessions[session_id]
     
     def update_session(self, session_id: str, 
@@ -446,30 +456,15 @@ soccer_scouting_examples = [
         contract_until = "Unknown"
         
         # Try different paths for club name
-        if player.get("club") and isinstance(player.get("club"), dict) and player.get("club").get("name"):
-            club_name = player.get("club").get("name")
-        elif player.get("current_club") and isinstance(player.get("current_club"), dict) and player.get("current_club").get("name"):
-            club_name = player.get("current_club").get("name")
-        elif player.get("currentTeamId"):
+        
             # We have a team ID but no name, try to look it up
-            team_id = player.get("currentTeamId")
+        team_id = player.get("currentTeamId")
             # Use a hardcoded mapping for common team IDs
-            team_map = {
-                # Add some common teams (you can expand this list)
-                3157: "AS Roma",
-                6021: "Real Madrid",
-                6195: "Manchester United",
-                8634: "Barcelona",
-                8456: "Manchester City",
-                8455: "Liverpool FC",
-                3161: "AC Milan",
-                675: "PSG",
-                2953: "Bayern Munich"
-            }
-            if team_id in team_map:
-                club_name = team_map[team_id]
-            else:
-                club_name = f"Team ID: {team_id}"
+        with open('team.json', 'r', encoding='utf-8') as f:
+            team_names = json.load(f)
+
+        if team_id and team_id in team_names:
+            club_name = team_names[team_id].get('name', 'Unknown')
         
         # Try different paths for contract expiration
         if player.get("contractUntil"):
@@ -664,40 +659,97 @@ soccer_scouting_examples = [
                 
         return score
     
-    def generate_response(self, session_id: str, players: List[dict]) -> str:
-        """Generate a natural language response about the players found with satisfaction question"""
+    def generate_response(self, session_id: str, players: List[dict], language: str = 'english') -> str:
+        """Generate a natural language response about the players found with satisfaction question
+        
+        Args:
+            session_id: The session ID
+            players: List of player information
+            language: The language to generate the response in ('english', 'portuguese', 'spanish', 'bulgarian')
+            
+        Returns:
+            A natural language response in the specified language
+        """
         session = self.get_session(session_id)
         
         if not players:
-            return "No players found matching your criteria. Would you like to try with different parameters?"
+            # No players found message in different languages
+            no_players_messages = {
+                "english": "No players found matching your criteria. Would you like to try with different parameters?",
+                "portuguese": "Nenhum jogador encontrado com esses critérios. Gostaria de tentar com parâmetros diferentes?",
+                "spanish": "No se encontraron jugadores que coincidan con tus criterios. ¿Te gustaría probar con parámetros diferentes?",
+                "bulgarian": "Не са намерени играчи, отговарящи на вашите критерии. Бихте ли искали да опитате с различни параметри?"
+            }
+            return no_players_messages.get(language, no_players_messages["english"])
         
         try:
+            # Language-specific system prompts
+            system_prompts = {
+                "english": """You are a knowledgeable football scout assistant who presents scouting results in English.
+## Mission: 
+- Process the list of players with their stats and present them in an engaging, professional way.
+- Your audience are coaches looking for players with specific characteristics.
+- Provide context about players' playing style and highlight standout stats.
+- Present all given statistic fields for all players.
+## Instructions:
+- Begin by acknowledging what the person was looking for
+- Present findings in an exciting, natural way
+- Group players by notable characteristics when possible
+- Highlight the player score, which indicates how well they match the search criteria
+- End your response by asking if they're satisfied with these players or if they want to refine their search
+- Make the satisfaction question very clear and separate from the main content""",
+
+                "portuguese": """Você é um assistente apaixonado de scout de futebol que apresenta resultados de pesquisa em Português.
+## Missão: 
+- Processar a lista de jogadores com suas estatísticas e apresentá-los de forma envolvente e natural.
+- Seu público são técnicos que buscam jogadores com características específicas.
+- Fornecer contexto sobre o estilo de jogo dos jogadores e destacar estatísticas impressionantes.
+- Apresentar todos os campos estatísticos fornecidos para todos os jogadores.
+## Instruções:
+- Comece reconhecendo o que a pessoa estava procurando
+- Apresente os resultados de forma empolgante e natural
+- Agrupe jogadores por características notáveis quando possível
+- Destaque a pontuação do jogador, que indica o quanto eles correspondem aos critérios de busca
+- Termine perguntando se estão satisfeitos com esses jogadores ou se querem refinar a busca
+- Torne a pergunta de satisfação muito clara e separada do conteúdo principal""",
+
+                "spanish": """Eres un apasionado asistente de scout de fútbol que presenta resultados de búsqueda en Español.
+## Misión: 
+- Procesar la lista de jugadores con sus estadísticas y presentarlos de manera atractiva y natural.
+- Tu audiencia son entrenadores que buscan jugadores con características específicas.
+- Proporcionar contexto sobre el estilo de juego de los jugadores y destacar estadísticas sobresalientes.
+- Presentar todos los campos estadísticos proporcionados para todos los jugadores.
+## Instrucciones:
+- Comienza reconociendo lo que la persona estaba buscando
+- Presenta los resultados de manera emocionante y natural
+- Agrupa jugadores por características notables cuando sea posible
+- Destaca la puntuación del jugador, que indica cuánto coinciden con los criterios de búsqueda
+- Termina preguntando si están satisfechos con estos jugadores o si quieren refinar su búsqueda
+- Haz que la pregunta de satisfacción sea muy clara y separada del contenido principal""",
+
+                "bulgarian": """Вие сте страстен футболен скаут асистент, който представя резултати от търсене на български.
+## Мисия: 
+- Обработете списъка с играчи с техните статистики и ги представете по ангажиращ и естествен начин.
+- Вашата аудитория са треньори, които търсят играчи със специфични характеристики.
+- Предоставяйте контекст за стила на игра на играчите и подчертавайте изключителни статистики.
+- Представете всички предоставени статистически полета за всички играчи.
+## Инструкции:
+- Започнете с признаване на това, което човекът е търсил
+- Представете резултатите по вълнуващ и естествен начин
+- Групирайте играчите по забележителни характеристики, когато е възможно
+- Подчертайте резултата на играча, който показва колко добре отговаря на критериите за търсене
+- Завършете с въпрос дали са доволни от тези играчи или искат да прецизират търсенето си
+- Направете въпроса за удовлетвореност много ясен и отделен от основното съдържание"""
+            }
+            
+            # Select appropriate system prompt based on language
+            system_prompt = system_prompts.get(language, system_prompts["english"])
+            
             # Use Claude to generate a natural language description
             response = self.claude.messages.create(
                 model="claude-3-5-sonnet-20241022",
                 max_tokens=8192,
-                system="""You are a passionate young Brazilian soccer fan who presents scouting results to other fans. 
-## Mission: 
-- Your job is to process a list of players, with their relevant stats, and present them in an engaging, natural way.
-- Your audience are the coaches who are looking for players with specific characteristics.
-- You should provide context about the players' playing style and hype up standout stats.
-- You must present all the given statistic fields in all players given.
-## Instructions:
-- Begin by acknowledging what the person was looking for
-- Present the findings in an exciting, natural way
-- Group players by notable characteristics when possible
-- Highlight the player score, which indicates how well they match the search criteria
-- End your response by asking if they're satisfied with these players or if they want to refine their search further
-- Make the satisfaction question very clear and separate from the main content
-
-## Expected response style:
-'Mano, tô te trazendo os lateral direito mais ofensivos do momento! 🔥
-O TAA é ABSURDO, tá ligado? O maluco já deu 15 assistências, score de 91.5, tá jogando praticamente de meia! Esse cara é diferente, faz o que quer com a bola.
-E tem o Hakimi também, que bagulho é esse?! Score de 87.3, com 8 gols e 6 assistências, o cara tá em todo lugar do campo! Velocidade absurda, parece até ponta de verdade! ⚽️
-São os caras que tu tava procurando, mano. Dois monstros que desequilibram demais! 👊
-
-Você está satisfeito com esses jogadores ou quer refinar sua busca? (Por exemplo, adicionar mais critérios como "jogadores jovens" ou "com bom passe longo")'
-""",
+                system=system_prompt,
                 messages=[
                     {"role": "user", "content": f"User's query: {session['current_prompt']}"},
                     {"role": "user", "content": f"Players found: {json.dumps(players, indent=2)}"}
@@ -707,8 +759,27 @@ Você está satisfeito com esses jogadores ou quer refinar sua busca? (Por exemp
             return response.content[0].text
         except Exception as e:
             print(f"Error generating response: {str(e)}")
+            
+            # Fallback responses in different languages
+            fallback_intros = {
+                "english": "Here are the players I found for you:",
+                "portuguese": "Encontrei estes jogadores para você:",
+                "spanish": "He encontrado estos jugadores para ti:",
+                "bulgarian": "Намерих тези играчи за вас:"
+            }
+            
+            satisfaction_questions = {
+                "english": "Are you satisfied with these players or would you like to refine your search?",
+                "portuguese": "Você está satisfeito com esses jogadores ou gostaria de refinar sua busca?",
+                "spanish": "¿Estás satisfecho con estos jugadores o te gustaría refinar tu búsqueda?",
+                "bulgarian": "Доволни ли сте от тези играчи или бихте искали да прецизирате търсенето си?"
+            }
+            
             # Provide a fallback response that still shows the players
-            fallback_response = "Encontrei estes jogadores para você:\n\n"
+            fallback_intro = fallback_intros.get(language, fallback_intros["english"])
+            satisfaction_question = satisfaction_questions.get(language, satisfaction_questions["english"])
+            
+            fallback_response = f"{fallback_intro}\n\n"
             
             for player in players:
                 name = player.get('name', 'Unknown')
@@ -716,7 +787,7 @@ Você está satisfeito com esses jogadores ou quer refinar sua busca? (Por exemp
                 score = player.get('score', 0)
                 fallback_response += f"- {name} ({positions}) - Score: {score}\n"
             
-            fallback_response += "\nVocê está satisfeito com esses jogadores ou gostaria de refinar sua busca?"
+            fallback_response += f"\n{satisfaction_question}"
             return fallback_response
 
 # Initialize chat session manager
@@ -741,14 +812,17 @@ def enhanced_search():
         "session_id": "unique-session-id",
         "query": "Find attackers with high shooting accuracy",
         "is_follow_up": false,
-        "satisfaction": true/false/null
+        "satisfaction": true/false/null,
+        "language": "english" (optional)
     }
     
     Response:
     {
         "success": true,
-        "response": "Natural language response with player recommendations and satisfaction question",
-        "players": [... array of player objects with scores ...]
+        "response": "Natural language response with player recommendations",
+        "satisfaction_question": "Are you satisfied with these players?",
+        "players": [... array of player objects with scores ...],
+        "language": "english"
     }
     """
     try:
@@ -757,11 +831,12 @@ def enhanced_search():
         user_prompt = data.get('query', '')
         is_follow_up = data.get('is_follow_up', False)
         satisfaction = data.get('satisfaction')
+        language = data.get('language', 'english')
         
-        print(f"Received request: session_id={session_id}, query='{user_prompt}', is_follow_up={is_follow_up}, satisfaction={satisfaction}")
+        print(f"Received request: session_id={session_id}, query='{user_prompt}', is_follow_up={is_follow_up}, satisfaction={satisfaction}, language={language}")
         
-        # Get or create session
-        session = chat_manager.get_session(session_id)
+        # Get or create session with language preference
+        session = chat_manager.get_session(session_id, language)
         
         # Store is_follow_up in session
         session["is_follow_up"] = is_follow_up
@@ -783,71 +858,150 @@ def enhanced_search():
             # Update session with selected players
             chat_manager.update_session(session_id, players=players)
             
-            # Generate a natural language response with satisfaction question
-            response_text = chat_manager.generate_response(session_id, players)
+            # Generate a natural language response
+            main_response = chat_manager.generate_response(session_id, players, language)
             
-            # Ensure the response has a satisfaction question at the end
-            if not any(phrase in response_text.lower() for phrase in ["satisfeito", "satisfied", "gostou", "liked"]):
-                response_text += "\n\nVocê está satisfeito com esses jogadores ou gostaria de refinar sua busca?"
+            # Language-specific satisfaction questions
+            satisfaction_questions = {
+                "english": "Are you satisfied with these players or would you like to refine your search?",
+                "portuguese": "Você está satisfeito com esses jogadores ou gostaria de refinar sua busca?",
+                "spanish": "¿Estás satisfecho con estos jugadores o te gustaría refinar tu búsqueda?",
+                "bulgarian": "Доволни ли сте от тези играчи или бихте искали да прецизирате търсенето си?"
+            }
             
-            # Add a message to the chat history
+            # Set up default satisfaction question based on language
+            satisfaction_question = satisfaction_questions.get(language, satisfaction_questions["english"])
+            
+            # Extract satisfaction question if already present in main response
+            satisfaction_phrases = {
+                "english": ["satisfied", "would you like", "like to refine", "want to refine"],
+                "portuguese": ["satisfeito", "gostaria de refinar", "deseja alterar", "quer refinar"],
+                "spanish": ["satisfecho", "refinar", "quieres cambiar", "gustaria refinar"],
+                "bulgarian": ["доволни", "търсенето", "прецизирате"]
+            }
+            
+            phrases = satisfaction_phrases.get(language, satisfaction_phrases["english"])
+            
+            # If response already has a satisfaction question, extract and remove it
+            for phrase in phrases:
+                if phrase in main_response.lower():
+                    # Find the last sentence containing the satisfaction phrase
+                    sentences = main_response.split('\n')
+                    for i in range(len(sentences)-1, -1, -1):
+                        if phrase in sentences[i].lower():
+                            # Extract this as the satisfaction question
+                            satisfaction_question = sentences[i].strip()
+                            # Remove it from the main response
+                            main_response = '\n'.join(sentences[:i] + sentences[i+1:])
+                            break
+                    break
+            
+            # Add both messages to the chat history
             chat_manager.update_session(
                 session_id, 
                 message={
                     "role": "assistant",
-                    "content": response_text
+                    "content": main_response
                 }
             )
             
-            # Return the response
+            chat_manager.update_session(
+                session_id, 
+                message={
+                    "role": "assistant",
+                    "content": satisfaction_question,
+                    "is_satisfaction_question": True
+                }
+            )
+            
+            # Return the response with separated satisfaction question
             return jsonify({
                 'success': True, 
-                'response': response_text,
+                'response': main_response,
+                'satisfaction_question': satisfaction_question,
                 'players': players,
-                'session_id': session_id
+                'session_id': session_id,
+                'language': language
             })
         except Exception as e:
             print(f"Error processing query: {str(e)}")
-            # Generate a friendly error message for the user
-            error_message = "Desculpe, estamos passando por instabilidade no momento. Tente novamente em alguns instantes."
+            # Language-specific error messages
+            error_messages = {
+                "english": "Sorry, we're experiencing instability at the moment. Please try again in a few moments.",
+                "portuguese": "Desculpe, estamos passando por instabilidade no momento. Tente novamente em alguns instantes.",
+                "spanish": "Lo siento, estamos experimentando inestabilidad en este momento. Inténtalo de nuevo en unos instantes.",
+                "bulgarian": "Съжаляваме, в момента имаме нестабилност. Моля, опитайте отново след няколко момента."
+            }
+            
+            error_message = error_messages.get(language, error_messages["english"])
             
             # Try to use previous session data if available
             if session.get("search_params") and session.get("selected_players"):
                 try:
                     players = session.get("selected_players", [])
-                    response_text = "Aqui estão alguns jogadores baseados em sua busca anterior:\n\n"
+                    
+                    # Language-specific fallback messages
+                    fallback_messages = {
+                        "english": "Here are some players based on your previous search:",
+                        "portuguese": "Aqui estão alguns jogadores baseados em sua busca anterior:",
+                        "spanish": "Aquí hay algunos jugadores basados en tu búsqueda anterior:",
+                        "bulgarian": "Ето някои играчи въз основа на предишното ви търсене:"
+                    }
+                    
+                    main_response = fallback_messages.get(language, fallback_messages["english"]) + "\n\n"
                     
                     for player in players:
                         name = player.get('name', 'Unknown')
                         positions = ', '.join(player.get('positions', ['Unknown']))
                         score = player.get('score', 0)
-                        response_text += f"- {name} ({positions}) - Score: {score}\n"
+                        main_response += f"- {name} ({positions}) - Score: {score}\n"
                     
-                    response_text += "\nVocê está satisfeito com esses jogadores ou gostaria de refinar sua busca?"
+                    # Get language-specific satisfaction question
+                    satisfaction_question = satisfaction_questions.get(language, satisfaction_questions["english"])
                     
-                    # Add a message to the chat history
+                    # Add both messages to the chat history
                     chat_manager.update_session(
                         session_id, 
                         message={
                             "role": "assistant",
-                            "content": response_text
+                            "content": main_response
                         }
                     )
                     
+                    chat_manager.update_session(
+                        session_id, 
+                        message={
+                            "role": "assistant",
+                            "content": satisfaction_question,
+                            "is_satisfaction_question": True
+                        }
+                    )
+                    
+                    # Language-specific warning messages
+                    warning_messages = {
+                        "english": "Using previous results due to service instability.",
+                        "portuguese": "Utilizando resultados anteriores devido a instabilidade do serviço.",
+                        "spanish": "Usando resultados anteriores debido a la inestabilidad del servicio.",
+                        "bulgarian": "Използване на предишни резултати поради нестабилност на услугата."
+                    }
+                    
                     return jsonify({
                         'success': True, 
-                        'response': response_text,
+                        'response': main_response,
+                        'satisfaction_question': satisfaction_question,
                         'players': players,
                         'session_id': session_id,
-                        'warning': 'Utilizando resultados anteriores devido a instabilidade do serviço.'
+                        'language': language,
+                        'warning': warning_messages.get(language, warning_messages["english"])
                     })
-                except:
-                    pass
+                except Exception as fallback_error:
+                    print(f"Error using fallback: {str(fallback_error)}")
             
             return jsonify({
                 'success': False, 
                 'error': str(e),
-                'message': error_message
+                'message': error_message,
+                'language': language
             })
         
     except Exception as e:
@@ -855,7 +1009,8 @@ def enhanced_search():
         return jsonify({
             'success': False, 
             'error': str(e),
-            'message': "Ocorreu um erro ao processar sua solicitação. Por favor, tente novamente."
+            'message': "An error occurred while processing your request. Please try again.",
+            'language': 'english'
         })
 
 @app.route('/player-image/<player_id>', methods=['GET'])
@@ -868,7 +1023,7 @@ def player_image(player_id):
     """
     try:
         # Create a safe player ID string
-        safe_id = str(player_id).replace("/", "").replace("..", "")
+        safe_id = str(player_id)
         
         # First, try to retrieve the player's image from the database
         player = None
@@ -885,45 +1040,45 @@ def player_image(player_id):
                     break
         
         # Try multiple possible fields for player images
-        image_fields = ['imageDataURL', 'photoUrl', 'profileUrl', 'image', 'photo', 'profileImage']
+        image_fields = 'imageDataURL'
         
         # If we found the player and they have an image field
         if player:
             # Try each possible image field
-            for field in image_fields:
-                if player.get(field):
-                    image_data_url = player.get(field)
-                    
-                    # Check if it's a valid base64 image
-                    if image_data_url and isinstance(image_data_url, str) and image_data_url.startswith('data:image'):
-                        try:
-                            # Split the header from the base64 data
-                            header, encoded = image_data_url.split(",", 1)
-                            # Get the mime type
-                            mime_type = header.split(";")[0].replace("data:", "")
-                            # Decode the base64 data
-                            import base64
-                            image_data = base64.b64decode(encoded)
+        
+            if player.get(image_fields):
+                image_data_url = player.get(image_fields)
+                
+                # Check if it's a valid base64 image
+                if image_data_url and isinstance(image_data_url, str) and image_data_url.startswith('data:image'):
+                    try:
+                        # Split the header from the base64 data
+                        header, encoded = image_data_url.split(",", 1)
+                        # Get the mime type
+                        mime_type = header.split(";")[0].replace("data:", "")
+                        # Decode the base64 data
+                        import base64
+                        image_data = base64.b64decode(encoded)
+                        # Return the image
+                        response = app.response_class(image_data, mimetype=mime_type)
+                        return response
+                    except Exception as e:
+                        print(f"Error decoding image data URL from {field}: {str(e)}")
+                
+                # Check if it's a URL to an external image
+                elif image_data_url and isinstance(image_data_url, str) and (image_data_url.startswith('http://') or image_data_url.startswith('https://')):
+                    try:
+                        import requests
+                        # Fetch the image
+                        img_response = requests.get(image_data_url, timeout=2)
+                        if img_response.status_code == 200:
+                            # Get the content type
+                            content_type = img_response.headers.get('Content-Type', 'image/jpeg')
                             # Return the image
-                            response = app.response_class(image_data, mimetype=mime_type)
+                            response = app.response_class(img_response.content, mimetype=content_type)
                             return response
-                        except Exception as e:
-                            print(f"Error decoding image data URL from {field}: {str(e)}")
-                    
-                    # Check if it's a URL to an external image
-                    elif image_data_url and isinstance(image_data_url, str) and (image_data_url.startswith('http://') or image_data_url.startswith('https://')):
-                        try:
-                            import requests
-                            # Fetch the image
-                            img_response = requests.get(image_data_url, timeout=2)
-                            if img_response.status_code == 200:
-                                # Get the content type
-                                content_type = img_response.headers.get('Content-Type', 'image/jpeg')
-                                # Return the image
-                                response = app.response_class(img_response.content, mimetype=content_type)
-                                return response
-                        except Exception as e:
-                            print(f"Error fetching image URL from {field}: {str(e)}")
+                    except Exception as e:
+                        print(f"Error fetching image URL from {field}: {str(e)}")
         
         # Second, check for local image files
         for ext in ['.jpg', '.png', '.jpeg']:
@@ -973,6 +1128,38 @@ def chat_history(session_id):
     except Exception as e:
         print(f"Error retrieving chat history: {str(e)}")
         return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/languages', methods=['GET'])
+def get_languages():
+    """Get available languages"""
+    languages = {
+        "english": {
+            "code": "en",
+            "name": "English",
+            "native_name": "English"
+        },
+        "portuguese": {
+            "code": "pt",
+            "name": "Portuguese",
+            "native_name": "Português"
+        },
+        "spanish": {
+            "code": "es",
+            "name": "Spanish", 
+            "native_name": "Español"
+        },
+        "bulgarian": {
+            "code": "bg",
+            "name": "Bulgarian",
+            "native_name": "Български"
+        }
+    }
+    
+    return jsonify({
+        "success": True,
+        "languages": languages,
+        "default": "english"
+    })
 
 if __name__ == "__main__":
     # Run the Flask application when executed directly
