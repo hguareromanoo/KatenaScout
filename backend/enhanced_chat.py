@@ -1,11 +1,11 @@
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
-from anthropic import Anthropic
 from openai import OpenAI
 from pydantic import BaseModel, Field, field_validator
 from typing import List, Optional, Dict, Any
 import json
 import os
+import requests
 import unidecode
 from env_keys import get_anthropic_api_key, get_openai_api_key
 
@@ -185,19 +185,8 @@ class SearchParameters(BaseModel):
 class ChatSession:
     """Manages the state of an ongoing chat session with memory of previous interactions"""
     def __init__(self):
-        try:
-            self.claude = Anthropic(api_key=get_anthropic_api_key())
-        except TypeError as e:
-            if 'proxies' in str(e):
-            # Older version that might need proxies explicitly set to None
-                self.claude = Anthropic(api_key=get_anthropic_api_key(), proxies=None)
-            else:
-            # Re-raise if it's a different error
-                raise
-        # Initialize API clients
-        
-    # Initialize API clients with version-safe approach
-    
+        # Store API keys
+        self.anthropic_api_key = get_anthropic_api_key()
         self.openai = OpenAI(api_key=get_openai_api_key())
         
         # Load necessary data files
@@ -208,6 +197,72 @@ class ChatSession:
         
         # Chat session memory
         self.sessions = {}  # Map session_id -> session_data
+    
+    def call_claude_api(self, model, max_tokens, system=None, messages=None, tools=None, tool_choice=None):
+        """
+        Makes direct HTTP requests to the Claude API instead of using the Anthropic client library
+        
+        Args:
+            model: The Claude model to use (e.g. "claude-3-5-sonnet-20241022")
+            max_tokens: Maximum number of tokens to generate
+            system: Optional system prompt
+            messages: List of message objects with role and content
+            tools: Optional list of tool objects
+            tool_choice: Optional tool choice object
+            
+        Returns:
+            Response object mimicking the structure of the Anthropic client library response
+        """
+        url = "https://api.anthropic.com/v1/messages"
+        headers = {
+            "x-api-key": self.anthropic_api_key,
+            "anthropic-version": "2023-06-01",
+            "content-type": "application/json"
+        }
+        
+        # Build request body
+        body = {
+            "model": model,
+            "max_tokens": max_tokens
+        }
+        
+        if system:
+            body["system"] = system
+            
+        if messages:
+            body["messages"] = messages
+            
+        if tools:
+            body["tools"] = tools
+            
+        if tool_choice:
+            body["tool_choice"] = tool_choice
+        
+        try:
+            response = requests.post(url, headers=headers, json=body)
+            response.raise_for_status()  # Raise exception for HTTP errors
+            
+            # Parse JSON response
+            data = response.json()
+            
+            # Create a response object that mimics the structure of the Anthropic client library response
+            class Content:
+                def __init__(self, content_data):
+                    self.type = content_data.get("type")
+                    self.text = content_data.get("text", "")
+                    self.input = content_data.get("input", {})
+            
+            class ResponseObject:
+                def __init__(self, data):
+                    self.id = data.get("id")
+                    self.model = data.get("model")
+                    self.content = [Content(item) for item in data.get("content", [])]
+            
+            return ResponseObject(data)
+            
+        except Exception as e:
+            print(f"Error calling Claude API: {str(e)}")
+            raise
     
     def _load_json(self, filename: str) -> dict:
         """Load a JSON file, trying different paths"""
@@ -316,7 +371,7 @@ class ChatSession:
             print(f"Using new query: {query_to_use}")
         
         try:
-            response = self.claude.messages.create(
+            response = self.call_claude_api(
                 model="claude-3-5-sonnet-20241022",
                 max_tokens=8192,
                 system=self._get_system_prompt(),
@@ -362,7 +417,7 @@ class ChatSession:
         correction_prompt = f"The position codes {invalid_codes} are invalid. Please provide valid position codes that are similar to {invalid_codes} from the following map: {POSITIONS_MAPPING}. Example: cm -> lcmf, rcmf or dmf"
         
         try:
-            correction_response = self.claude.messages.create(
+            correction_response = self.call_claude_api(
                 model="claude-3-5-sonnet-20241022",
                 max_tokens=1024,
                 messages=[
@@ -757,7 +812,7 @@ soccer_scouting_examples = [
             system_prompt = system_prompts.get(language, system_prompts["english"])
             
             # Use Claude to generate a natural language description
-            response = self.claude.messages.create(
+            response = self.call_claude_api(
                 model="claude-3-5-sonnet-20241022",
                 max_tokens=8192,
                 system=system_prompt,
