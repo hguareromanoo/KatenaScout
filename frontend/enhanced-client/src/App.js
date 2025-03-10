@@ -265,7 +265,7 @@ function App() {
                 <div className="bg-gray-800 rounded-xl w-full max-w-4xl max-h-[90vh] overflow-auto relative shadow-2xl">
                   <PlayerDashboard 
                     player={selectedPlayer} 
-                    metrics={metrics}
+                    metrics={metrics || []}
                     onClose={() => setSelectedPlayer(null)}
                     isPlayerFavorite={isPlayerFavorite(selectedPlayer)}
                     toggleFavorite={() => toggleFavorite(selectedPlayer)}
@@ -491,20 +491,35 @@ const ChatInterface = ({ onPlayerSelected, expanded, isPlayerFavorite, toggleFav
   };
 
   const handlePlayerSelect = (player) => {
-    // Extract metrics from the player object to display in the dashboard
-    const playerMetrics = Object.entries(player.stats || {}).map(([key, value]) => ({
-      name: formatMetricName(key),
-      value: value,
-      key: key
-    }));
-
-    setMessages(prev => [...prev, {
-      text: `Mostrando detalhes de ${player.name}...`,
-      sender: 'bot'
-    }]);
-    
-    // Call the parent component's callback to show the player dashboard
-    onPlayerSelected(player, playerMetrics);
+    try {
+      // Safety check for player object
+      if (!player) {
+        console.error("Player is undefined or null");
+        return;
+      }
+      
+      // Extract metrics from the player object to display in the dashboard
+      const playerMetrics = Object.entries(player.stats || {}).map(([key, value]) => ({
+        name: formatMetricName(key),
+        value: value,
+        key: key
+      }));
+  
+      setMessages(prev => [...prev, {
+        text: `Mostrando detalhes de ${player.name || 'jogador'}...`,
+        sender: 'bot'
+      }]);
+      
+      // Call the parent component's callback to show the player dashboard
+      onPlayerSelected(player, playerMetrics);
+    } catch (error) {
+      console.error("Error in handlePlayerSelect:", error);
+      // Add a nice error message to the chat
+      setMessages(prev => [...prev, {
+        text: "Ocorreu um erro ao carregar o perfil do jogador. Por favor, tente novamente.",
+        sender: 'bot'
+      }]);
+    }
   };
 
   // Helper function to format metric names for display
@@ -743,6 +758,9 @@ const ChatInterface = ({ onPlayerSelected, expanded, isPlayerFavorite, toggleFav
 const PlayerDashboard = ({ player, metrics, onClose, isPlayerFavorite, toggleFavorite, currentLanguage = 'english', onViewComplete }) => {
   // Helper function to get a flag emoji based on country name
   const getCountryFlag = (countryName) => {
+    // Safety check for undefined or null
+    if (!countryName) return '🌍';
+    
     // Map of common country names to their flag emojis
     const countryFlags = {
       'Brazil': '🇧🇷',
@@ -851,8 +869,34 @@ const PlayerDashboard = ({ player, metrics, onClose, isPlayerFavorite, toggleFav
       .join(' ');
   };
 
+  // Safety check for player object
+  if (!player) {
+    console.error("PlayerDashboard received null or undefined player");
+    return (
+      <div className="w-full bg-gray-950 flex flex-col overflow-hidden">
+        <div className="bg-gray-800 p-4 flex justify-between items-center border-b border-gray-700">
+          <h2 className="text-xl font-bold text-white">Error</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-white">
+            <X size={24} />
+          </button>
+        </div>
+        <div className="p-6 flex items-center justify-center h-full">
+          <div className="bg-red-900 bg-opacity-20 p-4 rounded-lg border border-red-700 text-center">
+            <p className="text-red-300 mb-4">Erro ao carregar dados do jogador</p>
+            <button 
+              onClick={onClose}
+              className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded text-white"
+            >
+              Fechar
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Get player position in a more readable format
-  const positionDisplay = player.positions?.map(pos => {
+  const positionDisplay = (player.positions || []).map(pos => {
     const posMap = {
       'cb': 'Zagueiro',
       'lb': 'Lateral Esquerdo',
