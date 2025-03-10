@@ -190,7 +190,7 @@ class ChatSession:
         except TypeError as e:
             if 'proxies' in str(e):
             # Older version that might need proxies explicitly set to None
-            self.claude = Anthropic(api_key=get_anthropic_api_key(), proxies=None)
+                self.claude = Anthropic(api_key=get_anthropic_api_key(), proxies=None)
             else:
             # Re-raise if it's a different error
                 raise
