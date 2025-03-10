@@ -1,7 +1,7 @@
 flask==2.0.1
 werkzeug==2.0.3
 flask-cors==3.0.10
-anthropic==0.5.0
+anthropic==0.8.1  # Update to this specific version
 openai==1.3.0
 pydantic==2.4.2
 gunicorn==20.1.0
