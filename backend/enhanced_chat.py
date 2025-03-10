@@ -187,7 +187,6 @@ class ChatSession:
     def __init__(self):
         # Store API keys
         self.anthropic_api_key = get_anthropic_api_key()
-        self.openai = OpenAI(api_key=get_openai_api_key())
         
         # Load necessary data files
         self.average = self._load_json('average_statistics_by_position.json')
