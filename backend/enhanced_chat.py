@@ -522,31 +522,36 @@ soccer_scouting_examples = [
         
         # Try different paths for club name
         
-        # We have a team ID but no name, try to look it up
-        team_id = player.get("currentTeamId")
-        
-        # Use a hardcoded mapping for common team IDs
-        # Try multiple file paths to find team.json
-        team_names = {}
-        team_json_paths = [
-            'team.json',  # Current directory
-            os.path.join(os.path.dirname(__file__), 'team.json'),  # Same directory as this file
-            os.path.join(os.path.dirname(os.path.dirname(__file__)), 'team.json'),  # Parent directory
-        ]
-        
-        for path in team_json_paths:
-            try:
-                with open(path, 'r', encoding='utf-8') as f:
-                    team_names = json.load(f)
-                    break  # Found and loaded the file, exit the loop
-            except (FileNotFoundError, IOError):
-                continue
-        
-        # Convert team_id to string for comparison
-        if team_id:
-            team_id_str = str(team_id)
-            if team_id_str in team_names:
-                club_name = team_names[team_id_str].get('name', 'Unknown')
+        # First, check if club is directly available as an object
+        club_obj = player.get("club")
+        if isinstance(club_obj, dict) and 'name' in club_obj:
+            club_name = club_obj.get('name', 'Unknown')
+        else:
+            # If no direct club object or it has no name, try to look up by team ID
+            team_id = player.get("currentTeamId")
+            
+            # Use a hardcoded mapping for common team IDs
+            # Try multiple file paths to find team.json
+            team_names = {}
+            team_json_paths = [
+                'team.json',  # Current directory
+                os.path.join(os.path.dirname(__file__), 'team.json'),  # Same directory as this file
+                os.path.join(os.path.dirname(os.path.dirname(__file__)), 'team.json'),  # Parent directory
+            ]
+            
+            for path in team_json_paths:
+                try:
+                    with open(path, 'r', encoding='utf-8') as f:
+                        team_names = json.load(f)
+                        break  # Found and loaded the file, exit the loop
+                except (FileNotFoundError, IOError):
+                    continue
+            
+            # Convert team_id to string for comparison
+            if team_id:
+                team_id_str = str(team_id)
+                if team_id_str in team_names:
+                    club_name = team_names[team_id_str].get('name', 'Unknown')
         
         # Try different paths for contract expiration
         if player.get("contractUntil"):
@@ -559,6 +564,16 @@ soccer_scouting_examples = [
         for field in ["passportArea", "birthArea", "nationality", "country", "countryOfBirth"]:
             if player.get(field):
                 nationality = player.get(field)
+                # If nationality is a string, use it directly
+                # If it's an object, extract the name property
+                if isinstance(nationality, dict):
+                    # Use 'name' as first priority, then alpha3code or alpha2code
+                    if 'name' in nationality:
+                        nationality = nationality['name']
+                    elif 'alpha3code' in nationality:
+                        nationality = nationality['alpha3code']
+                    elif 'alpha2code' in nationality:
+                        nationality = nationality['alpha2code']
                 break
         
         # Get preferred foot

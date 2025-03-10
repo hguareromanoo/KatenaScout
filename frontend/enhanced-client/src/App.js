@@ -770,12 +770,21 @@ const ChatInterface = ({ onPlayerSelected, expanded, isPlayerFavorite, toggleFav
                               currentLanguage === 'portuguese' ? 'anos' :
                               currentLanguage === 'spanish' ? 'años' :
                               'години'
-                            } • {player.club || (
-                              currentLanguage === 'english' ? 'Unknown club' :
-                              currentLanguage === 'portuguese' ? 'Clube desconhecido' :
-                              currentLanguage === 'spanish' ? 'Club desconocido' :
-                              'Неизвестен клуб'
-                            )}
+                            } • {
+                              typeof player.club === 'object' && player.club !== null
+                                ? (player.club.name || String(player.club) || (
+                                    currentLanguage === 'english' ? 'Unknown club' :
+                                    currentLanguage === 'portuguese' ? 'Clube desconhecido' :
+                                    currentLanguage === 'spanish' ? 'Club desconocido' :
+                                    'Неизвестен клуб'
+                                  ))
+                                : (player.club || (
+                                    currentLanguage === 'english' ? 'Unknown club' :
+                                    currentLanguage === 'portuguese' ? 'Clube desconhecido' :
+                                    currentLanguage === 'spanish' ? 'Club desconocido' :
+                                    'Неизвестен клуб'
+                                  ))
+                            }
                           </div>
                         </div>
                         
@@ -859,10 +868,17 @@ const ChatInterface = ({ onPlayerSelected, expanded, isPlayerFavorite, toggleFav
 
 // Player Dashboard Component with improved design, player photo, and radar chart
 const PlayerDashboard = ({ player, metrics, onClose, isPlayerFavorite, toggleFavorite, currentLanguage = 'english', onViewComplete }) => {
-  // Helper function to get a flag emoji based on country name
-  const getCountryFlag = (countryName) => {
+  // Helper function to get a flag emoji based on country name or object
+  const getCountryFlag = (country) => {
     // Safety check for undefined or null
-    if (!countryName) return '🌍';
+    if (!country) return '🌍';
+    
+    // Handle country as object or string
+    const countryName = typeof country === 'object' && country !== null
+      ? (country.name || country.alpha3code || country.alpha2code || '') 
+      : String(country);
+      
+    console.log('[DEBUG] Getting flag for country:', countryName, 'Original:', country);
     
     // Map of common country names to their flag emojis
     const countryFlags = {
@@ -1340,12 +1356,16 @@ const PlayerDashboard = ({ player, metrics, onClose, isPlayerFavorite, toggleFav
                 <div className="flex items-center">
                   <div className="mr-3 p-1 bg-white bg-opacity-20 rounded">
                     <img 
-                      src={`https://ui-avatars.com/api/?name=${encodeURIComponent(player.club?.substring(0,2) || 'FC')}&background=111827&color=fff&size=20&font-size=0.5&bold=true`}
+                      src={`https://ui-avatars.com/api/?name=${encodeURIComponent(
+                        typeof player.club === 'object' && player.club !== null 
+                          ? (player.club.name?.substring(0,2) || player.club.alpha3code?.substring(0,2) || 'FC')
+                          : (player.club?.substring(0,2) || 'FC')
+                      )}&background=111827&color=fff&size=20&font-size=0.5&bold=true`}
                       alt="Club"
                       className="w-6 h-6 rounded-full"
                     />
                   </div>
-                  <h1 className="text-3xl font-bold">{formatPlayerName(player.name)}</h1>
+                  <h1 className="text-3xl font-bold">{formatPlayerName(typeof player.name === 'object' ? 'Jogador' : player.name)}</h1>
                 </div>
                 
                 <div className="flex flex-wrap items-center gap-2 mt-2 mb-4">
@@ -1364,7 +1384,13 @@ const PlayerDashboard = ({ player, metrics, onClose, isPlayerFavorite, toggleFav
                   {player.nationality && (
                     <div className="flex items-center bg-white bg-opacity-10 rounded-full px-3 py-1">
                       <span className="text-sm font-medium">
-                        {getCountryFlag(player.nationality)} {player.nationality}
+                        {getCountryFlag(player.nationality)} {
+                          typeof player.nationality === 'object' && player.nationality !== null
+                            ? (player.nationality.name || 
+                               player.nationality.alpha3code || 
+                               'País')
+                            : String(player.nationality)
+                        }
                       </span>
                     </div>
                   )}
@@ -1415,7 +1441,12 @@ const PlayerDashboard = ({ player, metrics, onClose, isPlayerFavorite, toggleFav
                         <Package className="mr-2 text-blue-300" size={14} />
                         <span className="text-sm text-gray-300">Clube Atual</span>
                       </div>
-                      <div className="font-medium">{player.club || "Informação indisponível"}</div>
+                      <div className="font-medium">
+                        {typeof player.club === 'object' && player.club !== null
+                          ? (player.club.name || String(player.club) || "Informação indisponível")
+                          : (player.club || "Informação indisponível")
+                        }
+                      </div>
                     </div>
                     <div>
                       <div className="flex items-center">
@@ -1433,7 +1464,14 @@ const PlayerDashboard = ({ player, metrics, onClose, isPlayerFavorite, toggleFav
                         </div>
                         <div className="font-medium flex items-center">
                           <span className="mr-2">{getCountryFlag(player.nationality)}</span>
-                          <span>{player.nationality}</span>
+                          <span>
+                            {typeof player.nationality === 'object' && player.nationality !== null
+                              ? (player.nationality.name || 
+                                 player.nationality.alpha3code || 
+                                 'País')
+                              : String(player.nationality)
+                            }
+                          </span>
                         </div>
                       </div>
                     )}
@@ -1889,7 +1927,14 @@ const PlayerCompletePage = ({ player, onClose, isPlayerFavorite, toggleFavorite,
                 {player.nationality && (
                   <div className="bg-gray-900 bg-opacity-50 rounded-lg p-3">
                     <div className="text-gray-400 mb-1">{t.nationality || 'Nationality'}</div>
-                    <div className="text-white font-medium">{player.nationality}</div>
+                    <div className="text-white font-medium">
+                      {typeof player.nationality === 'object' && player.nationality !== null
+                        ? (player.nationality.name || 
+                           player.nationality.alpha3code || 
+                           'País')
+                        : String(player.nationality)
+                      }
+                    </div>
                   </div>
                 )}
                 
@@ -1906,7 +1951,12 @@ const PlayerCompletePage = ({ player, onClose, isPlayerFavorite, toggleFavorite,
                 
                 <div className="bg-gray-900 bg-opacity-50 rounded-lg p-3 md:col-span-1">
                   <div className="text-gray-400 mb-1">{t.club}</div>
-                  <div className="text-white font-medium">{player.club || 'Unknown'}</div>
+                  <div className="text-white font-medium">
+                    {typeof player.club === 'object' && player.club !== null
+                      ? (player.club.name || String(player.club) || 'Unknown')
+                      : (player.club || 'Unknown')
+                    }
+                  </div>
                 </div>
                 
                 <div className="bg-gray-900 bg-opacity-50 rounded-lg p-3">
@@ -2216,7 +2266,12 @@ const FavoritesView = ({ favorites, onSelectPlayer, onRemoveFavorite, currentLan
                     </div>
                     
                     <div>
-                      <div className="text-gray-300">{player.club || 'Unknown Club'}</div>
+                      <div className="text-gray-300">
+                        {typeof player.club === 'object' && player.club !== null
+                          ? (player.club.name || String(player.club) || 'Unknown Club')
+                          : (player.club || 'Unknown Club')
+                        }
+                      </div>
                       <div className="text-gray-400 text-sm">{player.age} {t.age}</div>
                     </div>
                   </div>
