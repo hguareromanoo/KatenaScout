@@ -1,13 +1,71 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Component } from 'react';
 import { 
   Send, X, UserCircle, Trophy, TrendingUp, BarChart3, Clock, Package, Calendar,
   Settings, Heart, ChevronRight, Globe, Star, Eye, Search, Trash2, ArrowLeft,
-  Menu, User, Footprints as Boot
+  Menu, User, Footprints as Boot, AlertTriangle
 } from 'lucide-react';
 import { 
   Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, 
   ResponsiveContainer, Tooltip, Legend 
 } from 'recharts';
+
+// Error Boundary Component to catch rendering errors
+class ErrorBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null, errorInfo: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    // Update state so the next render will show the fallback UI
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    // Log the error to the console
+    console.error("Error caught by ErrorBoundary:", error, errorInfo);
+    this.setState({ errorInfo });
+    
+    // You could also log this to an error reporting service
+    // logErrorToService(error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      // Render fallback UI
+      return (
+        <div className="bg-red-900 bg-opacity-20 p-6 rounded-lg border border-red-700 m-4">
+          <div className="flex items-center mb-4">
+            <AlertTriangle className="text-red-500 mr-2" size={24} />
+            <h2 className="text-lg font-bold text-red-300">Oops! Algo deu errado</h2>
+          </div>
+          <p className="text-red-200 mb-4">
+            Ocorreu um erro ao renderizar este componente. Detalhes adicionais foram registrados no console.
+          </p>
+          {this.props.fallback || (
+            <button 
+              className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded text-white"
+              onClick={() => window.location.reload()}
+            >
+              Recarregar Página
+            </button>
+          )}
+          {process.env.NODE_ENV === 'development' && (
+            <details className="mt-4 p-2 bg-black bg-opacity-30 rounded">
+              <summary className="text-red-300 cursor-pointer">Detalhes Técnicos</summary>
+              <pre className="mt-2 p-2 text-xs text-red-300 overflow-auto max-h-60 whitespace-pre-wrap bg-black bg-opacity-50 rounded">
+                {this.state.error && this.state.error.toString()}
+                {this.state.errorInfo && this.state.errorInfo.componentStack}
+              </pre>
+            </details>
+          )}
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
 
 // Main App Component
 function App() {
@@ -263,19 +321,38 @@ function App() {
             {selectedPlayer && (
               <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-40 p-4">
                 <div className="bg-gray-800 rounded-xl w-full max-w-4xl max-h-[90vh] overflow-auto relative shadow-2xl">
-                  <PlayerDashboard 
-                    player={selectedPlayer} 
-                    metrics={metrics || []}
-                    onClose={() => setSelectedPlayer(null)}
-                    isPlayerFavorite={isPlayerFavorite(selectedPlayer)}
-                    toggleFavorite={() => toggleFavorite(selectedPlayer)}
-                    currentLanguage={currentLanguage}
-                    onViewComplete={(player) => {
-                      setSelectedPlayer(null);
-                      setCompleteProfilePlayer(player);
-                      setShowingCompleteProfile(true);
-                    }}
-                  />
+                  <ErrorBoundary 
+                    fallback={(
+                      <div className="p-6">
+                        <h3 className="text-xl text-red-400 mb-4">Erro ao exibir dados do jogador</h3>
+                        <p className="text-gray-300 mb-4">Não foi possível renderizar os detalhes do jogador. Por favor, tente novamente mais tarde.</p>
+                        <button 
+                          onClick={() => setSelectedPlayer(null)} 
+                          className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded text-white"
+                        >
+                          Fechar
+                        </button>
+                      </div>
+                    )}
+                  >
+                    <PlayerDashboard 
+                      player={selectedPlayer} 
+                      metrics={metrics || []}
+                      onClose={() => {
+                        console.log("[DEBUG] Closing player dashboard");
+                        setSelectedPlayer(null);
+                      }}
+                      isPlayerFavorite={isPlayerFavorite(selectedPlayer)}
+                      toggleFavorite={() => toggleFavorite(selectedPlayer)}
+                      currentLanguage={currentLanguage}
+                      onViewComplete={(player) => {
+                        console.log("[DEBUG] View complete called with player:", player);
+                        setSelectedPlayer(null);
+                        setCompleteProfilePlayer(player);
+                        setShowingCompleteProfile(true);
+                      }}
+                    />
+                  </ErrorBoundary>
                 </div>
               </div>
             )}
@@ -492,18 +569,42 @@ const ChatInterface = ({ onPlayerSelected, expanded, isPlayerFavorite, toggleFav
 
   const handlePlayerSelect = (player) => {
     try {
+      // Extensive DEBUG logging to track the error
+      console.log("[DEBUG] handlePlayerSelect called with player:", player);
+      
       // Safety check for player object
       if (!player) {
-        console.error("Player is undefined or null");
+        console.error("[ERROR] Player is undefined or null");
+        setMessages(prev => [...prev, {
+          text: "Erro: dados do jogador não encontrados. Por favor, tente novamente.",
+          sender: 'bot'
+        }]);
         return;
       }
       
-      // Extract metrics from the player object to display in the dashboard
-      const playerMetrics = Object.entries(player.stats || {}).map(([key, value]) => ({
-        name: formatMetricName(key),
-        value: value,
-        key: key
-      }));
+      // Check for required fields and log warnings
+      if (!player.name) console.warn("[WARNING] Player name is missing");
+      if (!player.stats) console.warn("[WARNING] Player stats are missing");
+      if (!player.positions) console.warn("[WARNING] Player positions are missing");
+      
+      // Extract metrics from the player object with validation
+      console.log("[DEBUG] Extracting metrics from player.stats:", player.stats);
+      
+      const playerMetrics = Object.entries(player.stats || {}).map(([key, value]) => {
+        // Validate each metric value
+        if (value === undefined || value === null) {
+          console.warn(`[WARNING] Metric ${key} has null/undefined value`);
+        }
+        
+        return {
+          name: formatMetricName(key),
+          value: value !== undefined && value !== null ? value : 0, // Provide fallback
+          key: key,
+          originalValue: value // Keep original for debugging
+        };
+      });
+      
+      console.log("[DEBUG] Extracted metrics:", playerMetrics);
   
       setMessages(prev => [...prev, {
         text: `Mostrando detalhes de ${player.name || 'jogador'}...`,
@@ -511,9 +612,11 @@ const ChatInterface = ({ onPlayerSelected, expanded, isPlayerFavorite, toggleFav
       }]);
       
       // Call the parent component's callback to show the player dashboard
+      console.log("[DEBUG] Calling onPlayerSelected with player and metrics");
       onPlayerSelected(player, playerMetrics);
     } catch (error) {
-      console.error("Error in handlePlayerSelect:", error);
+      console.error("[CRITICAL] Error in handlePlayerSelect:", error);
+      console.error("[CRITICAL] Error stack:", error.stack);
       // Add a nice error message to the chat
       setMessages(prev => [...prev, {
         text: "Ocorreu um erro ao carregar o perfil do jogador. Por favor, tente novamente.",
@@ -869,32 +972,29 @@ const PlayerDashboard = ({ player, metrics, onClose, isPlayerFavorite, toggleFav
       .join(' ');
   };
 
-  // Safety check for player object
+  // We've removed the duplicated safety check and kept the more detailed one
+  // Check if player exists before trying to render
   if (!player) {
-    console.error("PlayerDashboard received null or undefined player");
+    console.error("[ERROR] PlayerDashboard received null or undefined player");
     return (
-      <div className="w-full bg-gray-950 flex flex-col overflow-hidden">
-        <div className="bg-gray-800 p-4 flex justify-between items-center border-b border-gray-700">
-          <h2 className="text-xl font-bold text-white">Error</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-white">
-            <X size={24} />
-          </button>
-        </div>
-        <div className="p-6 flex items-center justify-center h-full">
-          <div className="bg-red-900 bg-opacity-20 p-4 rounded-lg border border-red-700 text-center">
-            <p className="text-red-300 mb-4">Erro ao carregar dados do jogador</p>
-            <button 
-              onClick={onClose}
-              className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded text-white"
-            >
-              Fechar
-            </button>
-          </div>
-        </div>
+      <div className="p-6 bg-red-900 bg-opacity-20 rounded-lg border border-red-700 text-white">
+        <h2 className="text-xl font-bold mb-4 flex items-center">
+          <AlertTriangle className="mr-2" size={20} />
+          Erro
+        </h2>
+        <p className="mb-4">Não foi possível carregar os dados do jogador</p>
+        <button
+          onClick={onClose}
+          className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded"
+        >
+          Voltar
+        </button>
       </div>
     );
   }
-
+  
+  console.log("[DEBUG] Rendering PlayerDashboard with player:", player);
+  
   // Get player position in a more readable format
   const positionDisplay = (player.positions || []).map(pos => {
     const posMap = {
@@ -989,48 +1089,77 @@ const PlayerDashboard = ({ player, metrics, onClose, isPlayerFavorite, toggleFav
 
   // Custom function to render a comprehensive radar chart with all metrics
   const renderComprehensiveRadarChart = () => {
-    const data = prepareAllRadarData(metrics);
+    console.log("[DEBUG] renderComprehensiveRadarChart called with metrics:", metrics);
     
-    if (data.length === 0) {
-      return (
-        <div className="flex items-center justify-center h-96 bg-gray-800 rounded-xl">
-          <p className="text-gray-400 text-center p-8">
-            Sem métricas disponíveis para este jogador.<br/>
-            Tente selecionar outro jogador com mais dados estatísticos.
-          </p>
-        </div>
-      );
-    }
+    try {
+      // Safety check for metrics
+      if (!metrics || !Array.isArray(metrics) || metrics.length === 0) {
+        console.warn("[WARNING] No metrics available for radar chart");
+        return (
+          <div className="flex items-center justify-center h-96 bg-gray-800 rounded-xl">
+            <p className="text-gray-400 text-center p-8">
+              Sem métricas disponíveis para este jogador.<br/>
+              Tente selecionar outro jogador com mais dados estatísticos.
+            </p>
+          </div>
+        );
+      }
+      
+      const data = prepareAllRadarData(metrics);
+      console.log("[DEBUG] Prepared radar data:", data);
+      
+      if (data.length === 0) {
+        return (
+          <div className="flex items-center justify-center h-96 bg-gray-800 rounded-xl">
+            <p className="text-gray-400 text-center p-8">
+              Sem métricas disponíveis para este jogador.<br/>
+              Tente selecionar outro jogador com mais dados estatísticos.
+            </p>
+          </div>
+        );
+      }
+    
+    // Make sure we have a valid player name for the legend
+    const playerName = player && player.name ? formatPlayerName(player.name) : "Jogador";
     
     // Fixed height container instead of aspect ratio to prevent layout bugs
     return (
       <div className="w-full h-[450px]">
-        <ResponsiveContainer width="100%" height="100%">
-          <RadarChart 
-            cx="50%" 
-            cy="50%" 
-            outerRadius="65%" 
-            data={data}
-          >
-            <PolarGrid strokeDasharray="3 3" stroke="#4B5563" />
-            <PolarAngleAxis 
-              dataKey="name" 
-              tick={{ fill: '#E5E7EB', fontSize: 12 }}
-              stroke="#6B7280"
-            />
-            <PolarRadiusAxis 
-              angle={30} 
-              domain={[0, 100]} 
-              tick={{ fill: '#9CA3AF' }}
-              stroke="#4B5563"
-              axisLine={false}
-            />
-            <Radar
-              name={formatPlayerName(player.name)}
-              dataKey="value"
-              stroke="#10B981"
-              fill="#10B981"
-              fillOpacity={0.6}
+        <ErrorBoundary fallback={
+          <div className="flex items-center justify-center h-full bg-gray-800 rounded-xl">
+            <div className="text-center p-6">
+              <AlertTriangle className="mx-auto mb-4 text-yellow-500" size={32} />
+              <p className="text-gray-300 mb-2">Erro ao renderizar o gráfico de radar</p>
+              <p className="text-gray-400 text-sm">Os dados do jogador podem estar incompletos</p>
+            </div>
+          </div>
+        }>
+          <ResponsiveContainer width="100%" height="100%">
+            <RadarChart 
+              cx="50%" 
+              cy="50%" 
+              outerRadius="65%" 
+              data={data}
+            >
+              <PolarGrid strokeDasharray="3 3" stroke="#4B5563" />
+              <PolarAngleAxis 
+                dataKey="name" 
+                tick={{ fill: '#E5E7EB', fontSize: 12 }}
+                stroke="#6B7280"
+              />
+              <PolarRadiusAxis 
+                angle={30} 
+                domain={[0, 100]} 
+                tick={{ fill: '#9CA3AF' }}
+                stroke="#4B5563"
+                axisLine={false}
+              />
+              <Radar
+                name={playerName}
+                dataKey="value"
+                stroke="#10B981"
+                fill="#10B981"
+                fillOpacity={0.6}
             />
             <Tooltip 
               formatter={(value, name, props) => {
@@ -1055,29 +1184,64 @@ const PlayerDashboard = ({ player, metrics, onClose, isPlayerFavorite, toggleFav
             <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px' }} />
           </RadarChart>
         </ResponsiveContainer>
+        </ErrorBoundary>
       </div>
     );
+    } catch (error) {
+      console.error("[CRITICAL] Error rendering radar chart:", error);
+      return (
+        <div className="flex items-center justify-center h-96 bg-gray-800 rounded-xl">
+          <div className="text-center p-6">
+            <AlertTriangle className="mx-auto mb-4 text-red-500" size={32} />
+            <p className="text-red-400 font-bold mb-2">Erro ao renderizar o gráfico</p>
+            <p className="text-gray-400 text-sm">
+              Ocorreu um erro inesperado ao processar os dados do jogador.
+            </p>
+          </div>
+        </div>
+      );
+    }
   };
 
   // Player photo URL - use a placeholder if not available
   const getPlayerImageUrl = (player) => {
-    // First try imageDataURL which is the direct Base64 image data
-    if (player.imageDataURL) {
-      return player.imageDataURL;
+    console.log("[DEBUG] getPlayerImageUrl called with player:", player);
+    
+    // Safety check for null/undefined player
+    if (!player) {
+      console.warn("[WARNING] Player object is null or undefined in getPlayerImageUrl");
+      return `https://ui-avatars.com/api/?name=Unknown&background=0D8ABC&color=fff&size=256`;
     }
     
-    // Fallback to old methods for backward compatibility
-    if (player.photoUrl) {
-      return player.photoUrl;
+    try {
+      // First try imageDataURL which is the direct Base64 image data
+      if (player.imageDataURL) {
+        console.log("[DEBUG] Using player.imageDataURL");
+        return player.imageDataURL;
+      }
+      
+      // Fallback to old methods for backward compatibility
+      if (player.photoUrl) {
+        console.log("[DEBUG] Using player.photoUrl");
+        return player.photoUrl;
+      }
+      
+      // Try to use player ID for the backend image API
+      if (player.id) {
+        const url = `https://katenascout-backend.onrender.com/player-image/${player.id}`;
+        console.log(`[DEBUG] Using backend image API: ${url}`);
+        return url;
+      }
+      
+      // Last fallback to UI Avatars API for a consistent placeholder
+      const name = player.name || "Unknown";
+      const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=0D8ABC&color=fff&size=256`;
+      console.log(`[DEBUG] Using UI Avatars fallback: ${avatarUrl}`);
+      return avatarUrl;
+    } catch (error) {
+      console.error("[ERROR] Error in getPlayerImageUrl:", error);
+      return `https://ui-avatars.com/api/?name=Error&background=CC0000&color=fff&size=256`;
     }
-    
-    // Try to use player ID for the backend image API
-    if (player.id) {
-      return `https://katenascout-backend.onrender.com/player-image/${player.id}`;
-    }
-    
-    // Last fallback to UI Avatars API for a consistent placeholder
-    return `https://ui-avatars.com/api/?name=${encodeURIComponent(player.name)}&background=0D8ABC&color=fff&size=256`;
   };
   
   const playerPhotoUrl = getPlayerImageUrl(player);
@@ -1135,15 +1299,27 @@ const PlayerDashboard = ({ player, metrics, onClose, isPlayerFavorite, toggleFav
               {/* Player Photo - Larger and more prominent */}
               <div className="mr-6">
                 <div className="w-36 h-44 overflow-hidden rounded-lg border-4 border-white bg-gray-800 shadow-xl relative">
-                  <img 
-                    src={playerPhotoUrl} 
-                    alt={player.name} 
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      e.target.onerror = null; 
-                      e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(player.name)}&background=0D8ABC&color=fff&size=256`;
-                    }}
-                  />
+                  <ErrorBoundary fallback={
+                    <div className="w-full h-full bg-gray-700 flex items-center justify-center">
+                      <div className="text-white text-center">
+                        <AlertTriangle size={24} className="mx-auto mb-2" />
+                        <div className="text-xs">Imagem indisponível</div>
+                      </div>
+                    </div>
+                  }>
+                    <img 
+                      src={playerPhotoUrl} 
+                      alt={player.name || "Jogador"} 
+                      className="w-full h-full object-cover"
+                      loading="eager"
+                      onError={(e) => {
+                        console.warn("[WARNING] Player image failed to load:", e);
+                        e.target.onerror = null; 
+                        const name = player && player.name ? player.name : "Unknown";
+                        e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=0D8ABC&color=fff&size=256`;
+                      }}
+                    />
+                  </ErrorBoundary>
                   
                   {/* Position badge */}
                   <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black to-transparent p-2 text-center">
@@ -1446,39 +1622,79 @@ const PlayerCompletePage = ({ player, onClose, isPlayerFavorite, toggleFavorite,
 
   // Get player photo URL
   const getPlayerImageUrl = (player) => {
-    // First try imageDataURL which is the direct Base64 image data
-    if (player.imageDataURL) {
-      return player.imageDataURL;
+    console.log("[DEBUG] getPlayerImageUrl called with player:", player);
+    
+    // Safety check for null/undefined player
+    if (!player) {
+      console.warn("[WARNING] Player object is null or undefined in getPlayerImageUrl");
+      return `https://ui-avatars.com/api/?name=Unknown&background=0D8ABC&color=fff&size=256`;
     }
     
-    // Fallback to old methods for backward compatibility
-    if (player.photoUrl) {
-      return player.photoUrl;
+    try {
+      // First try imageDataURL which is the direct Base64 image data
+      if (player.imageDataURL) {
+        console.log("[DEBUG] Using player.imageDataURL");
+        return player.imageDataURL;
+      }
+      
+      // Fallback to old methods for backward compatibility
+      if (player.photoUrl) {
+        console.log("[DEBUG] Using player.photoUrl");
+        return player.photoUrl;
+      }
+      
+      // Try to use player ID for the backend image API
+      if (player.id) {
+        const url = `https://katenascout-backend.onrender.com/player-image/${player.id}`;
+        console.log(`[DEBUG] Using backend image API: ${url}`);
+        return url;
+      }
+      
+      // Last fallback to UI Avatars API for a consistent placeholder
+      const name = player.name || "Unknown";
+      const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=0D8ABC&color=fff&size=256`;
+      console.log(`[DEBUG] Using UI Avatars fallback: ${avatarUrl}`);
+      return avatarUrl;
+    } catch (error) {
+      console.error("[ERROR] Error in getPlayerImageUrl:", error);
+      return `https://ui-avatars.com/api/?name=Error&background=CC0000&color=fff&size=256`;
     }
-    
-    // Try to use player ID for the backend image API
-    if (player.id) {
-      return `https://katenascout-backend.onrender.com/player-image/${player.id}`;
-    }
-    
-    // Last fallback to UI Avatars API for a consistent placeholder
-    return `https://ui-avatars.com/api/?name=${encodeURIComponent(player.name)}&background=0D8ABC&color=fff&size=256`;
   };
   
   const playerPhotoUrl = getPlayerImageUrl(player);
 
-  // Extract ALL metrics from the player object
-  const metrics = Object.entries(player.stats || {})
-    .map(([key, value]) => ({
-      name: key.replace(/_/g, ' ')
-        .split(' ')
-        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(' '),
-      value: value,
-      key: key
-    }))
-    // Sort metrics alphabetically for better organization
-    .sort((a, b) => a.name.localeCompare(b.name));
+  // Extract ALL metrics from the player object with error handling
+  const metrics = (() => {
+    try {
+      if (!player || !player.stats) {
+        console.warn("[WARNING] Player stats missing or undefined");
+        return [];
+      }
+      
+      return Object.entries(player.stats)
+        .map(([key, value]) => {
+          // Validate each metric value
+          if (value === undefined || value === null) {
+            console.warn(`[WARNING] Metric ${key} has null/undefined value`);
+            value = 0; // Replace with default value
+          }
+          
+          return {
+            name: key.replace(/_/g, ' ')
+              .split(' ')
+              .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+              .join(' '),
+            value: value,
+            key: key
+          };
+        })
+        // Sort metrics alphabetically for better organization
+        .sort((a, b) => a.name.localeCompare(b.name));
+    } catch (error) {
+      console.error("[ERROR] Failed to process player metrics:", error);
+      return []; // Return empty array on error
+    }
+  })();
 
   // Helper function to get a color based on metric value
   const getMetricColor = (metric) => {
