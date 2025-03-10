@@ -185,8 +185,19 @@ class SearchParameters(BaseModel):
 class ChatSession:
     """Manages the state of an ongoing chat session with memory of previous interactions"""
     def __init__(self):
+        try:
+            self.claude = Anthropic(api_key=get_anthropic_api_key())
+        except TypeError as e:
+            if 'proxies' in str(e):
+            # Older version that might need proxies explicitly set to None
+            self.claude = Anthropic(api_key=get_anthropic_api_key(), proxies=None)
+            else:
+            # Re-raise if it's a different error
+                raise
         # Initialize API clients
-        self.claude = Anthropic(api_key=get_anthropic_api_key())
+        
+    # Initialize API clients with version-safe approach
+    
         self.openai = OpenAI(api_key=get_openai_api_key())
         
         # Load necessary data files
