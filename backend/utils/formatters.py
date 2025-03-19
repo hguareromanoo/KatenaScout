@@ -5,10 +5,10 @@ Formatting utilities for KatenaScout responses
 import json
 import os
 from typing import List, Dict, Any, Optional, Tuple
-from backend.models.response import SearchResponse, ComparisonResponse, ErrorResponse
+from models.response import SearchResponse, ComparisonResponse, ErrorResponse
 
 # Import constants related to player images
-from backend.config import PLAYER_IMAGES_DIR
+from config import PLAYER_IMAGES_DIR
 
 # Helper function to add player image information
 def add_player_image_info(player_data):

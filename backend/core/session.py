@@ -12,7 +12,7 @@ from typing import List, Dict, Any, Optional
 from pydantic import BaseModel, Field
 
 # Import models using absolute imports
-from backend.models.parameters import SearchParameters
+from models.parameters import SearchParameters
 
 
 class SessionData(BaseModel):
@@ -66,7 +66,7 @@ class UnifiedSession:
     def __init__(self):
         """Initialize the session manager with necessary data and configurations"""
         # Load API keys
-        from backend.services.claude_api import get_anthropic_api_key
+        from services.claude_api import get_anthropic_api_key
         self.anthropic_api_key = get_anthropic_api_key()
         
         # Load necessary data files
@@ -156,7 +156,7 @@ class UnifiedSession:
         
         This uses the claude_api service for implementation but maintains backward compatibility
         """
-        from backend.services.claude_api import call_claude_api
+        from services.claude_api import call_claude_api
         return call_claude_api(
             api_key=self.anthropic_api_key,
             model=model,
@@ -227,8 +227,8 @@ class UnifiedSession:
         
         try:
             # Import constants from config
-            from backend.models.parameters import KEY_DESCRIPTION_WORDS
-            from backend.config import POSITIONS_MAPPING, VALID_POSITION_CODES
+            from models.parameters import KEY_DESCRIPTION_WORDS
+            from config import POSITIONS_MAPPING, VALID_POSITION_CODES
             
             # Create Claude API prompt based on whether we're using structured history
             if has_structured_messages and session.is_follow_up:
@@ -615,12 +615,12 @@ class UnifiedSession:
     
     def _correct_position_codes(self, invalid_codes: List[str]) -> List[str]:
         """Correct invalid position codes using Claude AI"""
-        from backend.config import POSITIONS_MAPPING
+        from config import POSITIONS_MAPPING
         
         correction_prompt = f"The position codes {invalid_codes} are invalid. Please provide valid position codes that are similar to {invalid_codes} from the following map: {POSITIONS_MAPPING}. Example: cm -> lcmf, rcmf or dmf"
         
         try:
-            from backend.models.parameters import PositionCorrection
+            from models.parameters import PositionCorrection
             
             correction_response = self.call_claude_api(
                 model="claude-3-5-sonnet-20241022",
@@ -681,7 +681,7 @@ class UnifiedSession:
         Raises:
             ValueError: If there is an error searching for players
         """
-        from backend.core.player_search import search_players
+        from core.player_search import search_players
         
         print(f"DEBUG - In session.search_players with params: {params}")
         
@@ -713,7 +713,7 @@ class UnifiedSession:
         Returns:
             Player information dictionary
         """
-        from backend.core.player_search import get_player_info
+        from core.player_search import get_player_info
         
         # Call the player info function which will load data from services as needed
         return get_player_info(

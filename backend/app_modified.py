@@ -13,8 +13,8 @@ from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 
 # Import core components (using absolute imports)
-from backend.core.session import UnifiedSession
-from backend.models.parameters import SearchParameters
+from core.session import UnifiedSession
+from models.parameters import SearchParameters
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -60,11 +60,11 @@ def enhanced_search():
         data = request.json
         
         # Validate request data
-        from backend.utils.validators import validate_search_request
+        from utils.validators import validate_search_request
         valid, error_msg, validated_data = validate_search_request(data)
         
         if not valid:
-            from backend.utils.formatters import format_error_response
+            from utils.formatters import format_error_response
             return jsonify(format_error_response(
                 error="invalid_request", 
                 message=error_msg,
@@ -90,7 +90,7 @@ def enhanced_search():
         session.messages.append({"role": "user", "content": query})
         
         # Determine the user's intent
-        from backend.core.intent import identify_intent, extract_entities
+        from core.intent import identify_intent, extract_entities
         
         intent = identify_intent(session, query, session_manager.call_claude_api)
         session.current_intent = intent.name
@@ -100,7 +100,7 @@ def enhanced_search():
         session.entities.update(entities)
         
         # Handle based on intent
-        from backend.core.handlers import (
+        from core.handlers import (
             handle_player_search, 
             handle_player_comparison, 
             handle_stats_explanation, 
@@ -121,7 +121,7 @@ def enhanced_search():
         
         # Format the response based on response type
         if response_data["type"] == "search_results":
-            from backend.utils.formatters import format_search_response
+            from utils.formatters import format_search_response
             return jsonify(format_search_response(
                 players=response_data["players"],
                 text_response=response_data["text"],
@@ -129,7 +129,7 @@ def enhanced_search():
                 follow_up_suggestions=response_data.get("follow_up_suggestions", [])
             ))
         elif response_data["type"] == "player_comparison":
-            from backend.utils.formatters import format_comparison_response
+            from utils.formatters import format_comparison_response
             return jsonify(format_comparison_response(
                 players=response_data["players"],
                 comparison_text=response_data["text"],
@@ -137,7 +137,7 @@ def enhanced_search():
                 language=language
             ))
         elif response_data["type"] == "error":
-            from backend.utils.formatters import format_error_response
+            from utils.formatters import format_error_response
             return jsonify(format_error_response(
                 error="processing_error",
                 message=response_data["message"],
@@ -153,7 +153,7 @@ def enhanced_search():
     
     except Exception as e:
         print(f"Error in enhanced search endpoint: {str(e)}")
-        from backend.utils.formatters import format_error_response
+        from utils.formatters import format_error_response
         return jsonify(format_error_response(
             error="server_error",
             message="An unexpected error occurred. Please try again.",
@@ -185,11 +185,11 @@ def compare_players():
         data = request.json
         
         # Validate request data
-        from backend.utils.validators import validate_comparison_request
+        from utils.validators import validate_comparison_request
         valid, error_msg, validated_data = validate_comparison_request(data)
         
         if not valid:
-            from backend.utils.formatters import format_error_response
+            from utils.formatters import format_error_response
             return jsonify(format_error_response(
                 error="invalid_request", 
                 message=error_msg,
@@ -205,7 +205,7 @@ def compare_players():
         session = session_manager.get_session(session_id, language)
         
         # Find players for comparison
-        from backend.core.comparison import find_players_for_comparison
+        from core.comparison import find_players_for_comparison
         players = find_players_for_comparison(
             session_manager,
             session_id,
@@ -215,7 +215,7 @@ def compare_players():
         
         # Ensure we have at least 2 players to compare
         if len(players) < 2:
-            from backend.utils.formatters import format_error_response
+            from utils.formatters import format_error_response
             return jsonify(format_error_response(
                 error="insufficient_players",
                 message="Could not find enough valid players to compare",
@@ -223,7 +223,7 @@ def compare_players():
             ))
         
         # Generate comparison
-        from backend.core.comparison import compare_players
+        from core.comparison import compare_players
         comparison_result = compare_players(
             players=players,
             session_manager=session_manager,
@@ -237,7 +237,7 @@ def compare_players():
         })
         
         # Format response
-        from backend.utils.formatters import format_comparison_response
+        from utils.formatters import format_comparison_response
         return jsonify(format_comparison_response(
             players=players,
             comparison_text=comparison_result["comparison"],
@@ -247,7 +247,7 @@ def compare_players():
         
     except Exception as e:
         print(f"Error in player comparison endpoint: {str(e)}")
-        from backend.utils.formatters import format_error_response
+        from utils.formatters import format_error_response
         return jsonify(format_error_response(
             error="server_error",
             message="An error occurred while comparing players. Please try again.",
@@ -262,13 +262,13 @@ def player_image(player_id):
     First tries to get the image from the database, then from local files,
     then returns a default image if none is found
     """
-    from backend.utils.validators import sanitize_player_id
+    from utils.validators import sanitize_player_id
     from flask import send_from_directory
     import os
     import requests
     import base64
     import unidecode
-    from backend.config import PLAYER_IMAGES_DIR
+    from config import PLAYER_IMAGES_DIR
     
     # Add proper CORS headers to allow the image to be accessed from frontend
     def add_cors_headers(response):
@@ -282,7 +282,7 @@ def player_image(player_id):
         safe_id = sanitize_player_id(player_id)
         
         # First, try to retrieve the player's image from the database
-        from backend.services.data_service import find_player_by_id, get_player_database
+        from services.data_service import find_player_by_id, get_player_database
         player = find_player_by_id(safe_id)
         
         if not player:
@@ -384,7 +384,7 @@ def get_follow_up_suggestions(session_id):
         session = session_manager.get_session(session_id, language)
         
         # Generate follow-up suggestions based on session state
-        from backend.core.intent import generate_follow_up_suggestions
+        from core.intent import generate_follow_up_suggestions
         
         # Get the selected players from the session
         players = session.selected_players if hasattr(session, "selected_players") else []
@@ -400,7 +400,7 @@ def get_follow_up_suggestions(session_id):
         
     except Exception as e:
         print(f"Error generating follow-up suggestions: {str(e)}")
-        from backend.utils.formatters import format_error_response
+        from utils.formatters import format_error_response
         return jsonify(format_error_response(
             error="server_error",
             message="An error occurred while generating follow-up suggestions.",
@@ -458,7 +458,7 @@ def explain_stats():
         session.entities["stats_to_explain"] = stats
         
         # Handle stats explanation
-        from backend.core.handlers import handle_stats_explanation
+        from core.handlers import handle_stats_explanation
         response_data = handle_stats_explanation(session, stats_request, session_manager)
         
         # Format response

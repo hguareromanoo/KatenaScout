@@ -5,7 +5,7 @@ Response models for KatenaScout API
 from pydantic import BaseModel, Field
 from typing import List, Dict, Any, Optional
 
-from backend.models.player import PlayerSummary
+from models.player import PlayerSummary
 
 class SearchResponse(BaseModel):
     """Response model for player search endpoint"""

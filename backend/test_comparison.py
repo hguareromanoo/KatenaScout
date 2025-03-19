@@ -10,10 +10,10 @@ import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 # Import necessary modules with absolute imports
-from backend.models.parameters import SearchParameters
-from backend.services.data_service import get_player_database, get_player_database_by_id
-from backend.core.player_search import get_player_info
-from backend.core.comparison import compare_players, find_players_for_comparison
+from models.parameters import SearchParameters
+from services.data_service import get_player_database, get_player_database_by_id
+from core.player_search import get_player_info
+from core.comparison import compare_players, find_players_for_comparison
 
 # Mock session manager for testing
 class MockSessionManager:

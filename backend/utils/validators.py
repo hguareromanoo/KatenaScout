@@ -3,7 +3,7 @@ Validation utilities for KatenaScout request inputs
 """
 
 from typing import Dict, Any, Tuple, Optional, List
-from backend.config import SUPPORTED_LANGUAGES
+from config import SUPPORTED_LANGUAGES
 
 def validate_search_request(data: Dict[str, Any]) -> Tuple[bool, Optional[str], Dict[str, Any]]:
     """

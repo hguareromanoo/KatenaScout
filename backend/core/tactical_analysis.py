@@ -10,7 +10,7 @@ import copy
 
 # Import negative metrics from enhanced_comparison
 try:
-    from backend.core.enhanced_comparison import NEGATIVE_METRICS
+    from core.enhanced_comparison import NEGATIVE_METRICS
 except ImportError:
     # Alternative import path for when running within the package
     try:
@@ -503,7 +503,7 @@ Be specific and refer to the actual metric values in your analysis.
         system_prompt = get_language_specific_prompt(language)
     except ImportError:
         try:
-            from backend.core.comparison import get_language_specific_prompt
+            from core.comparison import get_language_specific_prompt
             system_prompt = get_language_specific_prompt(language)
         except ImportError:
             # Fallback to a default prompt if imports fail

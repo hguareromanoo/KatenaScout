@@ -6,10 +6,10 @@ This module contains handlers for different user intents.
 
 from typing import Dict, List, Any, Optional
 import json
-from backend.core.session import SessionData
-from backend.core.intent import generate_follow_up_suggestions
-from backend.core.comparison import compare_players, find_players_for_comparison
-from backend.config import SUPPORTED_LANGUAGES
+from core.session import SessionData
+from core.intent import generate_follow_up_suggestions
+from core.comparison import compare_players, find_players_for_comparison
+from config import SUPPORTED_LANGUAGES
 
 # Language-specific prompts for response generation
 def get_language_specific_prompt(language: str) -> str:
@@ -85,7 +85,7 @@ def handle_player_search(session: SessionData, message: str, session_manager) ->
         # Only redirect very short messages (1-2 words)
         if len(message.split()) < 3:
             print(f"Very short message '{message}' in player_search handler. Redirecting to casual_chat.")
-            from backend.core.handlers import handle_casual_chat
+            from core.handlers import handle_casual_chat
             return handle_casual_chat(session, message, session_manager)
         
         # For follow-up queries, ensure proper session state

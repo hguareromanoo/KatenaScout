@@ -9,9 +9,9 @@ from typing import List, Dict, Any, Optional
 import os
 import json
 import unidecode
-from backend.models.parameters import SearchParameters
-from backend.config import MIN_SCORE_THRESHOLD, DEFAULT_SEARCH_LIMIT
-from backend.services.data_service import (
+from models.parameters import SearchParameters
+from config import MIN_SCORE_THRESHOLD, DEFAULT_SEARCH_LIMIT
+from services.data_service import (
     get_player_database, 
     get_player_database_by_id,
     get_weights_dictionary,
@@ -170,7 +170,7 @@ def get_players_with_position(position_code: str, database: Dict[str, Any] = Non
     """
     # Load database if not provided
     if database is None:
-        from backend.services.data_service import get_player_database
+        from services.data_service import get_player_database
         database = get_player_database()
     
     # Validate inputs to prevent type errors

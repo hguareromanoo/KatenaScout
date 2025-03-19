@@ -14,7 +14,7 @@ def get_anthropic_api_key() -> str:
     """Get the Anthropic API key from environment variables or keys file"""
     try:
         # Try to import from env_keys
-        from backend.env_keys import get_anthropic_api_key as get_key
+        from env_keys import get_anthropic_api_key as get_key
         key = get_key()
         if key:
             return key
