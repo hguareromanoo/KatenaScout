@@ -12,34 +12,26 @@ auth_header = {
 
 with open('backend/database.json', 'r', encoding='utf-8') as f:
     data = json.load(f)
+teams_adv_stats ={}
+for player_id, player_data in data.items():
+    if player_data.get("team_id") and player_data.get("team_id") not in teams_adv_stats:
+        team_id = player_data["team_id"]
+        teams_adv_stats[team_id] = {"competitionId": player_data.get("competition_id"), "seasonId": player_data.get("season_id")}
+print(teams_adv_stats)
+with open('teams_adv_stats.json', 'w', encoding='utf-8') as f:
+    json.dump(teams_adv_stats, f, indent=2)
 
-team_dict = {}
-teamId = []
-
-# Extract unique team IDs
-for player_name, player_data in data.items():
-    if 'currentTeamId' in player_data and player_data['currentTeamId'] is not None:
-        team_id = player_data['currentTeamId']
-        if team_id not in teamId:
-            teamId.append(team_id)
-
-print(f"Found {len(teamId)} unique team IDs")
-
-# Fetch team information for each ID
-for team in teamId:
-    url = f'https://apirest.wyscout.com/v3/teams/{team}'
-    print(f"Requesting data for team ID: {team}")
-    response = requests.get(url, headers=auth_header)
+'''for team_id, team_data in teams_adv_stats.items():
+    response = requests.get(f"https://apirest.wyscout.com/v3/teams/{team_id}/advancedstats?compId={team_data.get('competitionId')}&seasonId={team_data.get('seasonId')}", headers=auth_header)
     if response.status_code != 200:
-        print(f"Error for team ID {team}: Status code {response.status_code}")
+        print("Error in fetching advanced stats for team with id", team_id)
         continue
-    
-    team_data = response.json()
-    team_name = team_data.get("name", "")
-    team_image = team_data.get("imageDataURL", "")
-    team_dict[team] = {"name": team_name, "image": team_image}
-    print(f"Successfully retrieved data for team: {team_name}")
+    data = response.json()
+    teams_adv_stats[team_id].update(data)
+    print("gathered advanced stats for team with id", team_id)
 
-with open("team.json", "w", encoding='utf-8') as file:
-    json.dump(team_dict, file, indent=2)
-    print(f"Retrieved {len(team_dict)} teams.")
+
+with open('teams_adv_stats.json', 'w', encoding='utf-8') as f:
+    json.dump(teams_adv_stats, f, ensure_ascii=False, indent=4)
+print("advanced stats for teams saved in teams_adv_stats.json")
+    '''

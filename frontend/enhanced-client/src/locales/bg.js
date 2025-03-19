@@ -1,0 +1,123 @@
+/**
+ * Bulgarian translations for KatenaScout
+ */
+export default {
+  common: {
+    appName: "KatenaScout",
+    loading: "Зареждане...",
+    error: "Съжаляваме, възникна грешка"
+  },
+  navigation: {
+    chat: "Чат с ИИ Скаут",
+    favorites: "Любими",
+    settings: "Настройки"
+  },
+  onboarding: {
+    welcome: "Добре дошли в KatenaScout",
+    description: "Вашият асистент за футболно наблюдение с ИИ",
+    selectLanguage: "Моля, изберете предпочитания от вас език",
+    continueButton: "Продължи",
+    poweredBy: "Създадено с Claude AI"
+  },
+  chat: {
+    headerTitle: "KatenaScout AI",
+    headerSubtitle: "Вашият интелигентен скаутинг асистент",
+    inputPlaceholder: "Опишете типа играч, който търсите...",
+    welcomeTitle: "Здравейте, Треньор!",
+    welcomeMessage: "Опишете типа играч, който търсите, и ще намеря най-добрите опции за вашия отбор.",
+    examplesTitle: "Примери за търсене:",
+    example1: "Нужен ми е офанзивен бек с добра способност за центриране",
+    example2: "Търся централни защитници, силни във въздушните дуели и с добро разпределяне на топката",
+    example3: "Искам млад нападател с добро завършване и под 23 години",
+    playersFoundText: "Намерени играчи - Изберете, за да видите детайли:",
+    analyzing: "Анализиране на играчи...",
+    thinking: "Обмисляне...",
+    showingDetails: "Показване на детайли за ",
+    errorMessage: "Съжаляваме, възникна грешка при обработката на вашето търсене.",
+    comparePlayersButton: "Сравни Играчи",
+    cancelCompare: "Отмени Сравнението",
+    compareSelectedButton: "Сравни Избраните Играчи",
+    selectedPlayersCount: "Избрани Играчи",
+    selectTwoPlayers: "Моля, изберете 2 играча за сравнение",
+    statsExplanationTitle: "Обяснение на Статистиката",
+    comparisonAspectsTitle: "Аспекти на Сравнението"
+  },
+  playerDashboard: {
+    overview: "Преглед на Играча",
+    statistics: "Статистика",
+    details: "Детайли",
+    addToFavorites: "Добави в Любими",
+    removeFromFavorites: "Премахни от Любими",
+    position: "Позиция",
+    age: "Възраст",
+    foot: "Предпочитан Крак",
+    height: "Височина",
+    weight: "Тегло",
+    value: "Пазарна Стойност",
+    viewCompleteProfile: "Виж Пълния Профил",
+    comparePlayer: "Сравни Играча",
+    close: "Затвори"
+  },
+  
+  playerComparison: {
+    title: "Сравнение на Играчи",
+    loading: "Сравняване на играчи...",
+    retry: "Опитай отново",
+    selectPlayerToCompare: "Избери Играч за Сравнение",
+    selectPlayerPrompt: "Моля, изберете друг играч за сравнение",
+    radarComparison: "Сравнение на Ключови Метрики",
+    aiAnalysis: "ИИ Анализ",
+    generatingAnalysis: "Генериране на анализ...",
+    tacticalAnalysis: "Анализ на Тактически Контекст",
+    generateAnalysis: "Генерирай Анализ",
+    closeTooltip: "Затвори",
+    overallWinner: "Общ Победител",
+    score: "Резултат",
+    vs: "СРЕЩУ"
+  },
+  
+  tacticalAnalysis: {
+    title: "Анализ на Тактически Контекст",
+    loading: "Анализиране на играчи...",
+    selectStyle: "Избери Стил на Игра",
+    selectFormation: "Избери Формация",
+    generateAnalysis: "Генерирай Анализ",
+    analyzing: "Анализиране...",
+    fitScore: "Оценка на Тактическо Съответствие",
+    keyStrengths: "Ключови Силни Страни",
+    keyDifferences: "Ключови Разлики",
+    styleDescription: "Описание на Стила",
+    backToComparison: "Обратно към Сравнението"
+  },
+  favorites: {
+    title: "Любими Играчи",
+    emptyState: "Все още нямате любими играчи",
+    searchPlaceholder: "Търсене в любими...",
+    removeConfirm: "Премахване от любими?",
+    removeFromFavorites: "Премахни от Любими"
+  },
+  settings: {
+    title: "Настройки",
+    language: "Език",
+    languageLabel: "Изберете вашия език",
+    theme: "Тема",
+    themeLight: "Светла",
+    themeDark: "Тъмна",
+    themeSys: "Системна",
+    resetApp: "Нулиране на Приложението",
+    resetWarning: "Това ще изтрие всички ваши данни и ще нулира приложението",
+    resetConfirm: "Сигурни ли сте?",
+    version: "Версия"
+  },
+  errors: {
+    playerNotFound: "Данните за играча не са намерени. Моля, опитайте отново.",
+    loadingFailed: "Неуспешно зареждане на детайли за играча. Моля, опитайте отново.",
+    requestFailed: "Неуспешно свързване със сървъра. Моля, проверете връзката си.",
+    comparisonFailed: "Неуспешно сравнение на играчи. Моля, опитайте отново.",
+    notEnoughPlayers: "Няма достатъчно играчи за сравнение. Моля, изберете поне двама играчи.",
+    sameSearchOnly: "Можете да сравнявате само играчи от едни и същи резултати от търсене.",
+    selectTwoPlayers: "Моля, изберете точно 2 играча за сравнение.",
+    serverError: "Сървърът срещна грешка. Моля, опитайте по-късно.",
+    parsingError: "Възникна грешка при обработката на отговора. Моля, опитайте отново."
+  }
+};
