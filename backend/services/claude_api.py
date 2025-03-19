@@ -41,8 +41,8 @@ class ClaudeAPIResponse:
 
 def call_claude_api_with_retry(
     api_key: str, 
-    model: str, 
-    max_tokens: int, 
+    model: str = "claude-3-5-sonnet-20240624",  # Updated to use sonnet
+    max_tokens: int = 1000, 
     system: Optional[str] = None, 
     messages: Optional[List[Dict[str, Any]]] = None, 
     tools: Optional[List[Dict[str, Any]]] = None, 
@@ -76,7 +76,8 @@ def call_claude_api_with_retry(
     headers = {
         "x-api-key": api_key,
         "anthropic-version": "2023-06-01",
-        "content-type": "application/json"
+        "content-type": "application/json",
+        "anthropic-beta": "messages-2023-12-15"  # Add beta header for newer API features
     }
     
     # Build request body
@@ -112,9 +113,14 @@ def call_claude_api_with_retry(
             # Log the request attempt
             log_prefix = f"[Attempt {current_retry + 1}/{max_retries + 1}]"
             print(f"{log_prefix} Calling Claude API with model {model}, tool: {tool_name}")
+            print(f"{log_prefix} Request body: {request_body}")
             
             # Make the request
             response = requests.post(url, headers=headers, json=request_body, timeout=30)
+            
+            # Log response for debugging
+            if response.status_code != 200:
+                print(f"{log_prefix} Error response: {response.text}")
             
             # Check if request was successful
             response.raise_for_status()

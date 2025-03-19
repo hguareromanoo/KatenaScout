@@ -37,7 +37,7 @@ DEFAULT_SEARCH_LIMIT = 5  # Number of players to return in search results
 MIN_SCORE_THRESHOLD = 0.4  # Minimum score for a player to be considered relevant
 
 # Claude API configuration
-DEFAULT_MODEL = "claude-3-5-sonnet-20241022"
+DEFAULT_MODEL = "claude-3-5-sonnet-20240624"  # Updated to correct model identifier
 DEFAULT_MAX_TOKENS = 4096
 
 # Languages supported by the system
