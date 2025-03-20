@@ -146,7 +146,11 @@ const PlayerDashboard = ({ player, metrics = [], onClose, onViewComplete }) => {
         
         {/* Favorite button */}
         <button
-          onClick={() => toggleFavorite(player)}
+          onClick={(e) => {
+            e.stopPropagation(); // Prevent event bubbling
+            toggleFavorite(player);
+            console.log('Toggle favorite:', player.name, 'isFavorite:', !isFavorite);
+          }}
           className={`p-2 rounded-full ${
             isFavorite 
               ? 'bg-red-500 bg-opacity-20 text-red-400 hover:bg-opacity-30' 

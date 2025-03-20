@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Heart, Search, Trash2, User } from 'lucide-react';
 import { useTranslation, useFavorites, useSession } from '../contexts';
 import { filterItems, formatMetricName } from '../utils';
+import { playerService } from '../api/api';
 import ErrorBoundary from './ErrorBoundary';
 
 /**
@@ -61,20 +62,24 @@ const FavoritesView = () => {
                     <div className="p-4">
                       <div className="flex items-start">
                         <div className="w-12 h-12 bg-gray-700 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
-                          {player.image_url ? (
+                          {player.image_url || player.imageDataURL ? (
                             <img 
-                              src={player.image_url} 
+                              src={playerService.getPlayerImageUrl(player)} 
                               alt={player.name} 
                               className="w-full h-full rounded-full object-cover"
                               onError={(e) => {
-                                e.target.onerror = null;
-                                e.target.src = ""; // Clear the source
-                                e.target.parentNode.classList.add("bg-gray-700");
-                                // Add a fallback icon
-                                const icon = document.createElement("span");
-                                icon.innerHTML = "⚽";
-                                icon.className = "text-gray-500 text-xl";
-                                e.target.parentNode.appendChild(icon);
+                                // Log error for debugging
+                                console.warn(`Favorites: Image load failed for player ${player.name} (ID: ${player.wyId || player.id})`);
+                                
+                                e.target.onerror = null; 
+                                e.target.style.display = 'none';
+                                // Only add fallback icon if it doesn't exist yet
+                                if (!e.target.parentNode.querySelector('.player-fallback-icon')) {
+                                  const fallbackDiv = document.createElement('div');
+                                  fallbackDiv.className = 'flex items-center justify-center w-full h-full player-fallback-icon';
+                                  fallbackDiv.innerHTML = '<span class="text-3xl">⚽</span>';
+                                  e.target.parentNode.appendChild(fallbackDiv);
+                                }
                               }}
                             />
                           ) : (
