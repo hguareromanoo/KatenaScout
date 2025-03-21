@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Heart, Search, Trash2, User } from 'lucide-react';
-import { useTranslation, useFavorites, useSession } from '../contexts';
+import { Heart, Search, Trash2, User, ArrowLeft } from 'lucide-react';
+import { useTranslation, useFavorites, useSession, useUI } from '../contexts';
 import { filterItems, formatMetricName } from '../utils';
 import { playerService } from '../api/api';
 import ErrorBoundary from './ErrorBoundary';
@@ -12,49 +12,63 @@ const FavoritesView = () => {
   const { t } = useTranslation();
   const { favorites, toggleFavorite } = useFavorites();
   const { handlePlayerSelected, viewCompleteProfile } = useSession();
+  const { setCurrentView } = useUI();
   const [searchTerm, setSearchTerm] = useState('');
   
   // Filter favorites based on search term using utility function
   const filteredFavorites = filterItems(favorites, searchTerm, ['name', 'positions']);
   
   return (
-    <div className="max-w-5xl mx-auto p-6 pt-20 md:pt-6">
-      <div className="bg-gray-800 rounded-xl shadow-lg overflow-hidden">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-green-900 to-blue-900 p-6">
-          <h1 className="text-2xl font-bold text-white flex items-center">
-            <Heart className="mr-3" />
-            {t('favorites.title')}
-          </h1>
-        </div>
-        
-        {/* Search Bar */}
-        <div className="p-4 border-b border-gray-700">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" size={18} />
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder={t('favorites.searchPlaceholder')}
-              className="w-full bg-gray-700 border border-gray-600 rounded-lg py-2 pl-10 pr-4 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-            />
+    <div className="h-screen flex flex-col">
+      <div className="max-w-5xl mx-auto w-full p-4 pt-20 md:pt-6 flex-1 overflow-hidden flex flex-col">
+        <div className="bg-gray-800 rounded-xl shadow-lg overflow-hidden flex flex-col flex-1">
+          {/* Header - Fixed */}
+          <div className="bg-gradient-to-r from-green-900 to-blue-900 p-4 md:p-6 sticky top-0 z-10">
+            <div className="flex items-center justify-between">
+              <h1 className="text-xl md:text-2xl font-bold text-white flex items-center">
+                <Heart className="mr-2 md:mr-3" />
+                {t('favorites.title')}
+              </h1>
+              
+              {/* Back button - only visible on mobile */}
+              <button 
+                onClick={() => setCurrentView('chat')}
+                className="md:hidden text-white hover:text-gray-200 p-1 rounded-full focus:outline-none focus:ring-2 focus:ring-gray-400 flex items-center"
+                aria-label={t('common.back')}
+              >
+                <ArrowLeft size={20} />
+                <span className="ml-1 text-sm">{t('common.back')}</span>
+              </button>
+            </div>
           </div>
-        </div>
-        
-        {/* Favorites List */}
-        <ErrorBoundary>
-          <div className="p-4">
-            {filteredFavorites.length === 0 ? (
-              <div className="text-center py-12">
-                <div className="w-16 h-16 mx-auto mb-4 flex items-center justify-center bg-gray-700 rounded-full">
-                  <Heart className="text-gray-500" size={28} />
+          
+          {/* Search Bar - Fixed */}
+          <div className="p-3 md:p-4 border-b border-gray-700 sticky top-16 md:top-20 z-10 bg-gray-800">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" size={18} />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder={t('favorites.searchPlaceholder')}
+                className="w-full bg-gray-700 border border-gray-600 rounded-lg py-2 pl-10 pr-4 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              />
+            </div>
+          </div>
+          
+          {/* Favorites List - Scrollable */}
+          <ErrorBoundary>
+            <div className="p-4 overflow-y-auto flex-1 scroll-container-mobile custom-scrollbar">
+              {filteredFavorites.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="w-16 h-16 mx-auto mb-4 flex items-center justify-center bg-gray-700 rounded-full">
+                    <Heart className="text-gray-500" size={28} />
+                  </div>
+                  <p className="text-gray-400">{t('favorites.emptyState')}</p>
                 </div>
-                <p className="text-gray-400">{t('favorites.emptyState')}</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filteredFavorites.map((player, index) => (
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {filteredFavorites.map((player, index) => (
                   <div 
                     key={player.id || `player-${index}`}
                     className="bg-gray-750 border border-gray-700 rounded-lg overflow-hidden hover:bg-gray-700 transition-colors"
@@ -94,13 +108,16 @@ const FavoritesView = () => {
                         </div>
                         <button
                           onClick={(e) => {
+                            e.preventDefault();
                             e.stopPropagation();
                             if (window.confirm(t('favorites.removeConfirm'))) {
                               toggleFavorite(player);
                             }
                           }}
-                          className="text-red-400 hover:text-red-300 p-2 rounded-full hover:bg-gray-650"
+                          type="button"
+                          className="text-red-400 hover:text-red-300 p-2 rounded-full hover:bg-gray-650 flex items-center justify-center"
                           title={t('favorites.removeFromFavorites')}
+                          aria-label={t('favorites.removeFromFavorites')}
                         >
                           <Trash2 size={18} />
                         </button>
@@ -116,21 +133,26 @@ const FavoritesView = () => {
                       </div>
                       
                       <button
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.preventDefault(); // Prevent default behavior
+                          e.stopPropagation(); // Stop event propagation
                           // Call viewCompleteProfile directly to open the complete player page
                           viewCompleteProfile(player);
                         }}
-                        className="w-full mt-3 py-2 bg-green-700 hover:bg-green-600 text-white rounded text-sm transition-colors"
+                        type="button"
+                        className="w-full mt-3 py-2 bg-green-700 hover:bg-green-600 text-white rounded text-sm transition-colors flex items-center justify-center"
                       >
-                        {t('playerDashboard.viewCompleteProfile')}
+                        <User className="mr-1" size={14} />
+                        <span>{t('playerDashboard.viewCompleteProfile')}</span>
                       </button>
                     </div>
                   </div>
                 ))}
               </div>
             )}
-          </div>
-        </ErrorBoundary>
+            </div>
+          </ErrorBoundary>
+        </div>
       </div>
     </div>
   );

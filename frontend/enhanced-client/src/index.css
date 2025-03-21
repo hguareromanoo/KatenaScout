@@ -74,6 +74,27 @@ code {
   flex-direction: column;
 }
 
+/* Mobile scrolling improvements */
+@media (max-width: 768px) {
+  /* Improve touch scrolling */
+  * {
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Reduce scrollbar size on mobile */
+  ::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  
+  /* Mobile-specific container styles */
+  .scroll-container-mobile {
+    overflow-y: auto;
+    max-height: 100%;
+    padding-bottom: env(safe-area-inset-bottom, 20px);
+  }
+}
+
 /* Custom loading animations */
 
 /* Standard loading dots animation */

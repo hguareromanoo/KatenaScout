@@ -2,10 +2,53 @@
  * Bulgarian translations for KatenaScout
  */
 export default {
+  playingStyles: {
+    tikiTaka: {
+      name: "Тики-Така",
+      description: "Кратки, бързи подавания с непрекъснато движение на играчите"
+    },
+    possessionBased: {
+      name: "Владение на Топката",
+      description: "Фокус върху поддържане на владението на топката"
+    },
+    counterAttacking: {
+      name: "Контраатака",
+      description: "Бързи преходи от защита към атака"
+    },
+    highPressing: {
+      name: "Висок Пресинг",
+      description: "Агресивен пресинг високо в полето на противника"
+    },
+    gegenpressing: {
+      name: "Гегенпресинг",
+      description: "Незабавен контрапресинг след загуба на владение"
+    },
+    directPlay: {
+      name: "Директна Игра",
+      description: "Вертикални, преки подавания към нападателите"
+    },
+    fluidAttacking: {
+      name: "Гъвкава Атака",
+      description: "Акцент върху движението на играчите и креативни подавания"
+    },
+    lowBlock: {
+      name: "Нисък Блок",
+      description: "Защитна, компактна формация с контраатаки"
+    },
+    widthAndDepth: {
+      name: "Широчина и Дълбочина",
+      description: "Използване на широчина и центрирания за създаване на възможности"
+    },
+    balancedApproach: {
+      name: "Балансиран Подход",
+      description: "Равен фокус върху защита и атака"
+    }
+  },
   common: {
     appName: "KatenaScout",
     loading: "Зареждане...",
-    error: "Съжаляваме, възникна грешка"
+    error: "Съжаляваме, възникна грешка",
+    back: "Назад"
   },
   navigation: {
     chat: "Чат с ИИ Скаут",
@@ -56,7 +99,41 @@ export default {
     value: "Пазарна Стойност",
     viewCompleteProfile: "Виж Пълния Профил",
     comparePlayer: "Сравни Играча",
-    close: "Затвори"
+    close: "Затвори",
+    noMetrics: "Няма налични метрики за този играч."
+  },
+  
+  playerCompletePage: {
+    performanceOverview: "Преглед на Представянето",
+    playerInformation: "Информация за Играча",
+    keyAttributes: "Ключови Атрибути",
+    completeStatistics: "Пълна Статистика",
+    playerDetails: "Детайли за Играча",
+    personalInformation: "Лична Информация",
+    professionalInformation: "Професионална Информация",
+    fullName: "Пълно Име",
+    nationality: "Националност",
+    currentClub: "Настоящ Клуб",
+    contractUntil: "Договор До",
+    years: "години",
+    cm: "см",
+    kg: "кг",
+    average: "Средно",
+    positionAvg: "Средно за позиция",
+    lowerIsBetter: "По-ниско е по-добре",
+    noStatsAvailable: "Няма налична статистика за този играч.",
+    categoryStats: {
+      attacking: "Нападателна Статистика",
+      passing: "Статистика за Подаване",
+      defending: "Защитна Статистика",
+      possession: "Статистика за Владение",
+      physical: "Физическа Статистика",
+      goalkeeping: "Вратарска Статистика"
+    }
+  },
+  
+  loading: {
+    fetchingPlayerData: "Извличане на данни за играча..."
   },
   
   playerComparison: {
@@ -73,7 +150,8 @@ export default {
     closeTooltip: "Затвори",
     overallWinner: "Общ Победител",
     score: "Резултат",
-    vs: "СРЕЩУ"
+    vs: "СРЕЩУ",
+    noMetrics: "Няма налични метрики за радарната графика"
   },
   
   tacticalAnalysis: {
@@ -87,7 +165,11 @@ export default {
     keyStrengths: "Ключови Силни Страни",
     keyDifferences: "Ключови Разлики",
     styleDescription: "Описание на Стила",
-    backToComparison: "Обратно към Сравнението"
+    backToComparison: "Обратно към Сравнението",
+    betterTacticalFit: "По-добро Тактическо Съответствие",
+    analysis: "Анализ",
+    noAnalysisAvailable: "Няма наличен анализ.",
+    introText: "Изберете стил на игра и формация, за да анализирате как играчите биха се представили в този тактически контекст."
   },
   favorites: {
     title: "Любими Играчи",

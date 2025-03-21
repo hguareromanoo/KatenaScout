@@ -52,27 +52,43 @@ function App() {
   // Main app layout
   return (
     <div className="flex flex-col md:flex-row h-screen bg-gray-900">
+      {/* Mobile backdrop - only visible on mobile when sidebar is open */}
+      {sidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden" 
+          onClick={() => setSidebarOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+      
       {/* Sidebar */}
-      <div className={`fixed inset-y-0 left-0 z-50 w-64 bg-gray-800 shadow-lg transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300 md:relative md:translate-x-0`}>
+      <div className={`fixed inset-y-0 left-0 z-50 w-80 bg-gray-800 shadow-lg transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300 md:relative md:w-64 md:translate-x-0`}>
         <div className="flex flex-col h-full">
-          {/* Sidebar Header */}
-          <div className="p-4 border-b border-gray-700">
+          {/* Sidebar Header with Close Button for Mobile */}
+          <div className="p-4 border-b border-gray-700 flex justify-between items-center">
             <h2 className="text-xl font-bold text-white flex items-center">
               <span className="mr-2 text-green-500">⚽</span> {t('common.appName')}
             </h2>
+            {/* Close button - only visible on mobile */}
+            <button 
+              onClick={() => setSidebarOpen(false)}
+              className="md:hidden text-gray-400 hover:text-white p-1 rounded-full focus:outline-none focus:ring-2 focus:ring-gray-500"
+              aria-label="Close menu"
+            >
+              <X size={24} />
+            </button>
           </div>
           
           {/* Sidebar Menu */}
-          <nav className="flex-1 p-4 space-y-2">
+          <nav className="flex-1 p-4 space-y-3">
             <button 
               onClick={() => {
                 setSidebarOpen(false);
-                // We already have setCurrentView from useUI()
                 setCurrentView('chat');
               }}
               className={`w-full flex items-center px-4 py-3 rounded-lg transition-colors ${currentView === 'chat' ? 'bg-green-700 text-white' : 'text-gray-300 hover:bg-gray-700'}`}
             >
-              <span>{t('navigation.chat')}</span>
+              <span className="text-base">{t('navigation.chat')}</span>
             </button>
             
             <button 
@@ -82,7 +98,7 @@ function App() {
               }}
               className={`w-full flex items-center px-4 py-3 rounded-lg transition-colors ${currentView === 'favorites' ? 'bg-green-700 text-white' : 'text-gray-300 hover:bg-gray-700'}`}
             >
-              <span>{t('navigation.favorites')}</span>
+              <span className="text-base">{t('navigation.favorites')}</span>
             </button>
             
             <button 
@@ -92,7 +108,7 @@ function App() {
               }}
               className={`w-full flex items-center px-4 py-3 rounded-lg transition-colors ${currentView === 'settings' ? 'bg-green-700 text-white' : 'text-gray-300 hover:bg-gray-700'}`}
             >
-              <span>{t('navigation.settings')}</span>
+              <span className="text-base">{t('navigation.settings')}</span>
             </button>
           </nav>
           
@@ -111,16 +127,21 @@ function App() {
         </div>
       </div>
       
-      {/* Toggle Sidebar Button (Mobile) */}
-      <button 
-        className="fixed bottom-4 left-4 z-50 md:hidden bg-green-600 text-white p-3 rounded-full shadow-lg"
-        onClick={toggleSidebar}
-      >
-        {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
-      </button>
+      {/* Remove the floating menu button - we'll add it to the header instead */}
       
       {/* Main Content */}
       <div className="flex-1 flex flex-col h-screen overflow-hidden">
+        {/* Mobile Header with Menu Button - only visible on mobile */}
+        <div className="md:hidden fixed top-0 left-0 right-0 z-30 bg-gray-800 border-b border-gray-700 p-3 px-4 flex items-center">
+          <button 
+            onClick={toggleSidebar}
+            className="text-gray-300 hover:text-white p-1 rounded-full focus:outline-none focus:ring-2 focus:ring-gray-500 flex items-center"
+          >
+            <Menu size={24} />
+            <span className="ml-2 font-semibold">{t('common.appName')}</span>
+          </button>
+        </div>
+
         {/* Chat View */}
         {currentView === 'chat' && (
           <ErrorBoundary>

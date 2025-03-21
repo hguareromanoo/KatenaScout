@@ -2,10 +2,53 @@
  * Portuguese translations for KatenaScout
  */
 export default {
+  playingStyles: {
+    tikiTaka: {
+      name: "Tiki-Taka",
+      description: "Passes curtos e rápidos com movimento contínuo dos jogadores"
+    },
+    possessionBased: {
+      name: "Posse de Bola",
+      description: "Foco em manter a posse de bola"
+    },
+    counterAttacking: {
+      name: "Contra-Ataque",
+      description: "Transições rápidas da defesa para o ataque"
+    },
+    highPressing: {
+      name: "Pressão Alta",
+      description: "Pressão agressiva no campo adversário"
+    },
+    gegenpressing: {
+      name: "Gegenpressing",
+      description: "Contra-pressão imediata após perder a posse"
+    },
+    directPlay: {
+      name: "Jogo Direto",
+      description: "Passes verticais e diretos para os atacantes"
+    },
+    fluidAttacking: {
+      name: "Ataque Fluido",
+      description: "Ênfase no movimento dos jogadores e passes criativos"
+    },
+    lowBlock: {
+      name: "Bloco Baixo",
+      description: "Forma defensiva compacta com contra-ataques"
+    },
+    widthAndDepth: {
+      name: "Amplitude e Profundidade",
+      description: "Uso da amplitude e cruzamentos para criar oportunidades"
+    },
+    balancedApproach: {
+      name: "Abordagem Equilibrada",
+      description: "Equilíbrio entre defesa e ataque"
+    }
+  },
   common: {
     appName: "KatenaScout",
     loading: "Carregando...",
-    error: "Desculpe, ocorreu um erro"
+    error: "Desculpe, ocorreu um erro",
+    back: "Voltar"
   },
   navigation: {
     chat: "Chat de Scout IA",
@@ -56,7 +99,41 @@ export default {
     value: "Valor de Mercado",
     viewCompleteProfile: "Ver Perfil Completo",
     comparePlayer: "Comparar Jogador",
-    close: "Fechar"
+    close: "Fechar",
+    noMetrics: "Não há métricas disponíveis para este jogador."
+  },
+  
+  playerCompletePage: {
+    performanceOverview: "Visão Geral de Desempenho",
+    playerInformation: "Informações do Jogador",
+    keyAttributes: "Atributos Chave",
+    completeStatistics: "Estatísticas Completas",
+    playerDetails: "Detalhes do Jogador",
+    personalInformation: "Informações Pessoais",
+    professionalInformation: "Informações Profissionais",
+    fullName: "Nome Completo",
+    nationality: "Nacionalidade",
+    currentClub: "Clube Atual",
+    contractUntil: "Contrato Até",
+    years: "anos",
+    cm: "cm",
+    kg: "kg",
+    average: "Média",
+    positionAvg: "Média posição",
+    lowerIsBetter: "Menor é melhor",
+    noStatsAvailable: "Não há estatísticas disponíveis para este jogador.",
+    categoryStats: {
+      attacking: "Estatísticas de Ataque",
+      passing: "Estatísticas de Passe",
+      defending: "Estatísticas de Defesa",
+      possession: "Estatísticas de Posse",
+      physical: "Estatísticas Físicas",
+      goalkeeping: "Estatísticas de Goleiro"
+    }
+  },
+  
+  loading: {
+    fetchingPlayerData: "Buscando dados do jogador..."
   },
   
   playerComparison: {
@@ -73,7 +150,8 @@ export default {
     closeTooltip: "Fechar",
     overallWinner: "Vencedor Geral",
     score: "Pontuação",
-    vs: "VS"
+    vs: "VS",
+    noMetrics: "Não há métricas disponíveis para o gráfico de radar"
   },
   
   tacticalAnalysis: {
@@ -87,7 +165,11 @@ export default {
     keyStrengths: "Pontos Fortes Chave",
     keyDifferences: "Diferenças Chave",
     styleDescription: "Descrição do Estilo",
-    backToComparison: "Voltar para a Comparação"
+    backToComparison: "Voltar para a Comparação",
+    betterTacticalFit: "Melhor Ajuste Tático",
+    analysis: "Análise",
+    noAnalysisAvailable: "Nenhuma análise disponível.",
+    introText: "Selecione um estilo de jogo e formação para analisar como os jogadores se sairiam nesse contexto tático."
   },
   favorites: {
     title: "Jogadores Favoritos",
