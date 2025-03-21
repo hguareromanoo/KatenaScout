@@ -79,7 +79,7 @@ const PlayerCompletePage = ({ player, onClose }) => {
     return (
       <div className="h-[95vh] flex flex-col items-center justify-center">
         <Loader className="animate-spin text-green-500 w-12 h-12 mb-4" />
-        <p className="text-gray-300">{t('loading.fetchingPlayerData')}</p>
+        <p className="text-gray-300">{t('loading.fetchingPlayerData', 'Fetching player data...')}</p>
       </div>
     );
   }
@@ -257,7 +257,7 @@ const PlayerCompletePage = ({ player, onClose }) => {
             }`}
             onClick={() => setActiveTab('overview')}
           >
-            Overview
+            {t('playerDashboard.overview', 'Overview')}
           </button>
           <button
             className={`px-6 py-3 text-sm font-medium ${
@@ -267,7 +267,7 @@ const PlayerCompletePage = ({ player, onClose }) => {
             }`}
             onClick={() => setActiveTab('stats')}
           >
-            Statistics
+            {t('playerDashboard.statistics', 'Statistics')}
           </button>
           <button
             className={`px-6 py-3 text-sm font-medium ${
@@ -277,7 +277,7 @@ const PlayerCompletePage = ({ player, onClose }) => {
             }`}
             onClick={() => setActiveTab('details')}
           >
-            Details
+            {t('playerDashboard.details', 'Details')}
           </button>
         </div>
       </div>
@@ -289,7 +289,7 @@ const PlayerCompletePage = ({ player, onClose }) => {
           <div className="grid grid-cols-1 lg:grid-cols-7 gap-6">
             {/* Radar Chart */}
             <div className="lg:col-span-4 bg-gray-800 rounded-lg p-5">
-              <h3 className="text-lg font-semibold text-white mb-4">Performance Overview</h3>
+              <h3 className="text-lg font-semibold text-white mb-4">{t('playerCompletePage.performanceOverview', 'Performance Overview')}</h3>
               <div style={{ height: '400px' }}>
                 {selectedRadarMetrics.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
@@ -320,11 +320,11 @@ const PlayerCompletePage = ({ player, onClose }) => {
                             <div className="bg-gray-800 border border-gray-700 p-2 rounded shadow-lg">
                               <p className="text-gray-300 text-xs">{metric.name}</p>
                               <p className={`${metric.colorClass || 'text-white'} font-bold text-sm`}>
-                                {metric.value} {isNegative && <span className="text-xs italic">(lower is better)</span>}
+                                {metric.value} {isNegative && <span className="text-xs italic">({t('playerCompletePage.lowerIsBetter', 'lower is better')})</span>}
                               </p>
                               {metric.positionAverage && (
                                 <div className="flex justify-between text-xs mt-1">
-                                  <span className="text-gray-400">Position avg:</span>
+                                  <span className="text-gray-400">{t('playerCompletePage.positionAvg', 'Position avg')}:</span>
                                   <span className="text-gray-300">{metric.positionAverage.toFixed(1)}</span>
                                 </div>
                               )}
@@ -338,7 +338,7 @@ const PlayerCompletePage = ({ player, onClose }) => {
                   </ResponsiveContainer>
                 ) : (
                   <div className="h-full flex items-center justify-center text-gray-400">
-                    No metrics available for this player.
+                    {t('playerDashboard.noMetrics', 'No metrics available for this player.')}
                   </div>
                 )}
               </div>
@@ -350,7 +350,7 @@ const PlayerCompletePage = ({ player, onClose }) => {
               <div className="bg-gray-800 rounded-lg p-5">
                 <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
                   <User className="mr-2" size={18} />
-                  Player Information
+                  {t('playerCompletePage.playerInformation', 'Player Information')}
                 </h3>
                 
                 <div className="space-y-3">
@@ -363,7 +363,7 @@ const PlayerCompletePage = ({ player, onClose }) => {
                   
                   {player.nationality && (
                     <div className="flex">
-                      <div className="w-1/3 text-gray-400">Nationality</div>
+                      <div className="w-1/3 text-gray-400">{t('playerCompletePage.nationality', 'Nationality')}</div>
                       <div className="w-2/3 text-white">{player.nationality}</div>
                     </div>
                   )}
@@ -409,7 +409,7 @@ const PlayerCompletePage = ({ player, onClose }) => {
               <div className="bg-gray-800 rounded-lg p-5">
                 <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
                   <TrendingUp className="mr-2" size={18} />
-                  Key Attributes
+                  {t('playerCompletePage.keyAttributes', 'Key Attributes')}
                 </h3>
                 
                 <div className="grid grid-cols-2 gap-3">
@@ -435,14 +435,14 @@ const PlayerCompletePage = ({ player, onClose }) => {
         {/* Statistics Tab */}
         {activeTab === 'stats' && (
           <div className="bg-gray-800 rounded-lg p-6">
-            <h3 className="text-xl font-semibold text-white mb-6">Complete Statistics</h3>
+            <h3 className="text-xl font-semibold text-white mb-6">{t('playerCompletePage.completeStatistics', 'Complete Statistics')}</h3>
             
             {/* Display stats by category with collapsible sections */}
             <div className="space-y-8">
               {Object.entries(activeCategories).map(([category, categoryMetrics]) => (
                 <div key={category} className="mb-6">
                   <h4 className="text-lg font-medium text-white mb-4 capitalize border-b border-gray-700 pb-2">
-                    {category} Statistics
+                    {t(`playerCompletePage.categoryStats.${category}`, `${category.charAt(0).toUpperCase() + category.slice(1)} Statistics`)}
                   </h4>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -454,7 +454,7 @@ const PlayerCompletePage = ({ player, onClose }) => {
                           <div className="flex justify-between items-center">
                             <div className="text-sm text-gray-400 mb-1">{metric.name}</div>
                             {isNegativeStat && (
-                              <div className="text-xs text-gray-500 italic">Lower is better</div>
+                              <div className="text-xs text-gray-500 italic">{t('playerCompletePage.lowerIsBetter', 'Lower is better')}</div>
                             )}
                           </div>
                           
@@ -464,7 +464,7 @@ const PlayerCompletePage = ({ player, onClose }) => {
                             </div>
                             {metric.positionAverage && (
                               <div className="text-sm text-gray-400">
-                                Avg: {metric.positionAverage.toFixed(1)}
+                                {t('playerCompletePage.average', 'Avg')}: {metric.positionAverage.toFixed(1)}
                               </div>
                             )}
                           </div>
@@ -491,7 +491,7 @@ const PlayerCompletePage = ({ player, onClose }) => {
               {/* No stats message if no categories are available */}
               {Object.keys(activeCategories).length === 0 && (
                 <div className="text-center py-8 text-gray-400">
-                  No statistics available for this player.
+                  {t('playerCompletePage.noStatsAvailable', 'No statistics available for this player.')}
                 </div>
               )}
             </div>
@@ -501,50 +501,50 @@ const PlayerCompletePage = ({ player, onClose }) => {
         {/* Details Tab */}
         {activeTab === 'details' && (
           <div className="bg-gray-800 rounded-lg p-6">
-            <h3 className="text-xl font-semibold text-white mb-6">Player Details</h3>
+            <h3 className="text-xl font-semibold text-white mb-6">{t('playerCompletePage.playerDetails', 'Player Details')}</h3>
             
             <div className="space-y-6">
               {/* Personal Information */}
               <div>
-                <h4 className="text-lg text-white mb-3 border-b border-gray-700 pb-2">Personal Information</h4>
+                <h4 className="text-lg text-white mb-3 border-b border-gray-700 pb-2">{t('playerCompletePage.personalInformation', 'Personal Information')}</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="flex flex-col">
-                    <span className="text-gray-400 text-sm">Full Name</span>
+                    <span className="text-gray-400 text-sm">{t('playerCompletePage.fullName', 'Full Name')}</span>
                     <span className="text-white">{player.name}</span>
                   </div>
                   
                   {player.nationality && (
                     <div className="flex flex-col">
-                      <span className="text-gray-400 text-sm">Nationality</span>
+                      <span className="text-gray-400 text-sm">{t('playerCompletePage.nationality', 'Nationality')}</span>
                       <span className="text-white">{player.nationality}</span>
                     </div>
                   )}
                   
                   {player.age && (
                     <div className="flex flex-col">
-                      <span className="text-gray-400 text-sm">Age</span>
-                      <span className="text-white">{player.age} years</span>
+                      <span className="text-gray-400 text-sm">{t('playerDashboard.age', 'Age')}</span>
+                      <span className="text-white">{player.age} {t('playerCompletePage.years', 'years')}</span>
                     </div>
                   )}
                   
                   {player.foot && (
                     <div className="flex flex-col">
-                      <span className="text-gray-400 text-sm">Preferred Foot</span>
+                      <span className="text-gray-400 text-sm">{t('playerDashboard.foot', 'Preferred Foot')}</span>
                       <span className="text-white">{player.foot}</span>
                     </div>
                   )}
                   
                   {player.height && (
                     <div className="flex flex-col">
-                      <span className="text-gray-400 text-sm">Height</span>
-                      <span className="text-white">{player.height} cm</span>
+                      <span className="text-gray-400 text-sm">{t('playerDashboard.height', 'Height')}</span>
+                      <span className="text-white">{player.height} {t('playerCompletePage.cm', 'cm')}</span>
                     </div>
                   )}
                   
                   {player.weight && (
                     <div className="flex flex-col">
-                      <span className="text-gray-400 text-sm">Weight</span>
-                      <span className="text-white">{player.weight} kg</span>
+                      <span className="text-gray-400 text-sm">{t('playerDashboard.weight', 'Weight')}</span>
+                      <span className="text-white">{player.weight} {t('playerCompletePage.kg', 'kg')}</span>
                     </div>
                   )}
                 </div>
@@ -552,33 +552,47 @@ const PlayerCompletePage = ({ player, onClose }) => {
               
               {/* Professional Information */}
               <div>
-                <h4 className="text-lg text-white mb-3 border-b border-gray-700 pb-2">Professional Information</h4>
+                <h4 className="text-lg text-white mb-3 border-b border-gray-700 pb-2">{t('playerCompletePage.professionalInformation', 'Professional Information')}</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {player.positions && (
                     <div className="flex flex-col">
-                      <span className="text-gray-400 text-sm">Position</span>
+                      <span className="text-gray-400 text-sm">{t('playerDashboard.position', 'Position')}</span>
                       <span className="text-white">{player.positions.join(', ')}</span>
                     </div>
                   )}
                   
                   {player.value && (
                     <div className="flex flex-col">
-                      <span className="text-gray-400 text-sm">Market Value</span>
+                      <span className="text-gray-400 text-sm">{t('playerDashboard.value', 'Market Value')}</span>
                       <span className="text-white">{player.value}</span>
                     </div>
                   )}
                   
                   {player.current_club && (
                     <div className="flex flex-col">
-                      <span className="text-gray-400 text-sm">Current Club</span>
+                      <span className="text-gray-400 text-sm">{t('playerCompletePage.currentClub', 'Current Club')}</span>
                       <span className="text-white">{player.current_club}</span>
                     </div>
                   )}
                   
                   {player.contract_until && (
                     <div className="flex flex-col">
-                      <span className="text-gray-400 text-sm">Contract Until</span>
+                      <span className="text-gray-400 text-sm">{t('playerCompletePage.contractUntil', 'Contract Until')}</span>
                       <span className="text-white">{player.contract_until}</span>
+                    </div>
+                  )}
+                  
+                  {player.contract && player.contract.contractExpiration && (
+                    <div className="flex flex-col">
+                      <span className="text-gray-400 text-sm">{t('playerCompletePage.contractExpiration', 'Contract Expiration')}</span>
+                      <span className="text-white">{player.contract.contractExpiration}</span>
+                    </div>
+                  )}
+                  
+                  {player.contract && player.contract.agencies && player.contract.agencies.length > 0 && (
+                    <div className="flex flex-col">
+                      <span className="text-gray-400 text-sm">{t('playerCompletePage.agencies', 'Agencies')}</span>
+                      <span className="text-white">{player.contract.agencies.join(', ')}</span>
                     </div>
                   )}
                 </div>

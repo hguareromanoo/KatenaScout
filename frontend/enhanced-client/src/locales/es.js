@@ -115,6 +115,8 @@ export default {
     nationality: "Nacionalidad",
     currentClub: "Club Actual",
     contractUntil: "Contrato Hasta",
+    contractExpiration: "Vencimiento del Contrato",
+    agencies: "Agencias",
     years: "años",
     cm: "cm",
     kg: "kg",

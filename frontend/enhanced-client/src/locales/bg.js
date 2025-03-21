@@ -115,6 +115,8 @@ export default {
     nationality: "Националност",
     currentClub: "Настоящ Клуб",
     contractUntil: "Договор До",
+    contractExpiration: "Дата на изтичане на договора",
+    agencies: "Агенции",
     years: "години",
     cm: "см",
     kg: "кг",
