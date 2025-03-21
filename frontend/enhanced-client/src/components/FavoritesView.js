@@ -4,6 +4,7 @@ import { useTranslation, useFavorites, useSession, useUI } from '../contexts';
 import { filterItems, formatMetricName } from '../utils';
 import { playerService } from '../api/api';
 import ErrorBoundary from './ErrorBoundary';
+import PlayerCompletePage from './PlayerCompletePage';
 
 /**
  * FavoritesView component - Displays and manages favorite players
@@ -11,15 +12,43 @@ import ErrorBoundary from './ErrorBoundary';
 const FavoritesView = () => {
   const { t } = useTranslation();
   const { favorites, toggleFavorite } = useFavorites();
-  const { handlePlayerSelected, viewCompleteProfile } = useSession();
+  const { handlePlayerSelected } = useSession();
   const { setCurrentView } = useUI();
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedPlayer, setSelectedPlayer] = useState(null);
+  const [showingCompleteProfile, setShowingCompleteProfile] = useState(false);
   
   // Filter favorites based on search term using utility function
   const filteredFavorites = filterItems(favorites, searchTerm, ['name', 'positions']);
   
+  // Handle viewing complete profile
+  const viewCompleteProfile = (player) => {
+    setSelectedPlayer(player);
+    setShowingCompleteProfile(true);
+  };
+  
+  // Close complete profile view
+  const closeCompleteProfile = () => {
+    setShowingCompleteProfile(false);
+    setSelectedPlayer(null);
+  };
+  
   return (
     <div className="h-screen flex flex-col">
+      {/* Complete Player Profile View - Shown when a user clicks "View Complete Profile" */}
+      {showingCompleteProfile && selectedPlayer && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-800 rounded-xl w-full max-w-5xl max-h-[95vh] overflow-hidden relative">
+            <ErrorBoundary>
+              <PlayerCompletePage 
+                player={selectedPlayer}
+                onClose={closeCompleteProfile}
+              />
+            </ErrorBoundary>
+          </div>
+        </div>
+      )}
+      
       <div className="max-w-5xl mx-auto w-full p-4 pt-20 md:pt-6 flex-1 overflow-hidden flex flex-col">
         <div className="bg-gray-800 rounded-xl shadow-lg overflow-hidden flex flex-col flex-1">
           {/* Header - Fixed */}

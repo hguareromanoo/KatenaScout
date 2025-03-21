@@ -307,7 +307,7 @@ const PlayerComparisonModal = () => {
       <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-80">
         <div className="bg-gray-800 rounded-lg shadow-lg max-w-md w-full mx-4 p-6">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-bold text-white">Select Player to Compare</h2>
+            <h2 className="text-xl font-bold text-white">{t('playerComparison.selectPlayerToCompare', 'Select Player to Compare')}</h2>
             <button 
               onClick={closeComparisonModal} 
               className="text-gray-400 hover:text-white"
@@ -318,15 +318,15 @@ const PlayerComparisonModal = () => {
           
           <div className="mb-3">
             <p className="text-gray-300">
-              You selected <span className="font-semibold text-white">{primaryPlayer.name}</span>.
-              Please select another player to compare with:
+              {t('chat.showingDetails', 'Showing details of')} <span className="font-semibold text-white">{primaryPlayer.name}</span>.
+              {t('playerComparison.selectPlayerPrompt', 'Please select another player to compare with')}
             </p>
           </div>
           
           {/* Show other players from same search */}
           {otherPlayersInSearch.length > 0 ? (
             <div className="mb-4">
-              <h3 className="text-sm font-semibold text-gray-300 mb-2">Players from same search:</h3>
+              <h3 className="text-sm font-semibold text-gray-300 mb-2">{t('chat.playersFoundText', 'Players found - Select to see details:')}:</h3>
               <div className="space-y-2 max-h-60 overflow-y-auto custom-scrollbar">
                 {otherPlayersInSearch.map((player) => (
                   <div
@@ -465,7 +465,7 @@ const PlayerComparisonModal = () => {
                     {comparisonData.overall_winner?.winner === 'player1' && (
                       <div className="flex items-center text-yellow-500 mt-1">
                         <Trophy size={16} className="mr-1" />
-                        <span className="text-sm font-medium">Overall Winner</span>
+                        <span className="text-sm font-medium">{t('playerComparison.overallWinner', 'Overall Winner')}</span>
                       </div>
                     )}
                   </div>
@@ -474,7 +474,7 @@ const PlayerComparisonModal = () => {
                 {/* Player 1 Score */}
                 <div className="bg-gray-700 rounded p-3">
                   <div className="flex justify-between items-center mb-1">
-                    <span className="text-gray-300 text-sm">Score</span>
+                    <span className="text-gray-300 text-sm">{t('playerComparison.score', 'Score')}</span>
                     <span className="font-medium text-white">{comparisonData.overall_winner?.player1_score?.toFixed(1)}</span>
                   </div>
                   <div className="w-full bg-gray-600 rounded-full h-2">
@@ -491,7 +491,7 @@ const PlayerComparisonModal = () => {
               {/* Middle - Radar Chart */}
               <div className="col-span-1 flex items-center justify-center">
                 <div className="bg-gray-700 w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-lg">
-                  VS
+                  {t('playerComparison.vs', 'VS')}
                 </div>
               </div>
               
@@ -517,7 +517,7 @@ const PlayerComparisonModal = () => {
                     {comparisonData.overall_winner?.winner === 'player2' && (
                       <div className="flex items-center text-yellow-500 mt-1">
                         <Trophy size={16} className="mr-1" />
-                        <span className="text-sm font-medium">Overall Winner</span>
+                        <span className="text-sm font-medium">{t('playerComparison.overallWinner', 'Overall Winner')}</span>
                       </div>
                     )}
                   </div>
@@ -526,7 +526,7 @@ const PlayerComparisonModal = () => {
                 {/* Player 2 Score */}
                 <div className="bg-gray-700 rounded p-3">
                   <div className="flex justify-between items-center mb-1">
-                    <span className="text-gray-300 text-sm">Score</span>
+                    <span className="text-gray-300 text-sm">{t('playerComparison.score', 'Score')}</span>
                     <span className="font-medium text-white">{comparisonData.overall_winner?.player2_score?.toFixed(1)}</span>
                   </div>
                   <div className="w-full bg-gray-600 rounded-full h-2">
@@ -602,7 +602,7 @@ const PlayerComparisonModal = () => {
                   </ResponsiveContainer>
                 ) : (
                   <div className="h-full flex items-center justify-center text-gray-400">
-                    No metrics available for radar chart
+                    {t('playerComparison.noMetrics', 'No metrics available for radar chart')}
                   </div>
                 )}
               </div>
@@ -664,7 +664,7 @@ const PlayerComparisonModal = () => {
                       <div className="col-span-1 text-center text-sm text-gray-400 px-1">
                         <div className="truncate">{metric}</div>
                         {isNegative && (
-                          <span className="text-xs text-gray-500">(Lower is better)</span>
+                          <span className="text-xs text-gray-500">({t('playerCompletePage.lowerIsBetter', 'Lower is better')})</span>
                         )}
                       </div>
                       
@@ -685,14 +685,14 @@ const PlayerComparisonModal = () => {
               </div>
             </div>
             
-            {/* AI Analysis Section */}
+            {/* Single AI Analysis Section - combining tactical and AI features */}
             <div className="mb-6">
               <button
                 onClick={() => setShowStyleSelector(!showStyleSelector)}
                 className="w-full flex items-center justify-center gap-2 p-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors font-medium"
               >
                 <BrainCircuit size={20} />
-                {t('playerComparison.aiAnalysis', 'AI Analysis')}
+                {t('tacticalAnalysis.title', 'Tactical Context Analysis')}
                 <ChevronDown 
                   size={16} 
                   className={`text-white transition-transform ${
@@ -705,19 +705,19 @@ const PlayerComparisonModal = () => {
               {showStyleSelector && (
                 <div className="mt-3 bg-gray-750 rounded-lg p-4 border border-gray-700 transition-all">
                   <p className="text-gray-300 mb-4">
-                    Select a playing style and formation to generate an AI analysis of how these players compare
+                    {t('tacticalAnalysis.introText', 'Select a playing style and formation to analyze how the players would perform in that tactical context.')}
                   </p>
                 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     {/* Style Selection */}
                     <div>
-                      <label className="block text-gray-300 mb-2 text-sm font-medium">Playing Style</label>
+                      <label className="block text-gray-300 mb-2 text-sm font-medium">{t('tacticalAnalysis.selectStyle', 'Playing Style')}</label>
                       <select 
                         value={selectedAnalysisStyle}
                         onChange={(e) => setSelectedAnalysisStyle(e.target.value)}
                         className="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white"
                       >
-                        <option value="">Select a style</option>
+                        <option value="">{t('tacticalAnalysis.selectStyle', 'Select Playing Style')}</option>
                         {PLAYING_STYLES.map(style => (
                           <option key={style.id} value={style.id}>
                             {style.name}
@@ -733,13 +733,13 @@ const PlayerComparisonModal = () => {
                     
                     {/* Formation Selection */}
                     <div>
-                      <label className="block text-gray-300 mb-2 text-sm font-medium">Formation</label>
+                      <label className="block text-gray-300 mb-2 text-sm font-medium">{t('tacticalAnalysis.selectFormation', 'Formation')}</label>
                       <select 
                         value={selectedAnalysisFormation}
                         onChange={(e) => setSelectedAnalysisFormation(e.target.value)}
                         className="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white"
                       >
-                        <option value="">Select a formation</option>
+                        <option value="">{t('tacticalAnalysis.selectFormation', 'Select Formation')}</option>
                         {FORMATIONS.map(formation => (
                           <option key={formation} value={formation}>
                             {formation}
@@ -749,7 +749,7 @@ const PlayerComparisonModal = () => {
                     </div>
                   </div>
                   
-                  {/* Generate Button */}
+                  {/* Generate Button - Acts like before but also sets tactical mode */}
                   <button
                     onClick={generateAiAnalysis}
                     disabled={!selectedAnalysisStyle || !selectedAnalysisFormation || loadingAiAnalysis}
@@ -758,16 +758,17 @@ const PlayerComparisonModal = () => {
                         ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
                         : 'bg-blue-600 text-white hover:bg-blue-700'
                     }`}
+                    type="button"
                   >
                     {loadingAiAnalysis ? (
                       <>
                         <div className="w-5 h-5 border-2 border-t-transparent border-white rounded-full animate-spin mr-2"></div>
-                        {t('playerComparison.generatingAnalysis', 'Generating analysis...')}
+                        {t('tacticalAnalysis.analyzing', 'Analyzing...')}
                       </>
                     ) : (
                       <>
                         <BrainCircuit className="mr-2" size={18} />
-                        {t('playerComparison.generateAnalysis', 'Generate Analysis')}
+                        {t('tacticalAnalysis.generateAnalysis', 'Generate Analysis')}
                       </>
                     )}
                   </button>
@@ -780,7 +781,7 @@ const PlayerComparisonModal = () => {
                   <div className="flex justify-between items-center px-4 py-3 border-b border-gray-700">
                     <h3 className="text-white font-medium flex items-center">
                       <Trophy size={16} className="mr-2 text-yellow-500" />
-                      Analysis Results
+                      {t('tacticalAnalysis.title', 'Tactical Context Analysis')}
                     </h3>
                     <div className="flex items-center">
                       <span className="text-gray-400 text-sm mr-3">
@@ -788,7 +789,7 @@ const PlayerComparisonModal = () => {
                       </span>
                     </div>
                   </div>
-                  <div className="p-4 max-h-60 overflow-y-auto custom-scrollbar">
+                  <div className="p-4 max-h-80 overflow-y-auto custom-scrollbar">
                     <div className="text-gray-300 whitespace-pre-line">
                       {aiAnalysisText}
                     </div>
@@ -796,15 +797,6 @@ const PlayerComparisonModal = () => {
                 </div>
               )}
             </div>
-            
-            {/* Tactical Analysis Button - now separate */}
-            <button
-              onClick={enterTacticalAnalysisMode}
-              className="w-full py-3 px-4 bg-gray-750 hover:bg-gray-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2 mb-4"
-            >
-              <UsersIcon size={18} />
-              {t('playerComparison.tacticalAnalysis', 'Tactical Context Analysis')}
-            </button>
           </div>
         )}
       </div>

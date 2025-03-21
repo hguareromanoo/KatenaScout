@@ -29,7 +29,13 @@ const PlayerCompletePage = ({ player, onClose }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   
-  const isFavorite = isPlayerFavorite(player);
+  // Use state to track favorite status for better responsiveness
+  const [localFavorite, setLocalFavorite] = useState(isPlayerFavorite(player));
+  
+  // This will update the local state if the context changes
+  useEffect(() => {
+    setLocalFavorite(isPlayerFavorite(player));
+  }, [player, isPlayerFavorite]);
   
   // Use the complete profile data that's already included with the player
   useEffect(() => {
@@ -234,15 +240,24 @@ const PlayerCompletePage = ({ player, onClose }) => {
         
         {/* Favorite button */}
         <button
-          onClick={() => toggleFavorite(player)}
+          onClick={(e) => {
+            e.preventDefault(); // Prevent default
+            e.stopPropagation(); // Prevent event bubbling
+            
+            // Update local state immediately for responsive UI
+            setLocalFavorite(!localFavorite);
+            
+            // Then update the global state
+            toggleFavorite(player);
+          }}
           className={`p-2 rounded-full ${
-            isFavorite 
+            localFavorite 
               ? 'bg-red-500 bg-opacity-20 text-red-400 hover:bg-opacity-30' 
               : 'bg-gray-700 text-gray-400 hover:text-white hover:bg-gray-650'
           }`}
-          title={isFavorite ? t('playerDashboard.removeFromFavorites') : t('playerDashboard.addToFavorites')}
+          title={localFavorite ? t('playerDashboard.removeFromFavorites') : t('playerDashboard.addToFavorites')}
         >
-          <Heart size={20} fill={isFavorite ? '#f56565' : 'none'} />
+          <Heart size={20} fill={localFavorite ? '#f56565' : 'none'} />
         </button>
       </div>
       
