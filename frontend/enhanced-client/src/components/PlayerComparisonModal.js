@@ -714,6 +714,7 @@ const PlayerComparisonModal = () => {
                       </div>
                     );
                   })}
+                </div>
               </div>
             </div>
             
