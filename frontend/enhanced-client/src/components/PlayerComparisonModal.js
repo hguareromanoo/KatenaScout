@@ -449,7 +449,7 @@ const PlayerComparisonModal = () => {
                 comparisonData.overall_winner?.winner === 'player1' ? 'border-2 border-yellow-500' : ''
               }`}>
                 <div className="flex items-center mb-3">
-                  <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full overflow-hidden bg-gray-700 mr-3 flex-shrink-0">
+                  <div className="w-10 h-10 sm:w-16 sm:h-16 rounded-full overflow-hidden bg-gray-700 mr-2 sm:mr-3 flex-shrink-0">
                     <img 
                       src={playerService.getPlayerImageUrl(primaryPlayer)}
                       alt={primaryPlayer.name}
@@ -460,7 +460,7 @@ const PlayerComparisonModal = () => {
                       }}
                     />
                   </div>
-                  <div className="flex-1 min-w-0">
+                  <div className="flex-1 min-w-0 max-w-full">
                     <h3 className="text-base sm:text-xl font-bold text-white truncate">{primaryPlayer.name}</h3>
                     <p className="text-gray-300 text-xs sm:text-sm truncate">{primaryPlayer.positions?.join(', ')}</p>
                     {comparisonData.overall_winner?.winner === 'player1' && (
@@ -508,7 +508,7 @@ const PlayerComparisonModal = () => {
                 comparisonData.overall_winner?.winner === 'player2' ? 'border-2 border-yellow-500' : ''
               }`}>
                 <div className="flex items-center mb-3">
-                  <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full overflow-hidden bg-gray-700 mr-3 flex-shrink-0">
+                  <div className="w-10 h-10 sm:w-16 sm:h-16 rounded-full overflow-hidden bg-gray-700 mr-2 sm:mr-3 flex-shrink-0">
                     <img 
                       src={playerService.getPlayerImageUrl(secondPlayer)}
                       alt={secondPlayer.name}
@@ -519,7 +519,7 @@ const PlayerComparisonModal = () => {
                       }}
                     />
                   </div>
-                  <div className="flex-1 min-w-0">
+                  <div className="flex-1 min-w-0 max-w-full">
                     <h3 className="text-base sm:text-xl font-bold text-white truncate">{secondPlayer.name}</h3>
                     <p className="text-gray-300 text-xs sm:text-sm truncate">{secondPlayer.positions?.join(', ')}</p>
                     {comparisonData.overall_winner?.winner === 'player2' && (
