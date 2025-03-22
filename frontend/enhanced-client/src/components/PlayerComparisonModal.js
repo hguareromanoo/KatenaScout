@@ -400,18 +400,19 @@ const PlayerComparisonModal = () => {
   // Full comparison modal
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-80 overflow-y-auto py-4">
-      <div className="bg-gray-800 rounded-lg shadow-lg max-w-6xl w-full mx-4 my-8 max-h-[90vh] overflow-y-auto custom-scrollbar">
-        {/* Header */}
-        <div className="flex justify-between items-center p-6 border-b border-gray-700">
-          <h2 className="text-2xl font-bold text-white flex items-center">
-            <GitCompare className="mr-2" size={24} />
-            {t('playerComparison.title', 'Player Comparison')}
+      <div className="bg-gray-800 rounded-lg shadow-lg max-w-6xl w-full mx-2 sm:mx-4 my-4 sm:my-8 max-h-[90vh] overflow-y-auto custom-scrollbar">
+        {/* Header - Improved for mobile */}
+        <div className="flex justify-between items-center p-3 sm:p-6 border-b border-gray-700">
+          <h2 className="text-lg sm:text-2xl font-bold text-white flex items-center">
+            <GitCompare className="mr-1 sm:mr-2 flex-shrink-0" size={20} />
+            <span className="truncate">{t('playerComparison.title', 'Player Comparison')}</span>
           </h2>
           <button 
             onClick={closeComparisonModal} 
-            className="text-gray-400 hover:text-white"
+            className="text-gray-400 hover:text-white ml-2 flex-shrink-0"
+            aria-label="Close"
           >
-            <X size={24} />
+            <X size={20} />
           </button>
         </div>
         
@@ -440,15 +441,15 @@ const PlayerComparisonModal = () => {
         
         {/* Comparison Content */}
         {!loadingComparison && !comparisonError && comparisonData && (
-          <div className="p-6">
-            {/* Players Header */}
-            <div className="grid grid-cols-7 gap-4 mb-8">
+          <div className="p-3 sm:p-6">
+            {/* Players Header - Mobile-optimized layout */}
+            <div className="grid grid-cols-1 sm:grid-cols-7 gap-3 sm:gap-4 mb-6 sm:mb-8">
               {/* Player 1 */}
-              <div className={`col-span-3 bg-gray-750 p-4 rounded-lg ${
+              <div className={`sm:col-span-3 bg-gray-750 p-3 sm:p-4 rounded-lg ${
                 comparisonData.overall_winner?.winner === 'player1' ? 'border-2 border-yellow-500' : ''
               }`}>
                 <div className="flex items-center mb-3">
-                  <div className="w-16 h-16 rounded-full overflow-hidden bg-gray-700 mr-3">
+                  <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full overflow-hidden bg-gray-700 mr-3 flex-shrink-0">
                     <img 
                       src={playerService.getPlayerImageUrl(primaryPlayer)}
                       alt={primaryPlayer.name}
@@ -459,13 +460,13 @@ const PlayerComparisonModal = () => {
                       }}
                     />
                   </div>
-                  <div className="flex-1">
-                    <h3 className="text-xl font-bold text-white truncate">{primaryPlayer.name}</h3>
-                    <p className="text-gray-300 text-sm">{primaryPlayer.positions?.join(', ')}</p>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-base sm:text-xl font-bold text-white truncate">{primaryPlayer.name}</h3>
+                    <p className="text-gray-300 text-xs sm:text-sm truncate">{primaryPlayer.positions?.join(', ')}</p>
                     {comparisonData.overall_winner?.winner === 'player1' && (
                       <div className="flex items-center text-yellow-500 mt-1">
-                        <Trophy size={16} className="mr-1" />
-                        <span className="text-sm font-medium">{t('playerComparison.overallWinner', 'Overall Winner')}</span>
+                        <Trophy size={14} className="mr-1 flex-shrink-0" />
+                        <span className="text-xs sm:text-sm font-medium truncate">{t('playerComparison.overallWinner', 'Overall Winner')}</span>
                       </div>
                     )}
                   </div>
@@ -488,19 +489,26 @@ const PlayerComparisonModal = () => {
                 </div>
               </div>
               
-              {/* Middle - Radar Chart */}
-              <div className="col-span-1 flex items-center justify-center">
+              {/* Middle - Radar Chart - Hidden on mobile, visible on larger screens */}
+              <div className="hidden sm:flex sm:col-span-1 items-center justify-center my-3 sm:my-0">
                 <div className="bg-gray-700 w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-lg">
                   {t('playerComparison.vs', 'VS')}
                 </div>
               </div>
               
+              {/* Mobile VS indicator */}
+              <div className="sm:hidden flex justify-center items-center my-2">
+                <div className="bg-gray-700 w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                  {t('playerComparison.vs', 'VS')}
+                </div>
+              </div>
+              
               {/* Player 2 */}
-              <div className={`col-span-3 bg-gray-750 p-4 rounded-lg ${
+              <div className={`sm:col-span-3 bg-gray-750 p-3 sm:p-4 rounded-lg ${
                 comparisonData.overall_winner?.winner === 'player2' ? 'border-2 border-yellow-500' : ''
               }`}>
                 <div className="flex items-center mb-3">
-                  <div className="w-16 h-16 rounded-full overflow-hidden bg-gray-700 mr-3">
+                  <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full overflow-hidden bg-gray-700 mr-3 flex-shrink-0">
                     <img 
                       src={playerService.getPlayerImageUrl(secondPlayer)}
                       alt={secondPlayer.name}
@@ -511,13 +519,13 @@ const PlayerComparisonModal = () => {
                       }}
                     />
                   </div>
-                  <div className="flex-1">
-                    <h3 className="text-xl font-bold text-white truncate">{secondPlayer.name}</h3>
-                    <p className="text-gray-300 text-sm">{secondPlayer.positions?.join(', ')}</p>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-base sm:text-xl font-bold text-white truncate">{secondPlayer.name}</h3>
+                    <p className="text-gray-300 text-xs sm:text-sm truncate">{secondPlayer.positions?.join(', ')}</p>
                     {comparisonData.overall_winner?.winner === 'player2' && (
                       <div className="flex items-center text-yellow-500 mt-1">
-                        <Trophy size={16} className="mr-1" />
-                        <span className="text-sm font-medium">{t('playerComparison.overallWinner', 'Overall Winner')}</span>
+                        <Trophy size={14} className="mr-1 flex-shrink-0" />
+                        <span className="text-xs sm:text-sm font-medium truncate">{t('playerComparison.overallWinner', 'Overall Winner')}</span>
                       </div>
                     )}
                   </div>
@@ -541,26 +549,26 @@ const PlayerComparisonModal = () => {
               </div>
             </div>
             
-            {/* Radar Chart */}
-            <div className="bg-gray-750 p-4 rounded-lg mb-8">
-              <h3 className="text-lg font-bold text-white mb-4 flex items-center">
-                <TrendingUp className="mr-2" size={18} />
-                {t('playerComparison.radarComparison', 'Key Metrics Comparison')}
+            {/* Radar Chart - Optimized for mobile */}
+            <div className="bg-gray-750 p-3 sm:p-4 rounded-lg mb-4 sm:mb-8">
+              <h3 className="text-base sm:text-lg font-bold text-white mb-3 sm:mb-4 flex items-center">
+                <TrendingUp className="mr-1 sm:mr-2 flex-shrink-0" size={16} />
+                <span className="truncate">{t('playerComparison.radarComparison', 'Key Metrics Comparison')}</span>
               </h3>
               
-              <div className="h-80">
+              <div className="h-60 sm:h-80">
                 {radarMetrics.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
                     <RadarChart outerRadius="70%" data={radarMetrics}>
                       <PolarGrid stroke="#4a5568" />
                       <PolarAngleAxis 
                         dataKey="name" 
-                        tick={{ fill: '#e2e8f0', fontSize: 12 }} 
+                        tick={{ fill: '#e2e8f0', fontSize: 10 }} 
                       />
                       <PolarRadiusAxis 
                         angle={90} 
                         domain={[0, 100]} 
-                        tick={{ fill: '#718096' }} 
+                        tick={{ fill: '#718096', fontSize: 9 }} 
                         axisLine={{ stroke: '#4a5568' }} 
                       />
                       <Radar 
@@ -608,14 +616,14 @@ const PlayerComparisonModal = () => {
               </div>
             </div>
             
-            {/* Category Tabs */}
-            <div className="bg-gray-750 rounded-lg overflow-hidden mb-8">
-              <div className="flex overflow-x-auto bg-gray-700">
+            {/* Category Tabs - Scrollable for mobile */}
+            <div className="bg-gray-750 rounded-lg overflow-hidden mb-4 sm:mb-8">
+              <div className="flex overflow-x-auto bg-gray-700 custom-scrollbar pb-1">
                 {Object.entries(comparisonData.categorized_metrics || {}).map(([category, metrics]) => (
                   <button
                     key={category}
                     onClick={() => setActiveCategory(category)}
-                    className={`px-4 py-3 whitespace-nowrap ${
+                    className={`px-3 sm:px-4 py-2 sm:py-3 whitespace-nowrap text-xs sm:text-sm ${
                       activeCategory === category
                         ? 'bg-gray-750 text-white font-medium'
                         : 'text-gray-300 hover:bg-gray-750 hover:text-white'
@@ -623,7 +631,7 @@ const PlayerComparisonModal = () => {
                   >
                     {CATEGORY_LABELS[category] || category}
                     {comparisonData.category_winners?.[category] && (
-                      <span className={`ml-2 inline-block w-2 h-2 rounded-full ${
+                      <span className={`ml-1 sm:ml-2 inline-block w-2 h-2 rounded-full ${
                         comparisonData.category_winners[category] === 'player1' 
                           ? 'bg-blue-500' 
                           : comparisonData.category_winners[category] === 'player2'
@@ -635,53 +643,77 @@ const PlayerComparisonModal = () => {
                 ))}
               </div>
               
-              {/* Metrics List */}
-              <div className="p-4">
-                {(comparisonData.categorized_metrics?.[activeCategory] || []).map(metric => {
-                  const player1Value = comparisonData.players[0]?.stats?.[metric];
-                  const player2Value = comparisonData.players[1]?.stats?.[metric];
-                  const winner = comparisonData.metric_winners?.[metric];
-                  const isNegative = (comparisonData.negative_metrics || []).includes(metric);
+              {/* Metrics List - Mobile optimized */}
+              <div className="p-3 sm:p-4">
+                <div className="grid grid-cols-1 sm:grid-cols-1 gap-3 mb-2">
+                  {/* Mobile view category title */}
+                  <div className="flex justify-center sm:hidden mb-2">
+                    <span className="text-sm font-medium text-white px-3 py-1 bg-gray-700 rounded-full">
+                      {CATEGORY_LABELS[activeCategory] || activeCategory}
+                    </span>
+                  </div>
                   
-                  return (
-                    <div 
-                      key={metric} 
-                      className="grid grid-cols-7 gap-4 py-3 border-b border-gray-700 last:border-0 items-center"
-                    >
-                      {/* Player 1 Value */}
-                      <div className={`col-span-3 flex justify-end items-center ${
-                        winner === 'player1' ? 'text-blue-400 font-semibold' : 'text-gray-300'
-                      }`}>
-                        {typeof player1Value === 'number' 
-                          ? player1Value.toFixed(2) 
-                          : player1Value || '—'}
-                        {winner === 'player1' && (
-                          <Trophy size={16} className="ml-2 text-yellow-500" />
-                        )}
+                  {/* Stats Comparison List */}
+                  {(comparisonData.categorized_metrics?.[activeCategory] || []).map(metric => {
+                    const player1Value = comparisonData.players[0]?.stats?.[metric];
+                    const player2Value = comparisonData.players[1]?.stats?.[metric];
+                    const winner = comparisonData.metric_winners?.[metric];
+                    const isNegative = (comparisonData.negative_metrics || []).includes(metric);
+                    
+                    // Mobile view - stacked rows
+                    return (
+                      <div key={metric} className="bg-gray-800 rounded-lg overflow-hidden mb-2">
+                        {/* Metric Name - Always visible */}
+                        <div className="bg-gray-700 p-2 text-center">
+                          <div className="text-xs sm:text-sm text-gray-300 font-medium truncate">{metric}</div>
+                          {isNegative && (
+                            <span className="text-xs text-gray-500 block sm:inline">({t('playerCompletePage.lowerIsBetter', 'Lower is better')})</span>
+                          )}
+                        </div>
+                        
+                        {/* Values - Side by side */}
+                        <div className="grid grid-cols-2 gap-1 p-2">
+                          {/* Player 1 Value */}
+                          <div className={`flex justify-center items-center p-2 ${
+                            winner === 'player1' ? 'bg-blue-900 bg-opacity-25 rounded' : ''
+                          }`}>
+                            <div className="flex flex-col items-center">
+                              <span className="text-xs text-gray-400 mb-1 truncate max-w-full">{primaryPlayer.name.split(' ')[0]}</span>
+                              <div className={`flex items-center ${
+                                winner === 'player1' ? 'text-blue-400 font-semibold' : 'text-gray-300'
+                              }`}>
+                                {typeof player1Value === 'number' 
+                                  ? player1Value.toFixed(2) 
+                                  : player1Value || '—'}
+                                {winner === 'player1' && (
+                                  <Trophy size={14} className="ml-1 text-yellow-500 flex-shrink-0" />
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                          
+                          {/* Player 2 Value */}
+                          <div className={`flex justify-center items-center p-2 ${
+                            winner === 'player2' ? 'bg-red-900 bg-opacity-25 rounded' : ''
+                          }`}>
+                            <div className="flex flex-col items-center">
+                              <span className="text-xs text-gray-400 mb-1 truncate max-w-full">{secondPlayer.name.split(' ')[0]}</span>
+                              <div className={`flex items-center ${
+                                winner === 'player2' ? 'text-red-400 font-semibold' : 'text-gray-300'
+                              }`}>
+                                {winner === 'player2' && (
+                                  <Trophy size={14} className="mr-1 text-yellow-500 flex-shrink-0" />
+                                )}
+                                {typeof player2Value === 'number' 
+                                  ? player2Value.toFixed(2) 
+                                  : player2Value || '—'}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                      
-                      {/* Metric Name */}
-                      <div className="col-span-1 text-center text-sm text-gray-400 px-1">
-                        <div className="truncate">{metric}</div>
-                        {isNegative && (
-                          <span className="text-xs text-gray-500">({t('playerCompletePage.lowerIsBetter', 'Lower is better')})</span>
-                        )}
-                      </div>
-                      
-                      {/* Player 2 Value */}
-                      <div className={`col-span-3 flex items-center ${
-                        winner === 'player2' ? 'text-red-400 font-semibold' : 'text-gray-300'
-                      }`}>
-                        {winner === 'player2' && (
-                          <Trophy size={16} className="mr-2 text-yellow-500" />
-                        )}
-                        {typeof player2Value === 'number' 
-                          ? player2Value.toFixed(2) 
-                          : player2Value || '—'}
-                      </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
               </div>
             </div>
             
@@ -701,21 +733,21 @@ const PlayerComparisonModal = () => {
                 />
               </button>
               
-              {/* Style & Formation Selection Section */}
+              {/* Style & Formation Selection Section - Mobile optimized */}
               {showStyleSelector && (
-                <div className="mt-3 bg-gray-750 rounded-lg p-4 border border-gray-700 transition-all">
-                  <p className="text-gray-300 mb-4">
+                <div className="mt-3 bg-gray-750 rounded-lg p-3 sm:p-4 border border-gray-700 transition-all">
+                  <p className="text-gray-300 mb-4 text-sm sm:text-base">
                     {t('tacticalAnalysis.introText', 'Select a playing style and formation to analyze how the players would perform in that tactical context.')}
                   </p>
                 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 mb-4">
                     {/* Style Selection */}
                     <div>
-                      <label className="block text-gray-300 mb-2 text-sm font-medium">{t('tacticalAnalysis.selectStyle', 'Playing Style')}</label>
+                      <label className="block text-gray-300 mb-2 text-xs sm:text-sm font-medium">{t('tacticalAnalysis.selectStyle', 'Playing Style')}</label>
                       <select 
                         value={selectedAnalysisStyle}
                         onChange={(e) => setSelectedAnalysisStyle(e.target.value)}
-                        className="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white"
+                        className="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-sm text-white"
                       >
                         <option value="">{t('tacticalAnalysis.selectStyle', 'Select Playing Style')}</option>
                         {PLAYING_STYLES.map(style => (
@@ -733,11 +765,11 @@ const PlayerComparisonModal = () => {
                     
                     {/* Formation Selection */}
                     <div>
-                      <label className="block text-gray-300 mb-2 text-sm font-medium">{t('tacticalAnalysis.selectFormation', 'Formation')}</label>
+                      <label className="block text-gray-300 mb-2 text-xs sm:text-sm font-medium">{t('tacticalAnalysis.selectFormation', 'Formation')}</label>
                       <select 
                         value={selectedAnalysisFormation}
                         onChange={(e) => setSelectedAnalysisFormation(e.target.value)}
-                        className="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white"
+                        className="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-sm text-white"
                       >
                         <option value="">{t('tacticalAnalysis.selectFormation', 'Select Formation')}</option>
                         {FORMATIONS.map(formation => (
@@ -753,7 +785,7 @@ const PlayerComparisonModal = () => {
                   <button
                     onClick={generateAiAnalysis}
                     disabled={!selectedAnalysisStyle || !selectedAnalysisFormation || loadingAiAnalysis}
-                    className={`w-full py-3 rounded-md font-medium flex items-center justify-center ${
+                    className={`w-full py-2 sm:py-3 text-sm sm:text-base rounded-md font-medium flex items-center justify-center ${
                       !selectedAnalysisStyle || !selectedAnalysisFormation || loadingAiAnalysis
                         ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
                         : 'bg-blue-600 text-white hover:bg-blue-700'
@@ -775,22 +807,24 @@ const PlayerComparisonModal = () => {
                 </div>
               )}
               
-              {/* Analysis Results */}
+              {/* Analysis Results - Mobile optimized */}
               {aiAnalysisText && (
                 <div className="mt-3 bg-gray-750 rounded-lg overflow-hidden">
-                  <div className="flex justify-between items-center px-4 py-3 border-b border-gray-700">
-                    <h3 className="text-white font-medium flex items-center">
-                      <Trophy size={16} className="mr-2 text-yellow-500" />
-                      {t('tacticalAnalysis.title', 'Tactical Context Analysis')}
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center px-3 sm:px-4 py-3 border-b border-gray-700">
+                    <h3 className="text-white font-medium flex items-center text-sm sm:text-base mb-2 sm:mb-0">
+                      <Trophy size={14} className="mr-1 sm:mr-2 text-yellow-500 flex-shrink-0" />
+                      <span className="truncate">{t('tacticalAnalysis.title', 'Tactical Context Analysis')}</span>
                     </h3>
-                    <div className="flex items-center">
-                      <span className="text-gray-400 text-sm mr-3">
-                        {selectedAnalysisStyle && PLAYING_STYLES.find(s => s.id === selectedAnalysisStyle)?.name} • {selectedAnalysisFormation}
+                    <div className="flex items-center w-full sm:w-auto justify-start sm:justify-end">
+                      <span className="text-gray-400 text-xs sm:text-sm">
+                        <span className="truncate">{selectedAnalysisStyle && PLAYING_STYLES.find(s => s.id === selectedAnalysisStyle)?.name}</span>
+                        <span className="mx-1">•</span>
+                        <span>{selectedAnalysisFormation}</span>
                       </span>
                     </div>
                   </div>
-                  <div className="p-4 max-h-80 overflow-y-auto custom-scrollbar">
-                    <div className="text-gray-300 whitespace-pre-line">
+                  <div className="p-3 sm:p-4 max-h-60 sm:max-h-80 overflow-y-auto custom-scrollbar">
+                    <div className="text-gray-300 whitespace-pre-line text-sm sm:text-base">
                       {aiAnalysisText}
                     </div>
                   </div>
