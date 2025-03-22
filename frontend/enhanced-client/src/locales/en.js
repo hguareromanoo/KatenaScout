@@ -153,7 +153,8 @@ export default {
     score: "Score",
     vs: "VS",
     noMetrics: "No metrics available for radar chart",
-    generateAnalysis: "Generate Analysis"
+    generateAnalysis: "Generate Analysis",
+    defaultText: "Player comparison results"
   },
   
   tacticalAnalysis: {

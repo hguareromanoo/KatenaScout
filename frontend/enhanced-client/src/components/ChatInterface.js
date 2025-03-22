@@ -112,7 +112,10 @@ const ChatInterface = ({ expanded = true }) => {
         } else if (data.comparison) {
           // Comparison results
           playersData = data.players || [];
-          responseText = data.comparison;
+          // Ensure responseText is a string - data.comparison could be an object or null
+          responseText = typeof data.comparison === 'string' 
+            ? data.comparison 
+            : (data.text || data.response || t('playerComparison.defaultText', 'Player comparison results'));
           responseType = 'comparison';
           // Comparison is related to players
           setIsPlayerSearch(true);
@@ -137,12 +140,13 @@ const ChatInterface = ({ expanded = true }) => {
           setIsPlayerSearch(false);
         }
 
-        // Check if the response contains a satisfaction question
-        const hasSatisfactionQuestion = 
+        // Check if the response contains a satisfaction question (with safety check for undefined responseText)
+        const hasSatisfactionQuestion = responseText && typeof responseText === 'string' ? (
           responseText.toLowerCase().includes('satisfeito') || 
           responseText.toLowerCase().includes('satisfied') ||
           responseText.toLowerCase().includes('refinar sua busca') ||
-          responseText.toLowerCase().includes('refine your search');
+          responseText.toLowerCase().includes('refine your search')
+        ) : false;
         
         setLastMessageWasSatisfactionQuestion(hasSatisfactionQuestion);
 
@@ -376,20 +380,21 @@ const ChatInterface = ({ expanded = true }) => {
           <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-0.5 h-full bg-white"></div>
         </div>
         
+        {/* Mobile Menu Toggle - shown only on mobile */}
+        <button 
+          onClick={() => setSidebarOpen && setSidebarOpen(true)}
+          className="text-white md:hidden p-2 mr-2 rounded-md hover:bg-green-700 transition flex items-center justify-center"
+          aria-label="Open menu"
+        >
+          <Menu size={22} />
+        </button>
+        
         <div className="w-10 h-10 mr-3 flex items-center justify-center bg-white rounded-full shadow-lg">
           <span className="text-green-700 text-2xl">⚽</span>
         </div>
         <div>
           <h1 className="text-xl font-bold text-white">{t('chat.headerTitle')}</h1>
           <p className="text-xs text-green-200 opacity-80">{t('chat.headerSubtitle')}</p>
-        </div>
-        <div className="ml-auto">
-          <button 
-            onClick={() => setSidebarOpen && setSidebarOpen(true)}
-            className="text-white md:hidden p-2 rounded-full hover:bg-green-700"
-          >
-            <Menu size={20} />
-          </button>
         </div>
       </div>
 
@@ -618,14 +623,14 @@ const ChatInterface = ({ expanded = true }) => {
         <div ref={messagesEndRef} />
       </div>
       
-      {/* Input Area */}
-      <div className="border-t border-gray-700 p-3 bg-gray-800">
+      {/* Input Area - fixed at bottom of chat */}
+      <div className="border-t border-gray-700 p-3 bg-gray-800 sticky bottom-0 left-0 right-0 z-20">
         <form onSubmit={handleSubmit} className="flex">
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            className="flex-1 bg-gray-700 border border-gray-600 rounded-l-lg py-2 px-4 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+            className="flex-1 bg-gray-700 border border-gray-600 rounded-l-lg py-3 px-4 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
             placeholder={t('chat.inputPlaceholder')}
             disabled={isLoading}
           />
@@ -633,6 +638,7 @@ const ChatInterface = ({ expanded = true }) => {
             type="submit"
             className={`bg-green-700 hover:bg-green-600 text-white px-4 rounded-r-lg flex items-center justify-center ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
             disabled={isLoading}
+            aria-label="Send message"
           >
             <Send size={20} />
           </button>
