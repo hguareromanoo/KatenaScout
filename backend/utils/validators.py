@@ -118,6 +118,7 @@ def validate_tactical_analysis_request(data: Dict[str, Any]) -> Tuple[bool, Opti
     validated = {
         "session_id": data.get("session_id", "default"),
         "player_ids": data.get("player_ids", []),
+        "players": data.get("players", []),  # Include complete player objects if provided
         "playing_style": data.get("playing_style", "balanced_approach"),
         "formation": data.get("formation", "4-3-3"),
         "original_query": data.get("original_query", "Compare players for tactical fit"),

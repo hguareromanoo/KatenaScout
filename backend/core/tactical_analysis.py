@@ -409,7 +409,7 @@ def generate_tactical_analysis(
     formation: str,
     session_manager,
     language: str = "english"
-) -> str:
+) -> Dict[str, Any]:
     """
     Generate a tactical analysis comparing players in a specific context
     
@@ -422,8 +422,43 @@ def generate_tactical_analysis(
         language: Language for the analysis
         
     Returns:
-        Tactical analysis text
+        TacticalAnalysisResponse as dictionary
     """
+    try:
+        from models.response import TacticalAnalysisResponse, PlayerTacticalAnalysis
+    except ImportError:
+        # If models can't be imported, create simple dictionary structure
+        def create_response_dict(**kwargs):
+            return kwargs
+        
+        # Fallback return function if models can't be imported
+        def create_simple_response(analysis_text, tactical_comparison, style_key, formation, language):
+            return {
+                "success": True,
+                "tactical_description": tactical_comparison['style_description'],
+                "players": [
+                    {
+                        "name": players[0].get('name', 'Player 1'),
+                        "description": "Analysis not available in structured format",
+                        "fit_score": tactical_comparison['player1_fit']['style_score'],
+                        "key_strengths": [],
+                        "key_weaknesses": []
+                    },
+                    {
+                        "name": players[1].get('name', 'Player 2'),
+                        "description": "Analysis not available in structured format",
+                        "fit_score": tactical_comparison['player2_fit']['style_score'],
+                        "key_strengths": [],
+                        "key_weaknesses": []
+                    }
+                ],
+                "winner": tactical_comparison['winner_name'],
+                "language": language,
+                "playing_style": style_key,
+                "formation": formation,
+                "comparison_text": analysis_text
+            }
+    
     # Get style key from display name if needed
     style_key = STYLE_DISPLAY_NAMES.get(playing_style, playing_style)
     
@@ -439,7 +474,17 @@ def generate_tactical_analysis(
     tactical_comparison = compare_players_tactically(players, style_key, formation)
     
     if "error" in tactical_comparison:
-        return f"Error in tactical analysis: {tactical_comparison['error']}"
+        error_msg = f"Error in tactical analysis: {tactical_comparison['error']}"
+        return {
+            "success": False,
+            "tactical_description": error_msg,
+            "players": [],
+            "winner": "",
+            "language": language,
+            "playing_style": style_key,
+            "formation": formation,
+            "comparison_text": error_msg
+        }
     
     # Create player descriptions with tactical fit info
     player_descriptions = []
@@ -471,7 +516,7 @@ def generate_tactical_analysis(
     
     all_players_description = "\n\n".join(player_descriptions)
     
-    # Create the prompt
+    # Create the prompt with structured response requirements
     prompt = f"""Compare these players specifically for a {playing_style} style of play in a {formation} formation:
 
 {all_players_description}
@@ -494,6 +539,12 @@ Please provide a detailed tactical analysis comparing these players specifically
 4. How each player's metrics directly contribute to this tactical approach
 5. Final recommendation with clear reasoning
 
+Your response MUST be formatted in a structured way, with these distinct sections:
+- TACTICAL_DESCRIPTION: A clear explanation of the {playing_style} system and what this formation requires from players
+- PLAYER1_ANALYSIS: A detailed description of {players[0].get('name')}'s tactical fit, strengths, and weaknesses for this system
+- PLAYER2_ANALYSIS: A detailed description of {players[1].get('name')}'s tactical fit, strengths, and weaknesses for this system
+- RECOMMENDATION: The name of the player who better fits this tactical system and why
+
 Be specific and refer to the actual metric values in your analysis.
 """
     
@@ -514,12 +565,12 @@ Be specific and refer to the actual metric values in your analysis.
             Always back up your analysis with specific statistical evidence."""
     
     # Add tactical context to system prompt
-    system_prompt += "\nYou are a tactical analyst who understands how player attributes translate to effectiveness in different playing styles and formations."
+    system_prompt += f"\nYou are a tactical analyst who understands how player attributes translate to effectiveness in different playing styles and formations. Please respond in {language}."
     
     # Call Claude API
     response = session_manager.call_claude_api(
         model="claude-3-5-sonnet-20241022",
-        max_tokens=1500,
+        max_tokens=1800,
         system=system_prompt,
         messages=[{"role": "user", "content": prompt}]
     )
@@ -530,4 +581,108 @@ Be specific and refer to the actual metric values in your analysis.
         for content_item in response.content:
             if hasattr(content_item, 'text'):
                 analysis_text += content_item.text
-    return analysis_text
+    
+    # Parse the structured response
+    tactical_description = ""
+    player1_analysis = ""
+    player2_analysis = ""
+    recommendation = ""
+    
+    # Extract sections using regex or string splitting
+    import re
+    
+    # Try to find sections with regex
+    tactical_desc_match = re.search(r"TACTICAL_DESCRIPTION:(.*?)(?=PLAYER1_ANALYSIS:|$)", analysis_text, re.DOTALL)
+    player1_match = re.search(r"PLAYER1_ANALYSIS:(.*?)(?=PLAYER2_ANALYSIS:|$)", analysis_text, re.DOTALL)
+    player2_match = re.search(r"PLAYER2_ANALYSIS:(.*?)(?=RECOMMENDATION:|$)", analysis_text, re.DOTALL)
+    recommendation_match = re.search(r"RECOMMENDATION:(.*?)(?=$)", analysis_text, re.DOTALL)
+    
+    if tactical_desc_match:
+        tactical_description = tactical_desc_match.group(1).strip()
+    if player1_match:
+        player1_analysis = player1_match.group(1).strip()
+    if player2_match:
+        player2_analysis = player2_match.group(1).strip()
+    if recommendation_match:
+        recommendation = recommendation_match.group(1).strip()
+    
+    # If regex failed, try fallback to simple string partition
+    if not tactical_description:
+        parts = analysis_text.split("PLAYER1_ANALYSIS:")
+        if len(parts) > 1:
+            tactical_part = parts[0]
+            if "TACTICAL_DESCRIPTION:" in tactical_part:
+                tactical_description = tactical_part.split("TACTICAL_DESCRIPTION:")[1].strip()
+    
+    if not player1_analysis and "PLAYER1_ANALYSIS:" in analysis_text:
+        parts = analysis_text.split("PLAYER1_ANALYSIS:")[1].split("PLAYER2_ANALYSIS:")
+        if len(parts) > 0:
+            player1_analysis = parts[0].strip()
+    
+    if not player2_analysis and "PLAYER2_ANALYSIS:" in analysis_text:
+        parts = analysis_text.split("PLAYER2_ANALYSIS:")[1].split("RECOMMENDATION:")
+        if len(parts) > 0:
+            player2_analysis = parts[0].strip()
+    
+    if not recommendation and "RECOMMENDATION:" in analysis_text:
+        recommendation = analysis_text.split("RECOMMENDATION:")[1].strip()
+    
+    # Extract winner name from recommendation (first few words)
+    winner_name = tactical_comparison['winner_name']  # Default to calculated winner
+    if recommendation:
+        # Try to extract player name from the first sentence
+        first_sentence = recommendation.split('.')[0]
+        for player in players:
+            if player.get('name', '') in first_sentence:
+                winner_name = player.get('name', '')
+                break
+    
+    # Extract key strengths and weaknesses from fits
+    player1_strengths = [s["metric"] for s in tactical_comparison["player1_fit"]["key_strengths"]]
+    player1_weaknesses = [w["metric"] for w in tactical_comparison["player1_fit"]["key_weaknesses"]]
+    
+    player2_strengths = [s["metric"] for s in tactical_comparison["player2_fit"]["key_strengths"]]
+    player2_weaknesses = [w["metric"] for w in tactical_comparison["player2_fit"]["key_weaknesses"]]
+    
+    # Create structured player tactical analysis objects
+    player_analyses = [
+        {
+            "name": players[0].get('name', 'Player 1'),
+            "description": player1_analysis,
+            "fit_score": tactical_comparison['player1_fit']['style_score'],
+            "key_strengths": player1_strengths,
+            "key_weaknesses": player1_weaknesses
+        },
+        {
+            "name": players[1].get('name', 'Player 2'),
+            "description": player2_analysis,
+            "fit_score": tactical_comparison['player2_fit']['style_score'],
+            "key_strengths": player2_strengths,
+            "key_weaknesses": player2_weaknesses
+        }
+    ]
+    
+    # Create TacticalAnalysisResponse
+    response_dict = {
+        "success": True,
+        "tactical_description": tactical_description if tactical_description else tactical_comparison['style_description'],
+        "players": player_analyses,
+        "winner": winner_name,
+        "language": language,
+        "playing_style": style_key,
+        "formation": formation,
+        "comparison_text": analysis_text
+    }
+    
+    # Try to create a proper Pydantic model if available
+    try:
+        from models.response import TacticalAnalysisResponse, PlayerTacticalAnalysis
+        player_models = [
+            PlayerTacticalAnalysis(**player_data) for player_data in player_analyses
+        ]
+        return TacticalAnalysisResponse(
+            **{**response_dict, "players": player_models}
+        ).model_dump()
+    except (ImportError, Exception) as e:
+        # Fallback to dictionary if model creation fails
+        return response_dict

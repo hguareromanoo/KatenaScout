@@ -29,6 +29,25 @@ class ComparisonResponse(BaseModel):
     category_winners: Dict[str, str] = Field(default_factory=dict, description="Winner for each category")
     negative_metrics: List[str] = Field(default_factory=list, description="Metrics where lower values are better")
 
+class PlayerTacticalAnalysis(BaseModel):
+    """Analysis of a player's tactical fit"""
+    name: str = Field(..., description="Player name")
+    description: str = Field(..., description="Description of player's strengths and weaknesses in the tactical system")
+    fit_score: float = Field(..., description="Tactical fit score (0-100)")
+    key_strengths: List[str] = Field(default_factory=list, description="Key strengths in this tactical system")
+    key_weaknesses: List[str] = Field(default_factory=list, description="Key weaknesses in this tactical system")
+
+class TacticalAnalysisResponse(BaseModel):
+    """Response model for tactical analysis"""
+    success: bool = Field(True, description="Whether the request was successful")
+    tactical_description: str = Field(..., description="Explanation of the tactical system and requirements for the players' positions")
+    players: List[PlayerTacticalAnalysis] = Field(..., description="Analysis of each player")
+    winner: str = Field(..., description="Name of the player who best fits the tactical system")
+    language: str = Field("english", description="Language of the response")
+    playing_style: str = Field(..., description="The playing style analyzed")
+    formation: str = Field(..., description="The formation analyzed")
+    comparison_text: str = Field(..., description="Full tactical comparison text from the AI")
+
 class ErrorResponse(BaseModel):
     """Response model for error responses"""
     success: bool = Field(False, description="Request was not successful")

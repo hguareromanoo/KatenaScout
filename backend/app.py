@@ -649,6 +649,7 @@ def tactical_analysis():
         # Extract validated data
         session_id = validated_data["session_id"]
         player_ids = validated_data["player_ids"]
+        provided_players = validated_data.get("players", [])
         playing_style = validated_data["playing_style"]
         formation = validated_data["formation"]
         original_query = validated_data["original_query"]
@@ -657,14 +658,22 @@ def tactical_analysis():
         # Get session
         session = session_manager.get_session(session_id, language)
         
-        # Find players for comparison
-        from core.comparison import find_players_for_comparison
-        players = find_players_for_comparison(
-            session_manager,
-            session_id,
-            player_ids,
-            language
-        )
+        # Use provided players if available, otherwise find by IDs
+        players = []
+        if provided_players and len(provided_players) == 2:
+            # Use the provided complete player objects
+            print("Using provided complete player objects for tactical analysis")
+            players = provided_players
+        else:
+            # Find players by IDs
+            print("Finding players by IDs for tactical analysis")
+            from core.comparison import find_players_for_comparison
+            players = find_players_for_comparison(
+                session_manager,
+                session_id,
+                player_ids,
+                language
+            )
         
         # Ensure we have exactly 2 players to compare
         if len(players) != 2:
