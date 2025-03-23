@@ -3,6 +3,11 @@
   "name": "KatenaScout - AI Football Scouting",
   "icons": [
     {
+      "src": "favicon.ico",
+      "sizes": "32x32 24x24 16x16",
+      "type": "image/x-icon"
+    },
+    {
       "src": "favicon.svg",
       "sizes": "64x64 32x32 24x24 16x16",
       "type": "image/svg+xml"
@@ -18,9 +23,9 @@
       "sizes": "512x512"
     },
     {
-      "src": "logo.png",
-      "type": "image/png",
-      "sizes": "500x500"
+      "src": "logo.svg",
+      "type": "image/svg+xml",
+      "sizes": "any"
     }
   ],
   "start_url": ".",
