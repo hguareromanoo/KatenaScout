@@ -372,18 +372,19 @@ const ChatInterface = ({ expanded = true }) => {
 
   return (
     <div className="flex flex-col w-full h-full md:h-auto transition-all duration-300 bg-gray-900 border-r border-gray-700 chat-container overflow-hidden">
-      {/* Header with soccer theme */}
+      {/* Mokoto Glitch styled header */}
       <div className="bg-gradient-to-r from-green-900 to-blue-900 p-4 flex items-center border-b border-gray-700 relative overflow-hidden">
-        {/* Soccer field pattern in the background */}
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[30%] h-[120%] border-2 border-white rounded-full"></div>
-          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-0.5 h-full bg-white"></div>
+        {/* Glitch effect patterns */}
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute inset-0 opacity-10 bg-grid-pattern"></div>
+          <div className="absolute right-0 top-0 w-1/3 h-full opacity-15 glitch-bar"></div>
+          <div className="absolute left-0 bottom-0 w-2/3 h-1/4 opacity-10 glitch-pixels"></div>
         </div>
         
         {/* Mobile Menu Toggle - shown only on mobile */}
         <button 
           onClick={() => setSidebarOpen && setSidebarOpen(true)}
-          className="text-white md:hidden p-2 mr-2 rounded-md hover:bg-green-700 transition flex items-center justify-center"
+          className="text-white md:hidden p-2 mr-2 rounded-md hover:bg-blue-600 transition flex items-center justify-center"
           aria-label="Open menu"
         >
           <Menu size={22} />
@@ -392,8 +393,8 @@ const ChatInterface = ({ expanded = true }) => {
         <div className="w-10 h-10 mr-3 flex items-center justify-center shadow-lg">
           <img src="/logo.png" alt="Katena Logo" className="w-full h-full" />
         </div>
-        <div>
-          <h1 className="text-xl font-bold text-white">{t('chat.headerTitle')}</h1>
+        <div className="glitch-text">
+          <h1 className="text-xl font-bold text-white relative">{t('chat.headerTitle')}</h1>
           <p className="text-xs text-green-200 opacity-80">{t('chat.headerSubtitle')}</p>
         </div>
       </div>

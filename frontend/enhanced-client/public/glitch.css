@@ -1,0 +1,50 @@
+/* Mokoto Glitch CSS */
+
+.bg-grid-pattern {
+  background-image: linear-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+.glitch-bar {
+  background: linear-gradient(90deg, transparent, rgba(0, 255, 255, 0.2), transparent);
+  animation: glitch-bar 4s ease-in-out infinite;
+}
+
+.glitch-pixels {
+  background-image: repeating-conic-gradient(rgba(255, 0, 255, 0.2) 0%, rgba(0, 255, 255, 0.2) 2%, transparent 2%, transparent 4%);
+  background-size: 10px 10px;
+  animation: glitch-pixels 3s linear infinite;
+}
+
+.glitch-text {
+  position: relative;
+}
+
+.glitch-text h1 {
+  animation: text-shadow-animation 5s infinite;
+}
+
+@keyframes glitch-bar {
+  0%, 100% { transform: translateX(0); opacity: 0.1; }
+  33% { transform: translateX(-20px); opacity: 0.2; }
+  66% { transform: translateX(20px); opacity: 0.15; }
+}
+
+@keyframes glitch-pixels {
+  0% { background-position: 0 0; }
+  100% { background-position: 100px 100px; }
+}
+
+@keyframes text-shadow-animation {
+  0% { text-shadow: none; }
+  10% { text-shadow: 1px 0 0 rgba(0, 255, 255, 0.5), -1px 0 0 rgba(255, 0, 255, 0.5); }
+  15% { text-shadow: none; }
+  20% { text-shadow: 2px 0 0 rgba(0, 255, 255, 0.5), -2px 0 0 rgba(255, 0, 255, 0.5); }
+  25% { text-shadow: none; }
+  30% { text-shadow: 1px 0 0 rgba(0, 255, 255, 0.5), -1px 0 0 rgba(255, 0, 255, 0.5); }
+  35% { text-shadow: none; }
+  90% { text-shadow: none; }
+  95% { text-shadow: 1px 0 0 rgba(0, 255, 255, 0.5), -1px 0 0 rgba(255, 0, 255, 0.5); }
+  100% { text-shadow: none; }
+}
