@@ -9,7 +9,9 @@ def compare_players(
     players: List[Dict[str, Any]], 
     session_manager,
     language: str = "english",
-    search_weights: Dict[str, float] = None
+    search_weights: Dict[str, float] = None,
+    playing_style: str = "",
+    formation: str = ""
 ) -> Dict[str, Any]:
     """
     Generate a comparison between players
@@ -70,17 +72,65 @@ def compare_players(
     # Generate system prompt based on language
     system_prompt = get_language_specific_prompt(language)
     
-    # Create the prompt for comparison
-    user_message = f"""Please compare the following players:
+    # Create tactical context if provided
+    tactical_context = {
+        "english": f"\nPlease analyze them specifically for a {playing_style.replace('_', ' ').title()} style of play in a {formation} formation.",
+        "portuguese": f"\nPor favor, analise-os especificamente para um estilo de jogo {playing_style.replace('_', ' ').title()} em uma formação {formation}.",
+        "spanish": f"\nPor favor, analízalos específicamente para un estilo de juego {playing_style.replace('_', ' ').title()} en una formación {formation}.",
+        "bulgarian": f"\nМоля, анализирайте ги специално за стил на игра {playing_style.replace('_', ' ').title()} във формация {formation}."
+    } if playing_style and formation else {
+        "english": "",
+        "portuguese": "",
+        "spanish": "",
+        "bulgarian": ""
+    }
+    
+    # Get language-specific user prompts
+    user_prompts = {
+        "english": f"""Please compare the following players:
 
-{all_players_description}
+{all_players_description}{tactical_context["english"]}
 
 Compare these players focusing on their strengths, weaknesses, and how they differ from each other. Consider their statistics, positions, and overall profiles.
 
 First, provide a detailed comparison highlighting the main differences between these players in terms of their strengths, weaknesses, and playing styles.
 
 Then, identify the key aspects you compared (like "Passing", "Shooting", "Physical Presence", etc.) and list them separately at the end as "Key comparison aspects: [aspect1], [aspect2], etc."
+""",
+        "portuguese": f"""Por favor, compare os seguintes jogadores:
+
+{all_players_description}{tactical_context["portuguese"]}
+
+Compare estes jogadores focando em seus pontos fortes, pontos fracos e como eles diferem um do outro. Considere suas estatísticas, posições e perfis gerais.
+
+Primeiro, forneça uma comparação detalhada destacando as principais diferenças entre estes jogadores em termos de pontos fortes, pontos fracos e estilos de jogo.
+
+Em seguida, identifique os principais aspectos que você comparou (como "Passe", "Finalização", "Presença Física", etc.) e liste-os separadamente no final como "Aspectos chave de comparação: [aspecto1], [aspecto2], etc."
+""",
+        "spanish": f"""Por favor, compara los siguientes jugadores:
+
+{all_players_description}{tactical_context["spanish"]}
+
+Compara estos jugadores centrándote en sus fortalezas, debilidades y cómo se diferencian entre sí. Considera sus estadísticas, posiciones y perfiles generales.
+
+Primero, proporciona una comparación detallada destacando las principales diferencias entre estos jugadores en términos de sus fortalezas, debilidades y estilos de juego.
+
+Luego, identifica los aspectos clave que comparaste (como "Pases", "Tiro", "Presencia Física", etc.) y enuméralos por separado al final como "Aspectos clave de comparación: [aspecto1], [aspecto2], etc."
+""",
+        "bulgarian": f"""Моля, сравнете следните играчи:
+
+{all_players_description}{tactical_context["bulgarian"]}
+
+Сравнете тези играчи, фокусирайки се върху техните силни страни, слаби страни и как се различават един от друг. Вземете предвид техните статистики, позиции и цялостни профили.
+
+Първо, предоставете подробно сравнение, подчертаващо основните разлики между тези играчи по отношение на техните силни страни, слаби страни и стилове на игра.
+
+След това, идентифицирайте ключовите аспекти, които сте сравнили (като "Подаване", "Стрелба", "Физическо присъствие" и т.н.) и ги изброете отделно в края като "Ключови аспекти на сравнение: [аспект1], [аспект2], и т.н."
 """
+    }
+    
+    # Get the appropriate user message based on language
+    user_message = user_prompts.get(language, user_prompts["english"])
 
     # Call Claude API to generate the comparison
     response = session_manager.call_claude_api(
