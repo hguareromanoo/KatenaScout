@@ -83,10 +83,14 @@ def search_players(
     # Normal parameter-based search
     # Log important search parameters at the start
     active_params = params.get_true_parameters()
-    scoring_params = [p for p in active_params if p not in ["key_description_word", "position_codes", "age", "height", "weight", "player_name", "is_name_search"]]
+    scoring_params = [p for p in active_params if p not in ["key_description_word", "position_codes", "age", "height", "weight", "player_name", "is_name_search", "foot", "contract_expiration"]]
     print(f"\n=== SEARCH PARAMETERS ===")
     print(f"Positions: {params.position_codes}")
     print(f"Description: {params.key_description_word}")
+    if params.foot and params.foot != "both":
+        print(f"Preferred foot: {params.foot}")
+    if params.contract_expiration:
+        print(f"Contract expiration: {params.contract_expiration}")
     print(f"Statistical params for scoring ({len(scoring_params)}): {scoring_params}")
     print(f"=========================\n")
     
@@ -101,6 +105,25 @@ def search_players(
         players_list = get_players_with_position(position_code=pos, database=database)
         
         for player in players_list:
+            # Filter by preferred foot if specified
+            if params.foot and params.foot != "both":
+                player_foot = player.get('foot', '').lower()
+                if player_foot and player_foot != params.foot.lower():
+                    continue  # Skip if foot doesn't match
+            
+            # Filter by contract expiration if specified
+            if params.contract_expiration:
+                # Try different paths for contract expiration
+                contract_until = None
+                if player.get("contractUntil"):
+                    contract_until = player.get("contractUntil")
+                elif player.get("contract") and isinstance(player.get("contract"), dict) and player.get("contract").get("contractExpiration"):
+                    contract_until = player.get("contract").get("contractExpiration")
+                
+                # Skip if contract doesn't expire soon enough
+                if not contract_until or contract_until > params.contract_expiration:
+                    continue
+            
             # Calculate score for this player in this position
             score = get_score(player, params, pos, weights, average_stats)
             

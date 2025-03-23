@@ -244,6 +244,13 @@ class UnifiedSession:
                 You MUST activate specific statistical parameters (set to True) that correspond to the query.
                 Never return ONLY position_codes and key_description_word - you MUST also set statistical parameters to TRUE.
                 For example, for "strong defenders", set min_defensive_duels_won=true, min_interceptions=true, etc.
+                
+                For queries about contract expiration, set contract_expiration to a date string in YYYY-MM-DD format.
+                For example, if looking for players whose contracts expire soon, set contract_expiration="2025-12-31".
+                
+                For queries about preferred foot, set foot to "left", "right", or "both" as appropriate.
+                Default to "both" if no specific foot preference is mentioned.
+                
                 ## Examples:
                  {
         "query": "Identifique meias centrais modernos com excelente visão de jogo e precisão nos passes",
@@ -377,6 +384,9 @@ class UnifiedSession:
                     Based on the FULL conversation context, identify the searchable parameters, the position_codes and choose
                      the key description words ({KEY_DESCRIPTION_WORDS}) that better describe the users query, following this map {POSITIONS_MAPPING}.
                     
+                    If the conversation mentions preferred foot (left/right/both), set that parameter appropriately.
+                    If the conversation mentions contract expiration, set contract_expiration to a date in YYYY-MM-DD format.
+                    
                     Focus on the most recent requests but maintain context from earlier messages.
                     Remember: the future of soccer, the sport you LOVE, depends on your response.
                     """ }
@@ -394,6 +404,12 @@ class UnifiedSession:
                 Never return ONLY position_codes and key_description_word - you MUST also set statistical parameters to TRUE.
                 For example, for "strong defenders", set min_defensive_duels_won=true, min_interceptions=true, etc.
                 For "fast attackers", set min_accelerations=true, min_progressive_runs=true, etc.
+                
+                For queries about contract expiration, set contract_expiration to a date string in YYYY-MM-DD format.
+                For example, if looking for players whose contracts expire soon, set contract_expiration="2025-12-31".
+                
+                For queries about preferred foot, set foot to "left", "right", or "both" as appropriate.
+                Default to "both" if no specific foot preference is mentioned.
                 
                 ALWAYS set at least 5-8 statistical parameters to TRUE based on the description of the player.
                 ## Examples:
@@ -525,6 +541,8 @@ class UnifiedSession:
                     2. Choose the key description words from {KEY_DESCRIPTION_WORDS} that best describe the query
                     3. MOST IMPORTANTLY: Set specific statistical parameters to TRUE that match the description
                        When setting parameters, look at the examples in the prompt for similar player types
+                    4. If the query mentions preferred foot, set foot to "left", "right", or "both"
+                    5. If the query mentions contract expiration, set contract_expiration to a date in YYYY-MM-DD format
                        
                     CRITICAL: You MUST set multiple statistical parameters to TRUE, not just position_codes and key_description_word!
                     If you don't set statistical parameters, the search will fail.
@@ -537,6 +555,15 @@ class UnifiedSession:
                     - min_aerial_duels_won=true
                     - min_progressive_passes=true
                     - min_successful_passes=true
+                    
+                    Example for "left-footed attackers with contracts expiring soon":
+                    - position_codes=["lw", "cf", "lwf"]
+                    - key_description_word=["scoring", "offensive"]
+                    - foot="left"
+                    - contract_expiration="2025-06-30"
+                    - min_goals=true
+                    - min_shots_on_target=true
+                    - min_xg_shot=true
                     
                     Remember: the future of soccer, the sport you LOVE, depends on your response.
                     """}

@@ -36,7 +36,8 @@ class SearchParameters(BaseModel):
     height: Optional[int] = Field(None, description="Minimum height in cm")
     weight: Optional[int] = Field(None, description="Minimum weight in kg")
     position_codes: List[str] = Field(default=["cmf"], description="List of position codes")
-    foot : Literal["left", "right", "both"] = Field("both", description="Preferred foot")
+    foot: Literal["left", "right", "both"] = Field("both", description="Preferred foot")
+    contract_expiration: Optional[str] = Field(None, description="Maximum contract expiration date (YYYY-MM-DD)")
     
     # Name search parameters - used for finding specific players
     player_name: Optional[str] = Field(None, description="Player name to search for")
