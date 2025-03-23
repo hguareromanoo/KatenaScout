@@ -16,8 +16,8 @@ const OnboardingView = () => {
       <div className="max-w-md w-full bg-gray-800 rounded-xl shadow-2xl overflow-hidden">
         {/* Header with logo */}
         <div className="bg-gradient-to-r from-green-900 to-blue-900 p-6 text-center">
-          <div className="w-20 h-20 mx-auto mb-4 flex items-center justify-center bg-white rounded-full shadow-lg">
-            <img src="/logo.svg" alt="Katena Logo" className="w-full h-full" />
+          <div className="w-20 h-20 mx-auto mb-4 flex items-center justify-center shadow-lg">
+            <img src="/logo.png" alt="Katena Logo" className="w-full h-full" />
           </div>
           <h1 className="text-2xl font-bold text-white">{t('onboarding.welcome')}</h1>
           <p className="text-green-200 mt-2">{t('onboarding.description')}</p>

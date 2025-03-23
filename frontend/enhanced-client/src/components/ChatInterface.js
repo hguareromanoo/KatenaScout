@@ -389,8 +389,8 @@ const ChatInterface = ({ expanded = true }) => {
           <Menu size={22} />
         </button>
         
-        <div className="w-10 h-10 mr-3 flex items-center justify-center bg-white rounded-full shadow-lg p-1">
-          <img src="/logo.svg" alt="Katena Logo" className="w-full h-full" />
+        <div className="w-10 h-10 mr-3 flex items-center justify-center shadow-lg">
+          <img src="/logo.png" alt="Katena Logo" className="w-full h-full" />
         </div>
         <div>
           <h1 className="text-xl font-bold text-white">{t('chat.headerTitle')}</h1>
@@ -409,8 +409,8 @@ const ChatInterface = ({ expanded = true }) => {
         
         {chatHistory.length === 0 && (
           <div className="text-center py-10 relative z-10">
-            <div className="w-20 h-20 mx-auto mb-4 flex items-center justify-center bg-white rounded-full shadow-lg">
-              <img src="/logo.svg" alt="Katena Logo" className="w-full h-full" />
+            <div className="w-20 h-20 mx-auto mb-4 flex items-center justify-center shadow-lg">
+              <img src="/logo.png" alt="Katena Logo" className="w-full h-full" />
             </div>
             <h2 className="text-2xl font-bold text-white mb-2">{t('chat.welcomeTitle')}</h2>
             <p className="text-gray-300 mb-6 max-w-md mx-auto">{t('chat.welcomeMessage')}</p>
@@ -521,7 +521,7 @@ const ChatInterface = ({ expanded = true }) => {
                                     const parent = e.target.parentNode;
                                     if (!parent.querySelector('.fallback-icon')) {
                                       const img = document.createElement("img");
-                                      img.src = "/logo.svg";
+                                      img.src = "/logo.png";
                                       img.alt = "Player";
                                       img.className = "w-7 h-7 fallback-icon";
                                       parent.appendChild(img);
@@ -605,7 +605,7 @@ const ChatInterface = ({ expanded = true }) => {
               {isPlayerSearch ? (
                 /* Logo loader for player search */
                 <div className="soccer-loader">
-                  <img src="/logo.svg" alt="Katena Logo" className="w-6 h-6 animate-bounce" />
+                  <img src="/logo.png" alt="Katena Logo" className="w-6 h-6 animate-bounce" />
                 </div>
               ) : (
                 /* Jumping dots with gradient for general queries */
