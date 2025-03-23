@@ -46,7 +46,7 @@ const playerService = {
    * @param {Object} params - Analysis parameters
    * @param {Array} params.player_ids - Array of two player IDs to compare
    * @param {string} params.session_id - The chat session ID
-   * @param {string} params.original_query - Original search query for context
+   * @param {string} params.original_query - Original search query for context (not used with player_comparison)
    * @param {string} params.playing_style - Tactical style (e.g., "Tiki-Taka")
    * @param {string} params.formation - Formation (e.g., "4-3-3")
    * @param {string} params.language - Language for the analysis
@@ -54,11 +54,43 @@ const playerService = {
    */
   generateTacticalAnalysis: async (params) => {
     try {
-      console.log("Calling tactical_analysis endpoint with language:", params.language);
-      return await fetchAPI('/tactical_analysis', {
+      console.log("Calling player_comparison endpoint with language:", params.language);
+      // Use the player_comparison endpoint with include_ai_analysis flag
+      const analysisParams = {
+        player_ids: params.player_ids,
+        session_id: params.session_id,
+        language: params.language,
+        include_ai_analysis: true,
+        playing_style: params.playing_style,
+        formation: params.formation
+      };
+      
+      // If complete player objects are provided, include them
+      if (params.players) {
+        analysisParams.players = params.players;
+      }
+      
+      const result = await fetchAPI('/player_comparison', {
         method: 'POST',
-        body: params,
+        body: analysisParams,
       });
+      
+      // Format the response to match the expected format from tactical_analysis
+      if (result.success) {
+        return {
+          success: true,
+          tactical_analysis: result.comparison || "",
+          tactical_data: {
+            player1_name: result.players[0]?.name,
+            player2_name: result.players[1]?.name,
+            style_display_name: params.playing_style.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()),
+            formation: params.formation,
+            style_description: ""
+          },
+          players: result.players || []
+        };
+      }
+      return result;
     } catch (error) {
       console.error('Tactical analysis error:', error);
       throw error;
