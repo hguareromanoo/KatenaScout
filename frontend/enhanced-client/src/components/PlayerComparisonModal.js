@@ -815,7 +815,7 @@ const PlayerComparisonModal = () => {
                     </h3>
                     <div className="flex items-center w-full sm:w-auto justify-start sm:justify-end">
                       <span className="text-gray-400 text-xs sm:text-sm">
-                        <span className="truncate">{selectedAnalysisStyle && PLAYING_STYLES.find(s => s.id === selectedAnalysisStyle)?.name}</span>
+                        <span className="truncate">{selectedAnalysisStyle && playingStyles.find(s => s.id === selectedAnalysisStyle)?.name}</span>
                         <span className="mx-1">•</span>
                         <span>{selectedAnalysisFormation}</span>
                       </span>
