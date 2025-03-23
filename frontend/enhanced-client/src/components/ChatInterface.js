@@ -409,8 +409,8 @@ const ChatInterface = ({ expanded = true }) => {
         
         {chatHistory.length === 0 && (
           <div className="text-center py-10 relative z-10">
-            <div className="w-20 h-20 mx-auto mb-4 flex items-center justify-center bg-gradient-to-r from-green-600 to-green-700 rounded-full shadow-lg">
-              <span className="text-white text-4xl">⚽</span>
+            <div className="w-20 h-20 mx-auto mb-4 flex items-center justify-center bg-white rounded-full shadow-lg">
+              <img src="/logo.svg" alt="Katena Logo" className="w-full h-full" />
             </div>
             <h2 className="text-2xl font-bold text-white mb-2">{t('chat.welcomeTitle')}</h2>
             <p className="text-gray-300 mb-6 max-w-md mx-auto">{t('chat.welcomeMessage')}</p>
@@ -517,13 +517,14 @@ const ChatInterface = ({ expanded = true }) => {
                                     e.target.onerror = null;
                                     // Hide the broken image
                                     e.target.style.display = 'none';
-                                    // Replace with soccer ball icon
+                                    // Replace with Katena logo
                                     const parent = e.target.parentNode;
                                     if (!parent.querySelector('.fallback-icon')) {
-                                      const icon = document.createElement("span");
-                                      icon.innerHTML = "⚽";
-                                      icon.className = "text-gray-500 text-xl fallback-icon";
-                                      parent.appendChild(icon);
+                                      const img = document.createElement("img");
+                                      img.src = "/logo.svg";
+                                      img.alt = "Player";
+                                      img.className = "w-7 h-7 fallback-icon";
+                                      parent.appendChild(img);
                                     }
                                   }}
                                 />
@@ -602,9 +603,9 @@ const ChatInterface = ({ expanded = true }) => {
           <div className="flex justify-start">
             <div className="bg-gray-800 text-gray-300 rounded-lg p-3 flex items-center">
               {isPlayerSearch ? (
-                /* Soccer ball loader for player search */
+                /* Logo loader for player search */
                 <div className="soccer-loader">
-                  <span>⚽️</span>
+                  <img src="/logo.svg" alt="Katena Logo" className="w-6 h-6 animate-bounce" />
                 </div>
               ) : (
                 /* Jumping dots with gradient for general queries */
