@@ -14,18 +14,18 @@ import { NEGATIVE_STATS } from '../utils/playerUtils';
 import { formatMetricName } from '../utils/formatters';
 import TacticalAnalysisPanel from './TacticalAnalysisPanel';
 
-// Playing styles for tactical analysis
-const PLAYING_STYLES = [
-  { id: 'tiki_taka', name: 'Tiki-Taka', description: 'Short, quick passing with continuous player movement' },
-  { id: 'possession_based', name: 'Possession-Based', description: 'Focus on maintaining ball possession' },
-  { id: 'counter_attacking', name: 'Counter-Attacking', description: 'Fast transitions from defense to attack' },
-  { id: 'high_pressing', name: 'High Pressing', description: 'Aggressive pressing high up the pitch' },
-  { id: 'gegenpressing', name: 'Gegenpressing', description: 'Immediate counter-press after losing possession' },
-  { id: 'direct_play', name: 'Direct Play', description: 'Vertical, forward passing to attackers' },
-  { id: 'fluid_attacking', name: 'Fluid Attacking', description: 'Emphasis on player movement and creative passing' },
-  { id: 'low_block', name: 'Low Block', description: 'Defensive, compact shape with counters' },
-  { id: 'width_and_depth', name: 'Width & Depth', description: 'Using width and crosses to create opportunities' },
-  { id: 'balanced_approach', name: 'Balanced Approach', description: 'Equal focus on defense and attack' },
+// Playing styles definitions moved to component to use translations
+const getPlayingStyles = (t) => [
+  { id: 'tiki_taka', name: t('playingStyles.tikiTaka.name', 'Tiki-Taka'), description: t('playingStyles.tikiTaka.description', 'Short, quick passing with continuous player movement (Barcelona style)') },
+  { id: 'possession_based', name: t('playingStyles.possessionBased.name', 'Possession-Based'), description: t('playingStyles.possessionBased.description', 'Focus on maintaining ball possession') },
+  { id: 'counter_attacking', name: t('playingStyles.counterAttacking.name', 'Counter-Attacking'), description: t('playingStyles.counterAttacking.description', 'Fast transitions from defense to attack') },
+  { id: 'high_pressing', name: t('playingStyles.highPressing.name', 'High Pressing'), description: t('playingStyles.highPressing.description', 'Aggressive pressing high up the pitch') },
+  { id: 'gegenpressing', name: t('playingStyles.gegenpressing.name', 'Gegenpressing'), description: t('playingStyles.gegenpressing.description', 'Immediate counter-press after losing possession (Jürgen Klopp\'s style)') },
+  { id: 'direct_play', name: t('playingStyles.directPlay.name', 'Direct Play'), description: t('playingStyles.directPlay.description', 'Vertical, forward passing to attackers') },
+  { id: 'fluid_attacking', name: t('playingStyles.fluidAttacking.name', 'Fluid Attacking'), description: t('playingStyles.fluidAttacking.description', 'Emphasis on player movement and creative passing') },
+  { id: 'low_block', name: t('playingStyles.lowBlock.name', 'Low Block'), description: t('playingStyles.lowBlock.description', 'Defensive, compact shape with counters') },
+  { id: 'width_and_depth', name: t('playingStyles.widthAndDepth.name', 'Width & Depth'), description: t('playingStyles.widthAndDepth.description', 'Using width and crosses to create opportunities') },
+  { id: 'balanced_approach', name: t('playingStyles.balancedApproach.name', 'Balanced Approach'), description: t('playingStyles.balancedApproach.description', 'Equal focus on defense and attack') },
 ];
 
 // Formations
@@ -50,6 +50,9 @@ const PlayerComparisonModal = () => {
   const { t } = useTranslation();
   const { currentLanguage } = useLanguage();
   const { sessionId, currentSearchResults } = useSession();
+  
+  // Get playing styles with translations
+  const playingStyles = getPlayingStyles(t);
   const { 
     primaryPlayer, secondPlayer, showComparisonModal, closeComparisonModal,
     comparisonData, setComparisonData, loadingComparison, setLoadingComparison,
@@ -70,6 +73,16 @@ const PlayerComparisonModal = () => {
   const [showStyleSelector, setShowStyleSelector] = useState(false);
   const [selectedAnalysisStyle, setSelectedAnalysisStyle] = useState('');
   const [selectedAnalysisFormation, setSelectedAnalysisFormation] = useState('');
+  
+  // Save selections to localStorage when they change
+  useEffect(() => {
+    if (selectedAnalysisStyle) {
+      localStorage.setItem('selectedAnalysisStyle', selectedAnalysisStyle);
+    }
+    if (selectedAnalysisFormation) {
+      localStorage.setItem('selectedAnalysisFormation', selectedAnalysisFormation);
+    }
+  }, [selectedAnalysisStyle, selectedAnalysisFormation]);
   
   // State for expanded metrics
   const [expandedMetrics, setExpandedMetrics] = useState({});
@@ -149,24 +162,8 @@ const PlayerComparisonModal = () => {
     setLoadingAiAnalysis(true);
     
     try {
-      const result = await playerService.comparePlayer({
-        player_ids: [
-          primaryPlayer.id || primaryPlayer.wyId,
-          secondPlayer.id || secondPlayer.wyId
-        ],
-        session_id: sessionId,
-        language: currentLanguage,
-        include_ai_analysis: true,
-        playing_style: selectedAnalysisStyle,
-        formation: selectedAnalysisFormation
-      });
-      
-      if (result.success && result.comparison) {
-        setAiAnalysisText(result.comparison);
-        setShowAiAnalysis(true);
-      } else {
-        setComparisonError(result.message || 'Failed to generate analysis');
-      }
+      // Launch tactical analysis view instead
+      enterTacticalAnalysisMode();
     } catch (error) {
       setComparisonError(error.message || 'An error occurred generating analysis');
     } finally {
@@ -751,7 +748,7 @@ const PlayerComparisonModal = () => {
                         className="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-sm text-white"
                       >
                         <option value="">{t('tacticalAnalysis.selectStyle', 'Select Playing Style')}</option>
-                        {PLAYING_STYLES.map(style => (
+                        {playingStyles.map(style => (
                           <option key={style.id} value={style.id}>
                             {style.name}
                           </option>
@@ -759,7 +756,7 @@ const PlayerComparisonModal = () => {
                       </select>
                       {selectedAnalysisStyle && (
                         <p className="mt-1 text-xs text-gray-400">
-                          {PLAYING_STYLES.find(s => s.id === selectedAnalysisStyle)?.description}
+                          {playingStyles.find(s => s.id === selectedAnalysisStyle)?.description}
                         </p>
                       )}
                     </div>

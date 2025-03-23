@@ -5,7 +5,7 @@ export default {
   playingStyles: {
     tikiTaka: {
       name: "Tiki-Taka",
-      description: "Passes curtos e rápidos com movimento contínuo dos jogadores"
+      description: "Passes curtos e rápidos com movimento contínuo dos jogadores (estilo Barcelona)"
     },
     possessionBased: {
       name: "Posse de Bola",
@@ -21,7 +21,7 @@ export default {
     },
     gegenpressing: {
       name: "Gegenpressing",
-      description: "Contra-pressão imediata após perder a posse"
+      description: "Contra-pressão imediata após perder a posse (estilo de Jürgen Klopp)"
     },
     directPlay: {
       name: "Jogo Direto",

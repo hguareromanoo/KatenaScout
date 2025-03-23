@@ -54,6 +54,7 @@ const playerService = {
    */
   generateTacticalAnalysis: async (params) => {
     try {
+      console.log("Calling tactical_analysis endpoint with language:", params.language);
       return await fetchAPI('/tactical_analysis', {
         method: 'POST',
         body: params,

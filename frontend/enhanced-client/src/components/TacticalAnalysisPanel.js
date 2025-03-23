@@ -6,18 +6,18 @@ import {
 import { useTranslation, useComparison, useSession, useLanguage } from '../contexts';
 import { playerService } from '../api/api';
 
-// Playing styles for tactical analysis
-const PLAYING_STYLES = [
-  { id: 'tiki_taka', name: 'Tiki-Taka', description: 'Short, quick passing with continuous player movement' },
-  { id: 'possession_based', name: 'Possession-Based', description: 'Focus on maintaining ball possession' },
-  { id: 'counter_attacking', name: 'Counter-Attacking', description: 'Fast transitions from defense to attack' },
-  { id: 'high_pressing', name: 'High Pressing', description: 'Aggressive pressing high up the pitch' },
-  { id: 'gegenpressing', name: 'Gegenpressing', description: 'Immediate counter-press after losing possession' },
-  { id: 'direct_play', name: 'Direct Play', description: 'Vertical, forward passing to attackers' },
-  { id: 'fluid_attacking', name: 'Fluid Attacking', description: 'Emphasis on player movement and creative passing' },
-  { id: 'low_block', name: 'Low Block', description: 'Defensive, compact shape with counters' },
-  { id: 'width_and_depth', name: 'Width & Depth', description: 'Using width and crosses to create opportunities' },
-  { id: 'balanced_approach', name: 'Balanced Approach', description: 'Equal focus on defense and attack' },
+// Playing styles definitions moved to component to use translations
+const getPlayingStyles = (t) => [
+  { id: 'tiki_taka', name: t('playingStyles.tikiTaka.name', 'Tiki-Taka'), description: t('playingStyles.tikiTaka.description', 'Short, quick passing with continuous player movement') },
+  { id: 'possession_based', name: t('playingStyles.possessionBased.name', 'Possession-Based'), description: t('playingStyles.possessionBased.description', 'Focus on maintaining ball possession') },
+  { id: 'counter_attacking', name: t('playingStyles.counterAttacking.name', 'Counter-Attacking'), description: t('playingStyles.counterAttacking.description', 'Fast transitions from defense to attack') },
+  { id: 'high_pressing', name: t('playingStyles.highPressing.name', 'High Pressing'), description: t('playingStyles.highPressing.description', 'Aggressive pressing high up the pitch') },
+  { id: 'gegenpressing', name: t('playingStyles.gegenpressing.name', 'Gegenpressing'), description: t('playingStyles.gegenpressing.description', 'Immediate counter-press after losing possession') },
+  { id: 'direct_play', name: t('playingStyles.directPlay.name', 'Direct Play'), description: t('playingStyles.directPlay.description', 'Vertical, forward passing to attackers') },
+  { id: 'fluid_attacking', name: t('playingStyles.fluidAttacking.name', 'Fluid Attacking'), description: t('playingStyles.fluidAttacking.description', 'Emphasis on player movement and creative passing') },
+  { id: 'low_block', name: t('playingStyles.lowBlock.name', 'Low Block'), description: t('playingStyles.lowBlock.description', 'Defensive, compact shape with counters') },
+  { id: 'width_and_depth', name: t('playingStyles.widthAndDepth.name', 'Width & Depth'), description: t('playingStyles.widthAndDepth.description', 'Using width and crosses to create opportunities') },
+  { id: 'balanced_approach', name: t('playingStyles.balancedApproach.name', 'Balanced Approach'), description: t('playingStyles.balancedApproach.description', 'Equal focus on defense and attack') },
 ];
 
 // Formations
@@ -35,8 +35,15 @@ const TacticalAnalysisPanel = ({ primaryPlayer, secondPlayer, onClose }) => {
     loadingTacticalAnalysis, setLoadingTacticalAnalysis 
   } = useComparison();
   
-  const [selectedStyle, setSelectedStyle] = useState('');
-  const [selectedFormation, setSelectedFormation] = useState('');
+  const [selectedStyle, setSelectedStyle] = useState(() => {
+    return localStorage.getItem('selectedAnalysisStyle') || '';
+  });
+  const [selectedFormation, setSelectedFormation] = useState(() => {
+    return localStorage.getItem('selectedAnalysisFormation') || '';
+  });
+  
+  // Get playing styles with translations
+  const playingStyles = getPlayingStyles(t);
   
   // Generate tactical analysis
   const generateAnalysis = async () => {
@@ -51,6 +58,11 @@ const TacticalAnalysisPanel = ({ primaryPlayer, secondPlayer, onClose }) => {
         player_ids: [
           primaryPlayer.id || primaryPlayer.wyId,
           secondPlayer.id || secondPlayer.wyId
+        ],
+        // Include complete player objects for more detailed analysis
+        players: [
+          { ...primaryPlayer },
+          { ...secondPlayer }
         ],
         session_id: sessionId,
         original_query: "", // Could be passed from search context
@@ -106,7 +118,7 @@ const TacticalAnalysisPanel = ({ primaryPlayer, secondPlayer, onClose }) => {
           
           <div className="p-6">
             <div className="mb-6 text-gray-300">
-              Select a playing style and formation to analyze how {primaryPlayer.name} and {secondPlayer.name} would perform in that tactical context.
+              {t('tacticalAnalysis.introText', 'Select a playing style and formation to analyze how the players would perform in that tactical context.').replace('the players', `${primaryPlayer.name} and ${secondPlayer.name}`)}
             </div>
             
             {/* Playing Style Selection */}
@@ -116,7 +128,7 @@ const TacticalAnalysisPanel = ({ primaryPlayer, secondPlayer, onClose }) => {
                 {t('tacticalAnalysis.selectStyle', 'Select Playing Style')}
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {PLAYING_STYLES.map(style => (
+                {playingStyles.map(style => (
                   <button
                     key={style.id}
                     onClick={() => setSelectedStyle(style.id)}
@@ -227,7 +239,7 @@ const TacticalAnalysisPanel = ({ primaryPlayer, secondPlayer, onClose }) => {
             </h3>
             <p className="text-gray-300">
               {tacticalAnalysisData.tactical_comparison?.style_description || 
-               PLAYING_STYLES.find(s => s.id === selectedStyle)?.description}
+               playingStyles.find(s => s.id === selectedStyle)?.description}
             </p>
           </div>
           
@@ -257,7 +269,7 @@ const TacticalAnalysisPanel = ({ primaryPlayer, secondPlayer, onClose }) => {
                   {tacticalAnalysisData.tactical_comparison?.tactical_winner === 'player1' && (
                     <div className="flex items-center text-yellow-500 mt-1">
                       <Trophy size={16} className="mr-1" />
-                      <span className="text-sm font-medium">Better Tactical Fit</span>
+                      <span className="text-sm font-medium">{t('tacticalAnalysis.betterTacticalFit', 'Better Tactical Fit')}</span>
                     </div>
                   )}
                 </div>
@@ -322,7 +334,7 @@ const TacticalAnalysisPanel = ({ primaryPlayer, secondPlayer, onClose }) => {
                   {tacticalAnalysisData.tactical_comparison?.tactical_winner === 'player2' && (
                     <div className="flex items-center text-yellow-500 mt-1">
                       <Trophy size={16} className="mr-1" />
-                      <span className="text-sm font-medium">Better Tactical Fit</span>
+                      <span className="text-sm font-medium">{t('tacticalAnalysis.betterTacticalFit', 'Better Tactical Fit')}</span>
                     </div>
                   )}
                 </div>
@@ -394,10 +406,10 @@ const TacticalAnalysisPanel = ({ primaryPlayer, secondPlayer, onClose }) => {
           {/* Analysis Text */}
           <div className="bg-gray-750 p-4 rounded-lg">
             <h3 className="text-white font-semibold mb-3">
-              Analysis
+              {t('tacticalAnalysis.analysis', 'Analysis')}
             </h3>
             <div className="text-gray-300 whitespace-pre-line">
-              {tacticalAnalysisData.analysis || "No analysis available."}
+              {tacticalAnalysisData.analysis || t('tacticalAnalysis.noAnalysisAvailable', 'No analysis available.')}
             </div>
           </div>
         </div>
