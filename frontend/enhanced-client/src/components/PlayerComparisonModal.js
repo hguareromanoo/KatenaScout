@@ -162,9 +162,32 @@ const PlayerComparisonModal = () => {
     setLoadingAiAnalysis(true);
     
     try {
-      // Launch tactical analysis view instead
-      enterTacticalAnalysisMode();
+      // Call the tactical_analysis endpoint directly
+      const result = await playerService.generateTacticalAnalysis({
+        player_ids: [
+          primaryPlayer.id || primaryPlayer.wyId,
+          secondPlayer.id || secondPlayer.wyId
+        ],
+        // Include complete player objects for more detailed analysis
+        players: [
+          { ...primaryPlayer },
+          { ...secondPlayer }
+        ],
+        session_id: sessionId,
+        original_query: "", // Could be passed from search context
+        playing_style: selectedAnalysisStyle,
+        formation: selectedAnalysisFormation,
+        language: currentLanguage
+      });
+      
+      if (result.success) {
+        setAiAnalysisText(result.tactical_analysis);
+        setShowAiAnalysis(true);
+      } else {
+        setComparisonError(result.message || 'Failed to generate analysis');
+      }
     } catch (error) {
+      console.error("Error in generateAiAnalysis:", error);
       setComparisonError(error.message || 'An error occurred generating analysis');
     } finally {
       setLoadingAiAnalysis(false);
