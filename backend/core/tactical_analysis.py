@@ -564,8 +564,18 @@ Be specific and refer to the actual metric values in your analysis.
             Use football terminology appropriately but ensure explanations remain accessible.
             Always back up your analysis with specific statistical evidence."""
     
-    # Add tactical context to system prompt
-    system_prompt += f"\nYou are a tactical analyst who understands how player attributes translate to effectiveness in different playing styles and formations. Please respond in {language}."
+    # Add tactical context to system prompt with stronger language instruction
+    lang_instruction = ""
+    if language == "portuguese":
+        lang_instruction = "IMPORTANTE: Você DEVE responder em português. Toda a sua análise deve ser escrita em português."
+    elif language == "spanish":
+        lang_instruction = "IMPORTANTE: DEBES responder en español. Todo tu análisis debe estar escrito en español."
+    elif language == "bulgarian":
+        lang_instruction = "ВАЖНО: ТРЯБВА да отговориш на български. Целият ти анализ трябва да бъде написан на български."
+    else:
+        lang_instruction = "IMPORTANT: You MUST respond in English. All your analysis should be written in English."
+    
+    system_prompt += f"\nYou are a tactical analyst who understands how player attributes translate to effectiveness in different playing styles and formations. {lang_instruction}"
     
     # Call Claude API
     response = session_manager.call_claude_api(
