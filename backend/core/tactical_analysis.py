@@ -516,6 +516,33 @@ def generate_tactical_analysis(
     
     all_players_description = "\n\n".join(player_descriptions)
     
+    # Create language-specific examples
+    examples = ""
+    if language == "portuguese":
+        examples = """
+Exemplo de formato esperado:
+TACTICAL_DESCRIPTION: O estilo de jogo de posse de bola exige jogadores com...
+PLAYER1_ANALYSIS: Ronaldo demonstra excelentes habilidades de...
+PLAYER2_ANALYSIS: Messi, por outro lado, se destaca em...
+RECOMMENDATION: Considerando o estilo de jogo de posse, Messi é mais adequado porque...
+"""
+    elif language == "spanish":
+        examples = """
+Ejemplo del formato esperado:
+TACTICAL_DESCRIPTION: El estilo de juego de posesión requiere jugadores con...
+PLAYER1_ANALYSIS: Ronaldo demuestra excelentes habilidades de...
+PLAYER2_ANALYSIS: Messi, por otro lado, destaca en...
+RECOMMENDATION: Considerando el estilo de juego de posesión, Messi es más adecuado porque...
+"""
+    elif language == "bulgarian":
+        examples = """
+Пример за очаквания формат:
+TACTICAL_DESCRIPTION: Стилът на игра с притежание изисква играчи с...
+PLAYER1_ANALYSIS: Роналдо демонстрира отлични умения за...
+PLAYER2_ANALYSIS: Меси, от друга страна, се отличава в...
+RECOMMENDATION: Като се има предвид стила на игра с притежание, Меси е по-подходящ, защото...
+"""
+
     # Create the prompt with structured response requirements
     prompt = f"""Compare these players specifically for a {playing_style} style of play in a {formation} formation:
 
@@ -544,6 +571,8 @@ Your response MUST be formatted in a structured way, with these distinct section
 - PLAYER1_ANALYSIS: A detailed description of {players[0].get('name')}'s tactical fit, strengths, and weaknesses for this system
 - PLAYER2_ANALYSIS: A detailed description of {players[1].get('name')}'s tactical fit, strengths, and weaknesses for this system
 - RECOMMENDATION: The name of the player who better fits this tactical system and why
+
+{examples}
 
 Be specific and refer to the actual metric values in your analysis.
 """

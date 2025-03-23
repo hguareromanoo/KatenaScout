@@ -606,7 +606,7 @@ const ChatInterface = ({ expanded = true }) => {
               {isPlayerSearch ? (
                 /* Logo loader for player search */
                 <div className="soccer-loader">
-                  <img src="/logo.png" alt="Katena Logo" className="w-6 h-6 animate-bounce" />
+                  <span role="img" aria-label="Soccer Ball" className="text-xl animate-bounce">⚽</span>
                 </div>
               ) : (
                 /* Jumping dots with gradient for general queries */
