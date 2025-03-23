@@ -389,8 +389,8 @@ const ChatInterface = ({ expanded = true }) => {
           <Menu size={22} />
         </button>
         
-        <div className="w-10 h-10 mr-3 flex items-center justify-center bg-white rounded-full shadow-lg">
-          <span className="text-green-700 text-2xl">⚽</span>
+        <div className="w-10 h-10 mr-3 flex items-center justify-center bg-white rounded-full shadow-lg p-1">
+          <img src="/logo.svg" alt="Katena Logo" className="w-full h-full" />
         </div>
         <div>
           <h1 className="text-xl font-bold text-white">{t('chat.headerTitle')}</h1>

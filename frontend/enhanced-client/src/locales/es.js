@@ -66,7 +66,7 @@ export default {
     headerTitle: "KatenaScout AI",
     headerSubtitle: "Tu asistente de scouting inteligente",
     inputPlaceholder: "Describe el tipo de jugador que estás buscando...",
-    welcomeTitle: "¡Hola, Entrenador!",
+    welcomeTitle: "Hola, soy Katena",
     welcomeMessage: "Describe el tipo de jugador que estás buscando, y encontraré las mejores opciones para tu equipo.",
     examplesTitle: "Ejemplos de búsqueda:",
     example1: "Necesito un lateral ofensivo con buena capacidad de centro",

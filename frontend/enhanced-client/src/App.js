@@ -67,7 +67,7 @@ function App() {
           {/* Sidebar Header with Close Button for Mobile */}
           <div className="p-4 border-b border-gray-700 flex justify-between items-center">
             <h2 className="text-xl font-bold text-white flex items-center">
-              <span className="mr-2 text-green-500">⚽</span> {t('common.appName')}
+              <img src="/logo.svg" alt="Katena Logo" className="w-6 h-6 mr-2 bg-white rounded-full p-0.5" /> {t('common.appName')}
             </h2>
             {/* Close button - only visible on mobile */}
             <button 
@@ -131,14 +131,20 @@ function App() {
       
       {/* Main Content */}
       <div className="flex-1 flex flex-col h-screen overflow-hidden">
+        {/* Header Image - visible on all screens */}
+        <div className="w-full h-32 md:h-40 relative z-10">
+          <img src="/header.png" alt="Katena Header" className="w-full h-full object-cover" />
+        </div>
+        
         {/* Mobile Header with Menu Button - only visible on mobile */}
-        <div className="md:hidden fixed top-0 left-0 right-0 z-30 bg-gray-800 border-b border-gray-700 p-3 px-4 flex items-center">
+        <div className="md:hidden fixed top-0 left-0 right-0 z-30 bg-gray-800 bg-opacity-70 backdrop-blur-sm border-b border-gray-700 p-3 px-4 flex items-center">
           <button 
             onClick={toggleSidebar}
             className="text-gray-300 hover:text-white p-1 rounded-full focus:outline-none focus:ring-2 focus:ring-gray-500 flex items-center"
           >
             <Menu size={24} />
-            <span className="ml-2 font-semibold">{t('common.appName')}</span>
+            <img src="/logo.svg" alt="Katena Logo" className="w-5 h-5 mx-2 bg-white rounded-full p-0.5" />
+            <span className="font-semibold">{t('common.appName')}</span>
           </button>
         </div>
 

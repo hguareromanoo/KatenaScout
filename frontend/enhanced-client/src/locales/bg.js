@@ -66,7 +66,7 @@ export default {
     headerTitle: "KatenaScout AI",
     headerSubtitle: "Вашият интелигентен скаутинг асистент",
     inputPlaceholder: "Опишете типа играч, който търсите...",
-    welcomeTitle: "Здравейте, Треньор!",
+    welcomeTitle: "Здравейте, аз съм Katena",
     welcomeMessage: "Опишете типа играч, който търсите, и ще намеря най-добрите опции за вашия отбор.",
     examplesTitle: "Примери за търсене:",
     example1: "Нужен ми е офанзивен бек с добра способност за центриране",
