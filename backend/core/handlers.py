@@ -215,11 +215,11 @@ def handle_player_comparison(session: SessionData, message: str, session_manager
             
             # If specific players were mentioned
             if player_names:
-                # Find these players
+                # Find these players by their names
                 players = find_players_for_comparison(
                     session_manager,
                     session.session_id,
-                    player_names,
+                    player_names,  # pass player names as identifiers
                     session.language
                 )
             # Otherwise, check if it's a "top N" comparison

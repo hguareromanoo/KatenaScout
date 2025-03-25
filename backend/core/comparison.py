@@ -189,16 +189,16 @@ Luego, identifica los aspectos clave que comparaste (como "Pases", "Tiro", "Pres
 def find_players_for_comparison(
     session_manager,
     session_id: str,
-    player_ids: List[str],
+    player_identifiers: List[str],  # Changed from player_ids to be more generic
     language: str = "english"
 ) -> List[Dict[str, Any]]:
     """
-    Find players for comparison based on provided IDs
+    Find players for comparison based on provided IDs or names
     
     Args:
         session_manager: The session manager for API calls
         session_id: Session ID for tracking
-        player_ids: List of player IDs to find
+        player_identifiers: List of player IDs or names to find
         language: Language for the comparison
         
     Returns:
@@ -208,84 +208,109 @@ def find_players_for_comparison(
     
     # Get the session
     session = session_manager.get_session(session_id, language)
+    print(f"Looking for players with identifiers: {player_identifiers}")
     
-    # Try to find players in memory first (from previous searches)
+    # Step 1: Try to find players in memory first (from previous searches)
     if hasattr(session, "selected_players") and session.selected_players:
-        for player_id in player_ids:
-            # Find player in the session's selected players
+        for identifier in player_identifiers:
+            # First try to find player in memory by exact ID match
             memory_player = next(
-                (p for p in session.selected_players if str(p.get("id", "")) == str(player_id) or
-                 str(p.get("wyId", "")) == str(player_id)),
+                (p for p in session.selected_players if str(p.get("id", "")) == str(identifier) or
+                 str(p.get("wyId", "")) == str(identifier)),
                 None
             )
             
+            # If not found by ID, try by name (case-insensitive)
+            if not memory_player:
+                memory_player = next(
+                    (p for p in session.selected_players if 
+                     p.get("name", "").lower() == identifier.lower() or
+                     identifier.lower() in p.get("name", "").lower()),
+                    None
+                )
+            
             if memory_player:
+                print(f"Found player in memory: {memory_player.get('name')}")
                 result_players.append(memory_player)
     
-    # For any remaining IDs, try to get them directly
-    remaining_ids = [pid for pid in player_ids if not any(
-        str(p.get("id", "")) == str(pid) or str(p.get("wyId", "")) == str(pid) 
-        for p in result_players
-    )]
+    # Step 2: Determine which identifiers we still need to find
+    remaining_identifiers = []
+    for identifier in player_identifiers:
+        # Check if we already found this player by ID
+        id_found = any(
+            str(p.get("id", "")) == str(identifier) or str(p.get("wyId", "")) == str(identifier)
+            for p in result_players
+        )
+        
+        # Check if we already found this player by name
+        name_found = any(
+            p.get("name", "").lower() == identifier.lower() or 
+            identifier.lower() in p.get("name", "").lower()
+            for p in result_players
+        )
+        
+        # If neither found, add to remaining list
+        if not id_found and not name_found:
+            remaining_identifiers.append(identifier)
     
-    for player_id in remaining_ids:
+    # Step 3: For remaining identifiers, try direct ID lookup first
+    for identifier in remaining_identifiers[:]:  # Use a copy to safely remove items
         try:
-            # Create minimal search parameters to get the player
-            from models.parameters import SearchParameters
-            
-            # Get player info - corrected method name from get_player_info to get_players_info
-            print(f"Finding player with ID: {player_id}")
-            player_info = session_manager.get_players_info(player_id)
-            
-            # Debug the retrieved player info
-            print(f"Retrieved player info: {player_info}")
+            # Try to get player by ID directly first
+            print(f"Trying direct ID lookup for: {identifier}")
+            player_info = session_manager.get_players_info(identifier)
             
             if player_info and not player_info.get('error'):
-                # Store in results
+                print(f"Found player by ID lookup: {player_info.get('name')}")
                 result_players.append(player_info)
-            else:
-                error_msg = player_info.get('error') if player_info else "Unknown error"
-                print(f"Player with ID {player_id} not found: {error_msg}")
+                remaining_identifiers.remove(identifier)  # Remove from remaining list
         except Exception as e:
-            print(f"Error getting player with ID {player_id}: {e}")
+            print(f"Error in direct ID lookup for {identifier}: {e}")
+            # Continue to try other methods
     
-    # If we still don't have enough players (2+), try to search by name
-    if len(result_players) < 2 and player_ids:
-        for player_id in player_ids:
-            try:
-                # Check if the ID might be a name
-                if ' ' in player_id:  # This might be a name
-                    # Search for players by name using a simple search
-                    from models.parameters import SearchParameters
-                    search_params = SearchParameters(
-                        player_name=player_id,
-                        is_name_search=True
-                    )
-                    
-                    # Search for players by name
-                    print(f"Searching for player by name: {player_id}")
-                    search_results = session_manager.search_players(search_params)
-                    
-                    if search_results and len(search_results) > 0:
-                        # Take the first match
-                        player = search_results[0]
-                        print(f"Found player by name search: {player.get('name')}")
-                        
-                        # Check if this player is already in results
-                        is_duplicate = False
-                        for existing_player in result_players:
-                            # Check by name since IDs might be missing
-                            if existing_player.get("name") == player.get("name"):
-                                is_duplicate = True
-                                break
-                        
-                        if not is_duplicate:
-                            print(f"Adding player from name search: {player.get('name')}")
-                            result_players.append(player)
-                        else:
-                            print(f"Skipping duplicate player: {player.get('name')}")
-            except Exception as e:
-                print(f"Error searching for player by name {player_id}: {e}")
+    # Step 4: For any still remaining, try name search (prioritize those with spaces)
+    # First sort identifiers to check those with spaces first (likely names)
+    remaining_identifiers.sort(key=lambda x: 0 if ' ' in x else 1)
+    
+    for identifier in remaining_identifiers:
+        try:
+            # Search for players by name
+            from models.parameters import SearchParameters
+            search_params = SearchParameters(
+                player_name=identifier,
+                is_name_search=True
+            )
+            
+            print(f"Searching for player by name: {identifier}")
+            search_results = session_manager.search_players(search_params)
+            
+            if search_results and len(search_results) > 0:
+                # Take the first match
+                player = search_results[0]
+                print(f"Found player by name search: {player.get('name')}")
+                
+                # Check if this player is already in results
+                is_duplicate = False
+                for existing_player in result_players:
+                    # Check by name since IDs might be missing
+                    if existing_player.get("name") == player.get("name"):
+                        is_duplicate = True
+                        break
+                
+                if not is_duplicate:
+                    print(f"Adding player from name search: {player.get('name')}")
+                    result_players.append(player)
+                else:
+                    print(f"Skipping duplicate player: {player.get('name')}")
+            else:
+                print(f"No players found for identifier: {identifier}")
+        except Exception as e:
+            print(f"Error searching for player by name {identifier}: {e}")
+    
+    # Step 5: Final check and logging
+    print(f"Found {len(result_players)} players for comparison")
+    if len(result_players) < 2:
+        print(f"WARNING: Not enough players found for comparison. Need at least 2, found {len(result_players)}")
     
     return result_players
 
