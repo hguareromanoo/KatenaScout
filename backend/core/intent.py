@@ -81,11 +81,35 @@ def identify_intent(memory: SessionMemory, message: str, claude_api_call, contex
     Your task is to determine which of the defined intents best matches the user's message, considering the conversation context.
     
     You must identify one of the following intents:
-    - player_search: User wants to find players with specific characteristics
+    - player_search: User wants to find players with specific characteristics. IMPORTANT: THE QUERY MUST BE SPECIFIC. IT MUST INCLUDE A DESCRIPTION OF A PLAYER'S ATRIBUTES, NOT ONLY "I WANT TO FIND THE PERFECT PLAYER"
     - player_comparison: User wants to compare two or more players
     - explain_stats: User wants an explanation of football statistics or metrics
     - casual_conversation: User is engaging in small talk or asking about the system itself
     
+    IMPORTANT: FOR PLAYER SEARCH, THE QUERY MUST BE SPECIFIC. IT MUST INCLUDE A DESCRIPTION OF A PLAYER'S ATRIBUTES, NOT ONLY "I WANT TO FIND THE PERFECT PLAYER". DO NOT SEND TO PLAYER SEARCH INTENT IF THE QUERY IS TOO VAGUE. JUST SEND TO CASUAL CONVERSATION.
+    ## Examples:
+    <example1>
+    - "Find a center back with good passing"
+    - Response: "intent": "player_search", "confidence": 0.95
+    - Reason: The user is explicitly looking for a player with specific attributes
+    </example1>
+    <example2>
+    - "I want to find the best player"
+    - Response: "intent": "casual_conversation", "confidence": 0.85
+    - Reason: The query is too vague and does not match any specific intent
+    </example2>
+    <example3>
+    - "What is xG?"
+    - Response: "intent": "explain_stats", "confidence": 0.90
+    - Reason: The user is asking for an explanation of a football statistic
+    </example3>
+    <example4>
+    - "Compare Ronaldo and Messi"
+    - Response: "intent": "player_comparison", "confidence": 0.80
+    - Reason: The user wants to compare two players
+    </example4>
+    
+
     Return only the most likely intent and a confidence score (0-1) where 1 is complete certainty.
     """
     
@@ -94,8 +118,6 @@ def identify_intent(memory: SessionMemory, message: str, claude_api_call, contex
     Here is the conversation context:
     {json.dumps(context_messages)}
     
-    Here are examples of each intent:
-    {json.dumps(intents)}
     
     Based on the conversation context, determine the intent of the last user message.
     """
@@ -124,7 +146,7 @@ def identify_intent(memory: SessionMemory, message: str, claude_api_call, contex
                             "type": "number",
                             "minimum": 0,
                             "maximum": 1,
-                            "description": "Confidence score (0-1)"
+                            "description": "Confidence score (0-1). It describes how certain the system is about the intent"
                         }
                     },
                     "required": ["intent", "confidence"]
