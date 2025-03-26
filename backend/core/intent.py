@@ -219,7 +219,11 @@ def extract_comparison_entities(memory: SessionMemory, message: str, claude_api_
     Your task is to extract player names mentioned in a message about comparing players.
     
     Extract ONLY player names that are explicitly mentioned for comparison.
+    Extract the EXACT name as mentioned by the user, without modification.
     If the user mentions comparing "top N players", do NOT extract any names.
+    
+    IMPORTANT: Do not try to complete or correct player names. Extract them EXACTLY as written by the user.
+    For example, if the user writes "Compare Lautaro with Lukaku", extract ["Lautaro", "Lukaku"] exactly.
     """
     
     user_prompt = f"""
@@ -227,6 +231,7 @@ def extract_comparison_entities(memory: SessionMemory, message: str, claude_api_
     {json.dumps(context_messages)}
     
     Extract the names of players that the user wants to compare.
+    Extract the names EXACTLY as they appear in the message, without trying to correct or complete them.
     If the user wants to compare "top 2" or similar without naming specific players, return an empty list.
     """
     
@@ -248,7 +253,7 @@ def extract_comparison_entities(memory: SessionMemory, message: str, claude_api_
                         "player_names": {
                             "type": "array",
                             "items": {"type": "string"},
-                            "description": "List of player names to compare"
+                            "description": "List of player names to compare EXACTLY as mentioned by the user"
                         },
                         "compare_top_n": {
                             "type": "boolean",
@@ -257,6 +262,10 @@ def extract_comparison_entities(memory: SessionMemory, message: str, claude_api_
                         "top_n": {
                             "type": "integer",
                             "description": "Number of top players to compare (if compare_top_n is true)"
+                        },
+                        "original_query": {
+                            "type": "string",
+                            "description": "The original query from the user, for context"
                         }
                     },
                     "required": ["player_names", "compare_top_n"]
@@ -269,17 +278,22 @@ def extract_comparison_entities(memory: SessionMemory, message: str, claude_api_
         args = response.content[0].input
         entities = {
             "players_to_compare": args["player_names"],
-            "compare_top_n": args["compare_top_n"]
+            "compare_top_n": args["compare_top_n"],
+            "original_query": message  # Add the original query for context
         }
         
         if args["compare_top_n"] and "top_n" in args:
             entities["top_n"] = args["top_n"]
         
+        # Log the extracted entities for debugging
+        print(f"Extracted players to compare: {entities['players_to_compare']}")
+        print(f"Original query: {message}")
+        
         return entities
     
     except Exception as e:
         print(f"Error in comparison entity extraction: {str(e)}")
-        return {"players_to_compare": []}
+        return {"players_to_compare": [], "original_query": message}
 
 def extract_stat_entities(memory: SessionMemory, message: str, claude_api_call, context_messages: List[Dict[str, Any]]) -> Dict[str, Any]:
     """Extract entities for stats explanation intent"""
