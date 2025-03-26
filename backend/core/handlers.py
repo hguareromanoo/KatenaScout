@@ -271,12 +271,13 @@ def handle_player_comparison(session: SessionData, message: str, session_manager
             "content": comparison_result["comparison"]
         })
         
-        # Return the comparison data
+        # Return the comparison data with in_chat_comparison flag
         return {
             "type": "player_comparison",
             "players": players,
             "text": comparison_result["comparison"],
-            "comparison_aspects": comparison_result["comparison_aspects"]
+            "comparison_aspects": comparison_result["comparison_aspects"],
+            "in_chat_comparison": True  # Flag to indicate this is an in-chat comparison
         }
     except Exception as e:
         print(f"Error in handle_player_comparison: {str(e)}")

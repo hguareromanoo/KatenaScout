@@ -117,13 +117,22 @@ const ChatInterface = ({ expanded = true }) => {
             ? data.comparison 
             : (data.text || data.response || t('playerComparison.defaultText', 'Player comparison results'));
           responseType = 'comparison';
-          // Comparison is related to players
-          setIsPlayerSearch(true);
-          console.log(`Found ${playersData.length} players in comparison results:`, 
-            playersData.map(p => p.name).join(', '));
           
-          // Explicitly update search results for comparison
-          if (playersData.length > 0) {
+          // Determine if this is an in-chat comparison (text-only) or visual comparison (with player cards)
+          // For in-chat comparison, we shouldn't treat it as a player search with cards
+          const isInChatComparison = input.toLowerCase().includes('compare') || 
+                                    input.toLowerCase().includes('comparar') ||
+                                    data.in_chat_comparison === true;
+                                    
+          // Only set player search if it's not an in-chat comparison
+          setIsPlayerSearch(!isInChatComparison);
+          
+          console.log(`Found ${playersData.length} players in comparison results:`, 
+            playersData.map(p => p.name).join(', '),
+            isInChatComparison ? '(in-chat comparison)' : '(visual comparison)');
+          
+          // Only update search results and show player cards if it's not an in-chat comparison
+          if (playersData.length > 0 && !isInChatComparison) {
             updateSearchResults(playersData);
           }
         } else if (data.explanations) {
@@ -150,12 +159,18 @@ const ChatInterface = ({ expanded = true }) => {
         
         setLastMessageWasSatisfactionQuestion(hasSatisfactionQuestion);
 
+        // Determine if we should show player cards for this message
+        const shouldShowPlayerCards = 
+          responseType === 'search' || // Always show cards for search results
+          (responseType === 'comparison' && !input.toLowerCase().includes('compare') && 
+           !input.toLowerCase().includes('comparar') && data.in_chat_comparison !== true);
+        
         // Add the response to the chat
         addMessage({
           text: responseText,
           sender: 'bot',
-          showPlayerSelection: playersData.length > 0,
-          players: playersData,
+          showPlayerSelection: shouldShowPlayerCards && playersData.length > 0,
+          players: shouldShowPlayerCards ? playersData : [],
           // Add metadata for special responses
           responseType: responseType,
           explanations: data.explanations,

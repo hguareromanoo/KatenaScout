@@ -141,7 +141,8 @@ def enhanced_search():
                 players=response_data["players"],
                 comparison_text=response_data["text"],
                 comparison_aspects=response_data["comparison_aspects"],
-                language=language
+                language=language,
+                in_chat_comparison=response_data.get("in_chat_comparison", False)
             ))
         elif response_data["type"] == "error":
             from utils.formatters import format_error_response

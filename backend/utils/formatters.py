@@ -134,7 +134,8 @@ def format_comparison_response(
     overall_winner: Optional[Dict[str, Any]] = None,
     categorized_metrics: Optional[Dict[str, List[str]]] = None,
     category_winners: Optional[Dict[str, str]] = None,
-    negative_metrics: Optional[List[str]] = None
+    negative_metrics: Optional[List[str]] = None,
+    in_chat_comparison: Optional[bool] = False
 ) -> Dict[str, Any]:
     """Format a standardized comparison response"""
     # Process all players - sanitize data and add image information
@@ -163,7 +164,8 @@ def format_comparison_response(
         'overall_winner': overall_winner,
         'categorized_metrics': categorized_metrics,
         'category_winners': category_winners,
-        'negative_metrics': negative_metrics
+        'negative_metrics': negative_metrics,
+        'in_chat_comparison': in_chat_comparison  # Add the in_chat_comparison flag
     }
     
     return response_data
