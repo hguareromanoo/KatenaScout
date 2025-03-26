@@ -214,16 +214,21 @@ def compare_players():
         language = validated_data["language"]
         include_ai_analysis = validated_data.get("include_ai_analysis", False)
         
+        # Extract additional tactical parameters
+        playing_style = validated_data.get("playing_style", "")
+        formation = validated_data.get("formation", "")
+        
         # Get session
         session = session_manager.get_session(session_id, language)
         
-        # Find players for comparison
+        # Find players for comparison (from direct API)
         from core.comparison import find_players_for_comparison
         players = find_players_for_comparison(
             session_manager,
             session_id,
             player_ids,
-            language
+            language,
+            source="api"  # indicate this is from direct API
         )
         
         # Ensure we have at least 2 players to compare
@@ -241,12 +246,14 @@ def compare_players():
         
         # If AI analysis is requested, use the standard comparison function
         if include_ai_analysis:
-            # Generate comparison with text analysis
+            # Generate comparison with text analysis, including tactical parameters if provided
             from core.comparison import compare_players
             comparison_result = compare_players(
                 players=players,
                 session_manager=session_manager,
-                language=language
+                language=language,
+                playing_style=playing_style,
+                formation=formation
             )
             
             comparison_text = comparison_result.get("comparison", "")

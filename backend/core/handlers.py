@@ -215,12 +215,13 @@ def handle_player_comparison(session: SessionData, message: str, session_manager
             
             # If specific players were mentioned
             if player_names:
-                # Find these players by their names
+                # Find these players by their names (from chat interface)
                 players = find_players_for_comparison(
                     session_manager,
                     session.session_id,
                     player_names,  # pass player names as identifiers
-                    session.language
+                    session.language,
+                    source="chat"  # indicate this is from chat interface
                 )
             # Otherwise, check if it's a "top N" comparison
             elif hasattr(session, "entities") and session.entities.get("compare_top_n", False):

@@ -190,7 +190,8 @@ def find_players_for_comparison(
     session_manager,
     session_id: str,
     player_identifiers: List[str],  # Changed from player_ids to be more generic
-    language: str = "english"
+    language: str = "english",
+    source: str = "api"  # 'api' or 'chat' to indicate the source of the request
 ) -> List[Dict[str, Any]]:
     """
     Find players for comparison based on provided IDs or names
@@ -200,10 +201,19 @@ def find_players_for_comparison(
         session_id: Session ID for tracking
         player_identifiers: List of player IDs or names to find
         language: Language for the comparison
+        source: Source of the request - 'api' (direct API call) or 'chat' (from chat interface)
+               This affects how we handle identifiers. API calls typically use IDs, 
+               while chat interface uses names extracted from natural language.
         
     Returns:
         List of player data dictionaries
     """
+    # Log source and identifiers for debugging
+    print(f"Finding players for comparison from source: {source}")
+    print(f"Player identifiers: {player_identifiers}")
+    
+    # Adapt search strategy based on source
+    is_chat_source = source == "chat"
     result_players = []
     
     # Get the session
@@ -220,8 +230,8 @@ def find_players_for_comparison(
                 None
             )
             
-            # If not found by ID, try by name (case-insensitive)
-            if not memory_player:
+            # If not found by ID, try by name (case-insensitive) - only for string identifiers
+            if not memory_player and isinstance(identifier, str):
                 memory_player = next(
                     (p for p in session.selected_players if 
                      p.get("name", "").lower() == identifier.lower() or
@@ -242,12 +252,14 @@ def find_players_for_comparison(
             for p in result_players
         )
         
-        # Check if we already found this player by name
-        name_found = any(
-            p.get("name", "").lower() == identifier.lower() or 
-            identifier.lower() in p.get("name", "").lower()
-            for p in result_players
-        )
+        # Check if we already found this player by name (only if identifier is a string)
+        name_found = False
+        if isinstance(identifier, str):
+            name_found = any(
+                p.get("name", "").lower() == identifier.lower() or 
+                identifier.lower() in p.get("name", "").lower()
+                for p in result_players
+            )
         
         # If neither found, add to remaining list
         if not id_found and not name_found:
@@ -268,12 +280,32 @@ def find_players_for_comparison(
             print(f"Error in direct ID lookup for {identifier}: {e}")
             # Continue to try other methods
     
-    # Step 4: For any still remaining, try name search (prioritize those with spaces)
-    # First sort identifiers to check those with spaces first (likely names)
-    remaining_identifiers.sort(key=lambda x: 0 if ' ' in x else 1)
+    # Step 4: For any still remaining, try name search (prioritize string identifiers with spaces)
+    # Optimize identifier processing based on source
+    if is_chat_source:
+        # For chat source, prioritize name-based search (strings with spaces)
+        string_identifiers = [x for x in remaining_identifiers if isinstance(x, str)]
+        string_identifiers.sort(key=lambda x: 0 if ' ' in x else 1)
+        remaining_identifiers = string_identifiers + [x for x in remaining_identifiers if not isinstance(x, str)]
+    else:
+        # For API source, prioritize numeric IDs first, then strings without spaces (likely IDs), then names
+        def sort_key(x):
+            if isinstance(x, (int, float)) or (isinstance(x, str) and x.isdigit()):
+                return 0  # Numeric IDs first
+            elif isinstance(x, str) and ' ' not in x:
+                return 1  # String IDs second
+            else:
+                return 2  # Names last
+        
+        remaining_identifiers = sorted(remaining_identifiers, key=sort_key)
     
     for identifier in remaining_identifiers:
         try:
+            # Skip non-string identifiers for name search
+            if not isinstance(identifier, str):
+                print(f"Skipping non-string identifier for name search: {identifier}")
+                continue
+                
             # Search for players by name
             from models.parameters import SearchParameters
             search_params = SearchParameters(
