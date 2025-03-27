@@ -110,6 +110,9 @@ const ChatInterface = ({ expanded = true }) => {
             }
           }
         } else if (data.comparison) {
+          // Debugging info to see what's received from backend
+          console.log("Received comparison data:", data);
+          
           // Comparison results
           playersData = data.players || [];
           // Ensure responseText is a string - data.comparison could be an object or null
@@ -123,6 +126,8 @@ const ChatInterface = ({ expanded = true }) => {
           const isInChatComparison = input.toLowerCase().includes('compare') || 
                                     input.toLowerCase().includes('comparar') ||
                                     data.in_chat_comparison === true;
+                                    
+          console.log("Is in-chat comparison:", isInChatComparison, "Flag from backend:", data.in_chat_comparison);
                                     
           // Only set player search if it's not an in-chat comparison
           setIsPlayerSearch(!isInChatComparison);

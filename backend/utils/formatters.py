@@ -137,6 +137,8 @@ def format_comparison_response(
     negative_metrics: Optional[List[str]] = None,
     in_chat_comparison: Optional[bool] = False
 ) -> Dict[str, Any]:
+    # Debug information
+    print(f"DEBUG - Formatting comparison response with in_chat_comparison={in_chat_comparison}")
     """Format a standardized comparison response"""
     # Process all players - sanitize data and add image information
     raw_players = [process_player_data(player) for player in players]

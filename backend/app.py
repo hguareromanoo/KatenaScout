@@ -137,6 +137,9 @@ def enhanced_search():
             ))
         elif response_data["type"] == "player_comparison":
             from utils.formatters import format_comparison_response
+            # Print debug info for in-chat comparison flag
+            print(f"DEBUG - Player comparison response with in_chat_comparison: {response_data.get('in_chat_comparison', False)}")
+            
             return jsonify(format_comparison_response(
                 players=response_data["players"],
                 comparison_text=response_data["text"],
