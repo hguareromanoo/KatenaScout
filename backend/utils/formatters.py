@@ -170,6 +170,9 @@ def format_comparison_response(
         'in_chat_comparison': in_chat_comparison  # Add the in_chat_comparison flag
     }
     
+    # Extra debug to verify the final response - minimal version
+    print(f"DEBUG - Final comparison response has in_chat_comparison: {in_chat_comparison}")
+    
     return response_data
 
 def format_error_response(

@@ -31,6 +31,16 @@ const chatService = {
         body: params,
       });
       
+      // Debug logging for comparison response
+      if (response && response.comparison) {
+        console.log("API RESPONSE - Comparison data received:", {
+          in_chat_comparison: response.in_chat_comparison,
+          comparison_text_length: response.comparison ? response.comparison.length : 0,
+          players_count: response.players ? response.players.length : 0,
+          full_response: response
+        });
+      }
+      
       return response;
     } catch (error) {
       console.error('Enhanced search error:', error);

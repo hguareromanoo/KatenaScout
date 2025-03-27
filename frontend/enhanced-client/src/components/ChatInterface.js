@@ -165,10 +165,21 @@ const ChatInterface = ({ expanded = true }) => {
         setLastMessageWasSatisfactionQuestion(hasSatisfactionQuestion);
 
         // Determine if we should show player cards for this message
+        // Debug values used in the condition
+        console.log("DEBUG - Values for card display decision:", {
+          responseType: responseType,
+          inputHasCompare: input.toLowerCase().includes('compare'),
+          inputHasComparar: input.toLowerCase().includes('comparar'),
+          inChatComparisonFlag: data.in_chat_comparison,
+          rawData: data
+        });
+        
         const shouldShowPlayerCards = 
           responseType === 'search' || // Always show cards for search results
           (responseType === 'comparison' && !input.toLowerCase().includes('compare') && 
            !input.toLowerCase().includes('comparar') && data.in_chat_comparison !== true);
+           
+        console.log("DEBUG - Decision to show player cards:", shouldShowPlayerCards);
         
         // Add the response to the chat
         addMessage({
