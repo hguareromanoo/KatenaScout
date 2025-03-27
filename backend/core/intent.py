@@ -214,25 +214,70 @@ def extract_search_entities(memory: SessionMemory, message: str, claude_api_call
 
 def extract_comparison_entities(memory: SessionMemory, message: str, claude_api_call, context_messages: List[Dict[str, Any]]) -> Dict[str, Any]:
     """Extract entities for player comparison intent"""
-    system_prompt = """
-    You are an entity extraction system for a football scouting AI.
-    Your task is to extract player names mentioned in a message about comparing players.
-    
-    Extract ONLY player names that are explicitly mentioned for comparison.
-    Extract the EXACT name as mentioned by the user, without modification.
-    If the user mentions comparing "top N players", do NOT extract any names.
-    
-    IMPORTANT: Do not try to complete or correct player names. Extract them EXACTLY as written by the user.
-    For example, if the user writes "Compare Lautaro with Lukaku", extract ["Lautaro", "Lukaku"] exactly.
+    system_prompt = f"""
+    ## Your task:
+    Extract the names of football players mentioned for comparison in the context of this conversation.
+    You must fetch player's complete names from partial mentions or nicknames. Identify which players the user is referring to.
+    These are the players you must fetch the players from: 
+     "database": {json.dumps(memory.selected_players)} \n
+    ## Examples:
+    <ex_1>
+    User:
+    - user_query: "Compare Ronaldo and Messi"
+    - database: ["Cristiano Ronaldo", "Lionel Messi"]
+    Good Response:
+    - player_names: ["Cristiano Ronaldo", "Lionel Messi"]
+    - original_query: "Compare Ronaldo and Messi"
+    Bad Response:
+    - player_names: ["Ronaldo", "Messi"]
+    or
+    - player_names: ["Cristiano", "Lionel"]
+    - Reason: The names should be exactly how they are at our database.
+    </ex_1>
+    <ex_2>
+    User:
+    - user_query: "Compare Lukaku and Lautaro on the brazilian playing style"
+    - database: ["Lautaro Javier Martínez", "Romelu Menama Lukaku Bolingoli", "Gabriel Barbosa", "Novak Djokovic"]
+   Good Response:
+    - player_names: ["Romelu Menama Lukaku Bolingoli", "Lautaro Javier Martínez"]
+    - original_query: "Compare Lukaku and Lautaro on the brazilian playing style"
+    Bad Response:
+    - player_names: ["Lukaku", "Lautaro"]
+    or 
+    - player_names: ["Romelu Lukaku", "Lautaro Martinez"]
+    - Reason: The names should be exactly how they are at our database.
+    </ex_2>
+    <ex_3>
+    User:
+    - user_query: "Compare the top 2 players from my search"
+    - database: ["Cristiano Ronaldo", "Lionel Messi", "Neymar Jr.", "Kylian Mbappé"]
+    Good Response:
+    - player_names: ["Cristiano Ronaldo", "Lionel Messi"]
+    - compare_top_n: true
+    - top_n: 2
+    - original_query: "Compare the top 2 players from my search"
+    Bad Response:
+    - player_names: []
+    - Reason: The user asked to compare the top 2 players, but the system did not extract the top_n parameter.
+    </ex_3>
+    <ex_4>
+    User:
+    - user_query: "Compare Martinelly and Gabriel Barbosa playing as a reference
+    - database: ["Gabriel Barbosa", "Gabriel Martinelli", "Gabriel Jesus"]
+    Good Response:
+    - player_names: ["Gabriel Martinelli", "Gabriel Barbosa"]
+    - original_query: "Compare Martinelly and Gabriel Barbosa playing as a reference"
+    Bad Response:
+    - player_names: ["Martinelly", "Gabriel Barbosa"]    
+    - Reason: The names should be exactly how they are at our database.
+ </ex_4>
+
     """
     
     user_prompt = f"""
     Here is the conversation context:
     {json.dumps(context_messages)}
     
-    Extract the names of players that the user wants to compare.
-    Extract the names EXACTLY as they appear in the message, without trying to correct or complete them.
-    If the user wants to compare "top 2" or similar without naming specific players, return an empty list.
     """
     
     try:
@@ -253,7 +298,7 @@ def extract_comparison_entities(memory: SessionMemory, message: str, claude_api_
                         "player_names": {
                             "type": "array",
                             "items": {"type": "string"},
-                            "description": "List of player names to compare EXACTLY as mentioned by the user"
+                            "description": "List of player names to compare EXACTLY how they are at our database."
                         },
                         "compare_top_n": {
                             "type": "boolean",
