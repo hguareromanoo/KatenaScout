@@ -96,15 +96,19 @@ export const getPrimaryPosition = (player) => {
 };
 
 /**
- * Format player position list as string
- * 
- * @param {Object} player - Player object
- * @returns {string} - Formatted positions string
+ * Format player positions with translation
+ * @param {Array} positions - Array of position codes
+ * @param {Function} t - Translation function
+ * @returns {string} Formatted positions string
  */
-export const formatPositions = (player) => {
-  if (!player || !player.positions) return '';
-  
-  return player.positions.join(', ');
+export const formatPlayerPositions = (positions, t) => {
+  if (!positions || !Array.isArray(positions) || positions.length === 0) {
+    return '';
+  }
+
+  return positions
+    .map(pos => t ? t(`positions.${pos}`, pos) : pos)
+    .join(', ');
 };
 
 /**
@@ -332,17 +336,6 @@ export const formatPlayerPosition = (position, t) => {
   
   // Caso contrário, retorne a posição original
   return position;
-};
-
-/**
- * Format player positions array with translations
- * @param {Array} positions - Array of position codes
- * @param {Function} t - Translation function
- * @returns {string} Comma-separated list of formatted positions
- */
-export const formatPlayerPositions = (positions, t) => {
-  if (!positions || !Array.isArray(positions)) return '';
-  return positions.map(pos => formatPlayerPosition(pos, t)).join(', ');
 };
 
 /**
