@@ -32,7 +32,8 @@ export {
 // Export player utilities
 export {
   playerStatsToMetrics, getPrimaryPosition, formatPositions,
-  formatPlayerAge, getPlayerImageUrl, comparePlayersData
+  formatPlayerAge, getPlayerImageUrl, comparePlayersData,
+  formatPreferredFoot
 } from './playerUtils';
 
 // Re-export useTranslation hook for convenience
