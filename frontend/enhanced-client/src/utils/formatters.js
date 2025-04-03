@@ -1,5 +1,5 @@
 import { 
-  Swords, Shield, MoveRight, Ball, Running, Goalie, 
+  Swords, Shield, MoveRight, Circle, Running, Goalie, 
   Zap, Target, Crosshair, Activity, Heart, Star,
   Flag
 } from 'lucide-react';
@@ -15,7 +15,7 @@ export const metricCategoryIcons = {
   attacking: { icon: Swords, color: 'text-red-400' },
   defending: { icon: Shield, color: 'text-blue-400' },
   passing: { icon: MoveRight, color: 'text-green-400' },
-  possession: { icon: Ball, color: 'text-yellow-400' },
+  possession: { icon: Circle, color: 'text-yellow-400' },
   physical: { icon: Running, color: 'text-purple-400' },
   goalkeeping: { icon: Goalie, color: 'text-cyan-400' },
   setPieces: { icon: Flag, color: 'text-orange-400' },
