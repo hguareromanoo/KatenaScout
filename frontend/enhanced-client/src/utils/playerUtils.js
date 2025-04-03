@@ -281,3 +281,88 @@ export const comparePlayersData = (player1, player2) => {
     metrics
   };
 };
+
+/**
+ * Format player position with translation
+ * @param {string} position - The position code (e.g., 'LCB', 'RB')
+ * @param {Function} t - Translation function
+ * @returns {string} Formatted position name
+ */
+export const formatPlayerPosition = (position, t) => {
+  if (!position) return '';
+  
+  // Mapeamento de códigos de posição para chaves de tradução
+  const positionMap = {
+    // Defensores
+    'LCB': 'positions.lcb',
+    'RCB': 'positions.rcb',
+    'CB': 'positions.cb',
+    'LB': 'positions.lb',
+    'RB': 'positions.rb',
+    'LWB': 'positions.lwb',
+    'RWB': 'positions.rwb',
+    'SW': 'positions.sw',
+    
+    // Meio-campistas
+    'CDM': 'positions.cdm',
+    'LDM': 'positions.ldm',
+    'RDM': 'positions.rdm',
+    'CM': 'positions.cm',
+    'LCM': 'positions.lcm',
+    'RCM': 'positions.rcm',
+    'CAM': 'positions.cam',
+    'LAM': 'positions.lam',
+    'RAM': 'positions.ram',
+    'LM': 'positions.lm',
+    'RM': 'positions.rm',
+    
+    // Atacantes
+    'LW': 'positions.lw',
+    'RW': 'positions.rw',
+    'LF': 'positions.lf',
+    'RF': 'positions.rf',
+    'CF': 'positions.cf',
+    'ST': 'positions.st'
+  };
+  
+  // Se temos tradução disponível, use-a
+  if (t && positionMap[position]) {
+    return t(positionMap[position]);
+  }
+  
+  // Caso contrário, retorne a posição original
+  return position;
+};
+
+/**
+ * Format player positions array with translations
+ * @param {Array} positions - Array of position codes
+ * @param {Function} t - Translation function
+ * @returns {string} Comma-separated list of formatted positions
+ */
+export const formatPlayerPositions = (positions, t) => {
+  if (!positions || !Array.isArray(positions)) return '';
+  return positions.map(pos => formatPlayerPosition(pos, t)).join(', ');
+};
+
+/**
+ * Format preferred foot with translation
+ * @param {string} foot - The foot code (e.g., 'left', 'right')
+ * @param {Function} t - Translation function
+ * @returns {string} Formatted foot name
+ */
+export const formatPreferredFoot = (foot, t) => {
+  if (!foot) return '';
+  
+  const footMap = {
+    'left': 'player.leftFoot',
+    'right': 'player.rightFoot',
+    'both': 'player.bothFeet'
+  };
+  
+  if (t && footMap[foot.toLowerCase()]) {
+    return t(footMap[foot.toLowerCase()]);
+  }
+  
+  return foot;
+};

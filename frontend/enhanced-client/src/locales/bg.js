@@ -203,5 +203,177 @@ export default {
     selectTwoPlayers: "Моля, изберете точно 2 играча за сравнение.",
     serverError: "Сървърът срещна грешка. Моля, опитайте по-късно.",
     parsingError: "Възникна грешка при обработката на отговора. Моля, опитайте отново."
+  },
+  positions: {
+    // Защитници
+    lcb: "Ляв Централен Защитник",
+    rcb: "Десен Централен Защитник",
+    cb: "Централен Защитник",
+    lb: "Ляв Бек",
+    rb: "Десен Бек",
+    lwb: "Ляво Крило",
+    rwb: "Дясно Крило",
+    sw: "Либеро",
+    
+    // Полузащитници
+    cdm: "Дефанзивен Полузащитник",
+    ldm: "Ляв Дефанзивен Полузащитник",
+    rdm: "Десен Дефанзивен Полузащитник",
+    cm: "Централен Полузащитник",
+    lcm: "Ляв Централен Полузащитник",
+    rcm: "Десен Централен Полузащитник",
+    cam: "Атакуващ Полузащитник",
+    lam: "Ляв Атакуващ Полузащитник",
+    ram: "Десен Атакуващ Полузащитник",
+    lm: "Ляв Полузащитник",
+    rm: "Десен Полузащитник",
+    
+    // Нападатели
+    lw: "Ляво Крило",
+    rw: "Дясно Крило",
+    lf: "Ляв Нападател",
+    rf: "Десен Нападател",
+    cf: "Централен Нападател",
+    st: "Нападател"
+  },
+  
+  player: {
+    leftFoot: "Ляв",
+    rightFoot: "Десен",
+    bothFeet: "И двата"
+  },
+  metrics: {
+    // General
+    matches: "Мачове",
+    matchesInStart: "Мачове като Титуляр",
+    matchesSubstituted: "Мачове като Резерва",
+    matchesComingOff: "Смяни",
+    minutesOnField: "Минути на Терена",
+    minutesTagged: "Регистрирани Минути",
+    
+    // Goals and Assists
+    goals: "Голове",
+    assists: "Асистенции",
+    secondAssists: "Втори Асистенции",
+    thirdAssists: "Трети Асистенции",
+    shotAssists: "Асистенции за Удар",
+    shotOnTargetAssists: "Асистенции за Удар във Вратата",
+    
+    // Shots
+    shots: "Удари",
+    shotsOnTarget: "Удари във Вратата",
+    headShots: "Удари с Глава",
+    shotsBlocked: "Блокирани Удари",
+    xgShot: "xG (Очаквани Голове)",
+    xgAssist: "xA (Очаквани Асистенции)",
+    
+    // Passing
+    passes: "Подавания",
+    successfulPasses: "Точни Подавания",
+    smartPasses: "Умни Подавания",
+    successfulSmartPasses: "Точни Умни Подавания",
+    passesToFinalThird: "Подавания в Последна Трета",
+    successfulPassesToFinalThird: "Точни Подавания в Последна Трета",
+    crosses: "Центрирания",
+    successfulCrosses: "Точни Центрирания",
+    forwardPasses: "Подавания Напред",
+    successfulForwardPasses: "Точни Подавания Напред",
+    backPasses: "Подавания Назад",
+    successfulBackPasses: "Точни Подавания Назад",
+    throughPasses: "Подавания в Дълбочина",
+    successfulThroughPasses: "Точни Подавания в Дълбочина",
+    keyPasses: "Ключови Подавания",
+    successfulKeyPasses: "Точни Ключови Подавания",
+    verticalPasses: "Вертикални Подавания",
+    successfulVerticalPasses: "Точни Вертикални Подавания",
+    longPasses: "Дълги Подавания",
+    successfulLongPasses: "Точни Дълги Подавания",
+    lateralPasses: "Странични Подавания",
+    successfulLateralPasses: "Точни Странични Подавания",
+    progressivePasses: "Прогресивни Подавания",
+    successfulProgressivePasses: "Точни Прогресивни Подавания",
+    
+    // Dribbling
+    dribbles: "Дрибъл",
+    successfulDribbles: "Успешен Дрибъл",
+    dribblesAgainst: "Дрибъл срещу",
+    dribblesAgainstWon: "Спечелен Дрибъл срещу",
+    
+    // Duels
+    duels: "Дуели",
+    duelsWon: "Спечелени Дуели",
+    defensiveDuels: "Защитни Дуели",
+    defensiveDuelsWon: "Спечелени Защитни Дуели",
+    offensiveDuels: "Атакуващи Дуели",
+    offensiveDuelsWon: "Спечелени Атакуващи Дуели",
+    aerialDuels: "Въздушни Дуели",
+    aerialDuelsWon: "Спечелени Въздушни Дуели",
+    fieldAerialDuels: "Въздушни Дуели на Терена",
+    fieldAerialDuelsWon: "Спечелени Въздушни Дуели на Терена",
+    pressingDuels: "Дуели при Прес",
+    pressingDuelsWon: "Спечелени Дуели при Прес",
+    looseBallDuels: "Дуели за Свободна Топка",
+    looseBallDuelsWon: "Спечелени Дуели за Свободна Топка",
+    
+    // Defensive Actions
+    interceptions: "Прихващания",
+    defensiveActions: "Защитни Действия",
+    successfulDefensiveAction: "Успешни Защитни Действия",
+    slidingTackles: "Хлъзгащи Отнемания",
+    successfulSlidingTackles: "Успешни Хлъзгащи Отнемания",
+    clearances: "Изчиствания",
+    
+    // Attacking Actions
+    attackingActions: "Атакуващи Действия",
+    successfulAttackingActions: "Успешни Атакуващи Действия",
+    linkupPlays: "Свързващи Игри",
+    successfulLinkupPlays: "Успешни Свързващи Игри",
+    touchInBox: "Докосвания в Наказателното",
+    progressiveRun: "Прогресивни Пробягвания",
+    
+    // Set Pieces
+    freeKicks: "Свободни Удари",
+    freeKicksOnTarget: "Свободни Удари във Вратата",
+    directFreeKicks: "Директни Свободни Удари",
+    directFreeKicksOnTarget: "Директни Свободни Удари във Вратата",
+    corners: "Корнери",
+    penalties: "Дузпи",
+    successfulPenalties: "Вкарани Дузпи",
+    
+    // Physical
+    accelerations: "Ускорения",
+    recoveries: "Възвръщания",
+    opponentHalfRecoveries: "Възвръщания в Чуждата Половина",
+    dangerousOpponentHalfRecoveries: "Опасни Възвръщания в Чуждата Половина",
+    counterpressingRecoveries: "Възвръщания при Контрапрес",
+    
+    // Losses
+    losses: "Загуби",
+    ownHalfLosses: "Загуби в Собствената Половина",
+    dangerousOwnHalfLosses: "Опасни Загуби в Собствената Половина",
+    missedBalls: "Пропуснати Топки",
+    
+    // Goalkeeping
+    gkCleanSheets: "Сухи Мрежи",
+    gkConcededGoals: "Допуснати Голове",
+    gkShotsAgainst: "Удари срещу",
+    gkExits: "Излизания",
+    gkSuccessfulExits: "Успешни Излизания",
+    gkAerialDuels: "Въздушни Дуели на Вратаря",
+    gkAerialDuelsWon: "Спечелени Въздушни Дуели на Вратаря",
+    gkSaves: "Спасявания",
+    goalKicks: "Големи Удари",
+    goalKicksShort: "Кратки Големи Удари",
+    goalKicksLong: "Дълги Големи Удари",
+    successfulGoalKicks: "Точни Големи Удари",
+    xgSave: "xG Спасен",
+    
+    // Cards and Fouls
+    yellowCards: "Жълти Картони",
+    redCards: "Червени Картони",
+    directRedCards: "Директни Червени Картони",
+    fouls: "Направени Фаулове",
+    foulsSuffered: "Получени Фаулове",
+    offsides: "Засади"
   }
 };

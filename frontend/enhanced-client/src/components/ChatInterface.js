@@ -431,7 +431,7 @@ const ChatInterface = ({ expanded = true }) => {
       </div>
 
       {/* Chat Area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-900 bg-opacity-90 relative custom-scrollbar" style={{ maxHeight: 'calc(100vh - 140px)' }}>
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-900 bg-opacity-90 relative custom-scrollbar" style={{ maxHeight: 'calc(100vh - 140px)', paddingBottom: '80px' }}>
         {/* Soccer field background pattern */}
         <div className="absolute inset-0 opacity-5 pointer-events-none">
           <div className="w-full h-full border-2 border-white"></div>
@@ -657,7 +657,8 @@ const ChatInterface = ({ expanded = true }) => {
       </div>
       
       {/* Input Area - fixed at bottom of chat */}
-      <div className="border-t border-gray-700 p-3 bg-gray-800 sticky bottom-0 left-0 right-0 z-20">
+      <div className="border-t border-gray-700 p-3 bg-gray-800 fixed bottom-0 left-0 right-0 z-20 transition-transform duration-300" 
+           style={{ transform: isLoading ? 'translateY(100%)' : 'translateY(0)' }}>
         <form onSubmit={handleSubmit} className="flex">
           <input
             type="text"

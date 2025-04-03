@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Heart, User, UserCircle, Trophy, TrendingUp, BarChart3, Clock, 
         Package, Calendar, Footprints, GitCompare } from 'lucide-react';
 import { 
@@ -13,6 +13,7 @@ import {
   normalizeMetricsForRadar, 
   NEGATIVE_STATS 
 } from '../utils/playerUtils';
+import { formatMetricName } from '../utils/formatters';
 
 /**
  * PlayerDashboard Component - Displays player information in a modal
@@ -22,6 +23,14 @@ const PlayerDashboard = ({ player, metrics = [], onClose, onViewComplete }) => {
   const { isPlayerFavorite, toggleFavorite } = useFavorites();
   const { startComparison } = useComparison();
   const { sessionId, currentSearchResults } = useSession();
+  
+  // Add local state for immediate feedback
+  const [localFavorite, setLocalFavorite] = useState(isPlayerFavorite(player));
+  
+  // Sync local state with global state
+  useEffect(() => {
+    setLocalFavorite(isPlayerFavorite(player));
+  }, [player, isPlayerFavorite]);
   
   // We no longer need this effect since we're using the current search results directly
   
@@ -147,18 +156,26 @@ const PlayerDashboard = ({ player, metrics = [], onClose, onViewComplete }) => {
         {/* Favorite button */}
         <button
           onClick={(e) => {
-            e.stopPropagation(); // Prevent event bubbling
+            e.stopPropagation();
+            // Update local state immediately for instant feedback
+            setLocalFavorite(!localFavorite);
+            // Then update global state
             toggleFavorite(player);
-            console.log('Toggle favorite:', player.name, 'isFavorite:', !isFavorite);
           }}
-          className={`p-2 rounded-full ${
-            isFavorite 
+          className={`p-2 rounded-full transition-all duration-200 transform hover:scale-110 active:scale-95 ${
+            localFavorite 
               ? 'bg-red-500 bg-opacity-20 text-red-400 hover:bg-opacity-30' 
               : 'bg-gray-700 text-gray-400 hover:text-white hover:bg-gray-650'
           }`}
-          title={isFavorite ? t('playerDashboard.removeFromFavorites') : t('playerDashboard.addToFavorites')}
+          aria-pressed={localFavorite}
+          role="button"
+          title={localFavorite ? t('playerDashboard.removeFromFavorites') : t('playerDashboard.addToFavorites')}
         >
-          <Heart size={20} fill={isFavorite ? '#f56565' : 'none'} />
+          <Heart 
+            size={20} 
+            fill={localFavorite ? '#f56565' : 'none'} 
+            className={`transition-transform duration-300 ${localFavorite ? 'scale-110' : 'scale-100'}`}
+          />
         </button>
       </div>
       
@@ -231,21 +248,27 @@ const PlayerDashboard = ({ player, metrics = [], onClose, onViewComplete }) => {
             </h3>
             
             <div className="grid grid-cols-2 gap-3">
-              {playerMetrics.slice(0, 6).map((metric, index) => (
-                <div key={index} className="bg-gray-800 rounded-lg p-3">
-                  <div className="text-xs text-gray-400 mb-1">{metric.name}</div>
-                  <div className="flex justify-between items-center">
-                    <div className={`${metric.colorClass || 'text-white'} font-medium`}>
-                      {metric.value}
+              {playerMetrics.slice(0, 6).map((metric, index) => {
+                const { name, icon: Icon, category } = formatMetricName(metric.key, t);
+                return (
+                  <div key={index} className="bg-gray-800 rounded-lg p-3">
+                    <div className="flex items-center gap-2 text-xs text-gray-400 mb-1">
+                      {Icon && <Icon size={14} className="text-gray-500" />}
+                      {name}
                     </div>
-                    {metric.positionAverage && (
-                      <div className="text-xs text-gray-400">
-                        avg: {metric.positionAverage.toFixed(1)}
+                    <div className="flex justify-between items-center">
+                      <div className={`${metric.colorClass || 'text-white'} font-medium`}>
+                        {metric.value}
                       </div>
-                    )}
+                      {metric.positionAverage && (
+                        <div className="text-xs text-gray-400">
+                          avg: {metric.positionAverage.toFixed(1)}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
           
