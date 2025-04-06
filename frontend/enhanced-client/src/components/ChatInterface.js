@@ -431,7 +431,11 @@ const ChatInterface = ({ expanded = true }) => {
       </div>
 
       {/* Chat Area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-900 bg-opacity-90 relative custom-scrollbar" style={{ maxHeight: 'calc(100vh - 140px)' }}>
+      {/* Added padding-bottom to prevent overlap with fixed input */}
+      <div 
+        className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-900 bg-opacity-90 relative custom-scrollbar" 
+        style={{ maxHeight: 'calc(100vh - 140px)', paddingBottom: '80px' }} // Added paddingBottom
+      >
         {/* Soccer field background pattern */}
         <div className="absolute inset-0 opacity-5 pointer-events-none">
           <div className="w-full h-full border-2 border-white"></div>
@@ -656,8 +660,11 @@ const ChatInterface = ({ expanded = true }) => {
         <div ref={messagesEndRef} />
       </div>
       
-      {/* Input Area - fixed at bottom of chat */}
-      <div className="border-t border-gray-700 p-3 bg-gray-800 sticky bottom-0 left-0 right-0 z-20">
+      {/* Input Area - Now fixed at bottom, moves down when loading */}
+      <div 
+        className="border-t border-gray-700 p-3 bg-gray-800 fixed bottom-0 left-0 right-0 z-20 transition-transform duration-300 ease-in-out" 
+        style={{ transform: isLoading ? 'translateY(100%)' : 'translateY(0)' }} // Conditional transform based on isLoading
+      >
         <form onSubmit={handleSubmit} className="flex">
           <input
             type="text"

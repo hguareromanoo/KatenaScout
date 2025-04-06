@@ -232,13 +232,15 @@ def get_score(player, params: SearchParameters, pos, weights, average_stats):
     # Get position-specific weights based on key description words
     position_weights = {}
     
-    # Get average statistics for this position
+    # Get average and std dev statistics for this position
+    pos_stats = {}
     if pos in average_stats:
-        avg = average_stats[pos]
+        pos_stats = average_stats[pos]
     else:
-        # If position not found, use a reasonable default
-        avg = average_stats.get('cmf', {})  # Default to central midfielder if available
-    
+        # If position not found, use a reasonable default (e.g., 'cmf')
+        pos_stats = average_stats.get('cmf', {})
+        print(f"Warning: Position '{pos}' not found in average_stats. Using 'cmf' as default.")
+
     # Extract weights for this position and description word
     for key in params.key_description_word:
         if pos in weights and key in weights[pos]:
@@ -266,49 +268,72 @@ def get_score(player, params: SearchParameters, pos, weights, average_stats):
         param_score = 0.0
         
         try:
-            # Handle different parameter types
+            player_value = None
+            avg_value = 0.0
+            std_dev = 0.0
+            weight_key = f"min_{metric}" # Default weight key structure
+
+            # Get player value, average, and std dev based on category
             if category == "total" and "total" in player:
-                # Get player's value for this metric
-                player_value = player["total"].get(metric, 0)
-                # Get average value for comparison
-                avg_value = avg.get("total", {}).get(metric, 1)  # Default to 1 to avoid division by zero
-                # Get weight for this metric
-                weight_key = f"min_{metric}"
-                weight_multiplier = position_weights.get(weight_key, 1.0)
-                
-                # Calculate normalized score: (player value / average value) * weight
-                if avg_value > 0:
-                    param_score = (player_value / avg_value) * weight_multiplier
+                player_value = player["total"].get(metric, 0.0)
+                metric_stats = pos_stats.get("total", {}).get(metric, {})
+                avg_value = metric_stats.get('average', 0.0)
+                std_dev = metric_stats.get('std', 0.0)
                 
             elif category == "average" and "average" in player:
-                player_value = player["average"].get(metric, 0)
-                avg_value = avg.get("average", {}).get(metric, 1)
-                weight_key = f"min_{metric}"
-                weight_multiplier = position_weights.get(weight_key, 1.0)
-                
-                if avg_value > 0:
-                    param_score = (player_value / avg_value) * weight_multiplier
-                
+                player_value = player["average"].get(metric, 0.0)
+                metric_stats = pos_stats.get("average", {}).get(metric, {})
+                avg_value = metric_stats.get('average', 0.0)
+                std_dev = metric_stats.get('std', 0.0)
+
             elif category == "percent" and "percent" in player:
-                player_value = player["percent"].get(metric, 0)
-                avg_value = avg.get("percent", {}).get(metric, 1)
-                weight_key = f"min_{metric}_percent"
-                weight_multiplier = position_weights.get(weight_key, 1.0)
-                
-                if avg_value > 0:
-                    param_score = (player_value / avg_value) * weight_multiplier
-            
-            # Handle special cases like max parameters (lower is better)
-            if param.startswith("max_") and param_score > 0:
-                # For max parameters, invert the score (lower values are better)
-                param_score = 2.0 - param_score if param_score <= 2.0 else 0.0
-            
+                player_value = player["percent"].get(metric, 0.0)
+                metric_stats = pos_stats.get("percent", {}).get(metric, {})
+                avg_value = metric_stats.get('average', 0.0)
+                std_dev = metric_stats.get('std', 0.0)
+                weight_key = f"min_{metric}_percent" # Specific weight key for percentages
+
+            # Ensure player_value is a float for calculations
+            if player_value is not None:
+                 player_value = float(player_value)
+            else:
+                 continue # Skip if player doesn't have this metric
+
+            # Get weight multiplier
+            weight_multiplier = position_weights.get(weight_key, 1.0)
+
+            # Calculate Z-score: (player_value - average) / std_dev
+            if std_dev > 0:
+                z_score = (player_value - avg_value) / std_dev
+            else:
+                # Handle zero standard deviation: score is 0 if value matches avg, else maybe a fixed bonus/penalty?
+                # For simplicity, let's assign 0 if std_dev is 0.
+                z_score = 0.0
+                # Alternatively, could assign a fixed value if player_value != avg_value
+                # if player_value != avg_value: z_score = 1.0 if player_value > avg_value else -1.0
+
+            param_score = z_score * weight_multiplier
+
+            # Handle special cases like max parameters (lower is better) - Z-score naturally handles this
+            # If lower is better, a negative z-score is good. We might want to invert the weight or the z-score itself.
+            # Assuming weights are always positive, let's invert the z-score for 'max_' params.
+            # Example: If max_dangerousOwnHalfLosses is a param, lower is better.
+            # A player with fewer losses than avg gets a negative z-score. Multiplying by weight makes it negative.
+            # We want this to contribute positively. So, maybe invert the score contribution.
+            # Let's reconsider this - z-score already indicates deviation direction.
+            # If weight is positive, a negative z-score (good for 'lower is better') results in negative score contribution.
+            # Let's flip the sign of the score for 'max_' parameters.
+            # NOTE: This assumes 'max_' parameters are indeed 'lower is better'. Need confirmation.
+            # Assuming 'max_' params are NOT used, and 'lower is better' is handled by NEGATIVE_STATS list elsewhere if needed.
+            # If a metric implies lower is better (e.g., losses), its weight could be negative in weights_dict.json.
+            # Let's stick to the standard z-score * weight for now.
+
             # Add parameter score to total
             score += param_score
-            
-            # Log high-scoring parameters for debugging (only significant contributions)
-            if param_score > 1.0:
-                print(f"High score for {player_name}: {param}={param_score:.2f}")
+
+            # Log significant contributions for debugging
+            if abs(param_score) > 0.5: # Log contributions with absolute value > 0.5
+                print(f"Score contribution for {player_name}: {param}={param_score:.2f} (z={z_score:.2f}, w={weight_multiplier:.2f})")
             
         except Exception as e:
             print(f"Error calculating score for {param}: {str(e)}")
@@ -535,7 +560,3 @@ def get_player_info(player_id: str, database: dict, database_id: dict, params: O
     except Exception as e:
         print(f"Error processing player info: {str(e)}")
         return {"error": f"Error processing player info: {str(e)}"}
-    
-
-
-

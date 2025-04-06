@@ -3,7 +3,7 @@ Player data models for KatenaScout
 """
 
 from pydantic import BaseModel, Field
-from typing import List, Dict, Any, Optional, Union
+from typing import List, Dict, Any, Optional, Union, Literal
 
 class PlayerPosition(BaseModel):
     """Position a player can play in"""

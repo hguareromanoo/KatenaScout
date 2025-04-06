@@ -131,7 +131,8 @@ export default {
       possession: "Possession Statistics",
       physical: "Physical Statistics",
       goalkeeping: "Goalkeeping Statistics"
-    }
+    },
+    unknown: "Unknown" // Added fallback translation
   },
   
   loading: {
@@ -204,5 +205,201 @@ export default {
     selectTwoPlayers: "Please select exactly 2 players to compare.",
     serverError: "The server encountered an error. Please try again later.",
     parsingError: "There was an error processing the response. Please try again."
+  },
+  metrics: {
+    // Units
+    units: {
+      percent: '%',
+      minutes: 'min',
+      meters: 'm',
+      count: ''
+    },
+    
+    // Categories
+    categories: {
+      participation: "Participation",
+      passing: "Passing",
+      attacking: "Attacking",
+      defensive: "Defending",
+      physical: "Physical",
+      discipline: "Discipline",
+      goalkeeper: "Goalkeeping",
+      general: "General"
+    },
+    
+    // Match Participation
+    matches: "Matches",
+    matchesInStart: "Matches Started",
+    matchesSubstituted: "Times Substituted",
+    matchesComingOff: "Times Came Off Bench",
+    minutesOnField: "Minutes Played",
+    minutesTagged: "Minutes Recorded",
+    
+    // Goals and Shots
+    goals: "Goals",
+    assists: "Assists",
+    shots: "Shots",
+    headShots: "Head Shots",
+    shotsOnTarget: "Shots on Target",
+    headShotsOnTarget: "Head Shots on Target",
+    shotAssists: "Shot Assists",
+    shotOnTargetAssists: "Shot on Target Assists",
+    secondAssists: "Second Assists",
+    thirdAssists: "Third Assists",
+    goalConversion: "Goal Conversion Rate",
+    xgShot: "Expected Goals (xG)",
+    xgAssist: "Expected Assists (xA)",
+    xgSave: "Expected Saves (xGS)",
+    touchInBox: "Touches in Box",
+    
+    // Cards and Fouls
+    yellowCards: "Yellow Cards",
+    redCards: "Red Cards",
+    directRedCards: "Direct Red Cards",
+    fouls: "Fouls Committed",
+    foulsSuffered: "Fouls Suffered",
+    yellowCardsPerFoul: "Yellow Cards per Foul",
+    
+    // Duels
+    duels: "Duels",
+    duelsWon: "Duels Won",
+    defensiveDuels: "Defensive Duels",
+    defensiveDuelsWon: "Defensive Duels Won",
+    offensiveDuels: "Offensive Duels",
+    offensiveDuelsWon: "Offensive Duels Won",
+    aerialDuels: "Aerial Duels",
+    aerialDuelsWon: "Aerial Duels Won",
+    fieldAerialDuels: "Field Aerial Duels",
+    fieldAerialDuelsWon: "Field Aerial Duels Won",
+    pressingDuels: "Pressing Duels",
+    pressingDuelsWon: "Pressing Duels Won",
+    looseBallDuels: "Loose Ball Duels",
+    looseBallDuelsWon: "Loose Ball Duels Won",
+    
+    // Passes
+    passes: "Passes",
+    successfulPasses: "Successful Passes",
+    smartPasses: "Smart Passes",
+    successfulSmartPasses: "Successful Smart Passes",
+    passesToFinalThird: "Passes to Final Third",
+    successfulPassesToFinalThird: "Successful Passes to Final Third",
+    crosses: "Crosses",
+    successfulCrosses: "Successful Crosses",
+    forwardPasses: "Forward Passes",
+    successfulForwardPasses: "Successful Forward Passes",
+    backPasses: "Back Passes",
+    successfulBackPasses: "Successful Back Passes",
+    throughPasses: "Through Passes",
+    successfulThroughPasses: "Successful Through Passes",
+    keyPasses: "Key Passes",
+    successfulKeyPasses: "Successful Key Passes",
+    verticalPasses: "Vertical Passes",
+    successfulVerticalPasses: "Successful Vertical Passes",
+    longPasses: "Long Passes",
+    successfulLongPasses: "Successful Long Passes",
+    passLength: "Average Pass Length",
+    longPassLength: "Average Long Pass Length",
+    progressivePasses: "Progressive Passes",
+    successfulProgressivePasses: "Successful Progressive Passes",
+    lateralPasses: "Lateral Passes",
+    successfulLateralPasses: "Successful Lateral Passes",
+    receivedPass: "Passes Received",
+    
+    // Offensive Actions
+    dribbles: "Dribbles",
+    successfulDribbles: "Successful Dribbles",
+    attackingActions: "Attacking Actions",
+    successfulAttackingActions: "Successful Attacking Actions",
+    dribbleDistanceFromOpponentGoal: "Average Dribble Distance from Goal",
+    progressiveRun: "Progressive Runs",
+    linkupPlays: "Link-up Plays",
+    successfulLinkupPlays: "Successful Link-up Plays",
+    accelerations: "Accelerations",
+    
+    // Defensive Play
+    interceptions: "Interceptions",
+    defensiveActions: "Defensive Actions",
+    successfulDefensiveAction: "Successful Defensive Actions",
+    recoveries: "Ball Recoveries",
+    counterpressingRecoveries: "Counterpressing Recoveries",
+    opponentHalfRecoveries: "Opponent Half Recoveries",
+    dangerousOpponentHalfRecoveries: "Dangerous Opponent Half Recoveries",
+    slidingTackles: "Sliding Tackles",
+    successfulSlidingTackles: "Successful Sliding Tackles",
+    shotsBlocked: "Shots Blocked",
+    clearances: "Clearances",
+    dribblesAgainst: "Dribbled Past", 
+    dribblesAgainstWon: "Dribbles Defended",
+    
+    // Losses and Possession
+    losses: "Ball Losses",
+    ownHalfLosses: "Own Half Losses",
+    dangerousOwnHalfLosses: "Dangerous Own Half Losses",
+    missedBalls: "Missed Balls",
+    ballRecoveries: "Ball Recoveries", // Duplicate? Check context
+    
+    // Set Pieces
+    freeKicks: "Free Kicks Taken",
+    freeKicksOnTarget: "Free Kicks on Target",
+    directFreeKicks: "Direct Free Kicks",
+    directFreeKicksOnTarget: "Direct Free Kicks on Target",
+    corners: "Corners Taken",
+    penalties: "Penalties Taken",
+    successfulPenalties: "Penalties Scored",
+    penaltiesConversion: "Penalty Conversion Rate",
+    
+    // Goalkeeper Stats
+    gkCleanSheets: "Clean Sheets",
+    gkConcededGoals: "Goals Conceded",
+    gkShotsAgainst: "Shots Against",
+    gkSaves: "Saves",
+    gkExits: "Goalkeeper Exits",
+    gkSuccessfulExits: "Successful Goalkeeper Exits",
+    gkAerialDuels: "Aerial Duels (Goalkeeper)",
+    gkAerialDuelsWon: "Aerial Duels Won (Goalkeeper)",
+    goalKicks: "Goal Kicks",
+    goalKicksShort: "Short Goal Kicks",
+    goalKicksLong: "Long Goal Kicks",
+    successfulGoalKicks: "Successful Goal Kicks",
+    
+    // Other
+    offsides: "Offsides",
+    win: "Win Rate",
+    
+    // New metrics (system specific) - Keep original names for now
+    newDuelsWon: "New Duels Won",
+    newDefensiveDuelsWon: "New Defensive Duels Won",
+    newOffensiveDuelsWon: "New Offensive Duels Won",
+    newSuccessfulDribbles: "New Successful Dribbles"
+  },
+  positions: {
+    gk: "Goalkeeper",
+    lcb: "Left Center Back",
+    rcb: "Right Center Back",
+    cb: "Center Back",
+    lb: "Left Back",
+    rb: "Right Back",
+    lwb: "Left Wing Back",
+    rwb: "Right Wing Back",
+    ldmf: "Left Defensive Midfielder",
+    rdmf: "Right Defensive Midfielder",
+    dmf: "Defensive Midfielder",
+    lcmf: "Left Center Midfielder",
+    rcmf: "Right Center Midfielder",
+    cmf: "Center Midfielder",
+    lamf: "Left Attacking Midfielder",
+    ramf: "Right Attacking Midfielder",
+    amf: "Attacking Midfielder",
+    lw: "Left Winger",
+    rw: "Right Winger",
+    lwf: "Left Wing Forward",
+    rwf: "Right Wing Forward",
+    cf: "Center Forward"
+    // Add other position codes as needed
+  },
+  player: {
+    leftFoot: "Left",
+    rightFoot: "Right",
+    bothFeet: "Both"
   }
 };

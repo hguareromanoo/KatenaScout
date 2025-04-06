@@ -131,7 +131,8 @@ export default {
       possession: "Estadísticas de Posesión",
       physical: "Estadísticas Físicas",
       goalkeeping: "Estadísticas de Portero"
-    }
+    },
+    unknown: "Desconocido" // Added fallback translation
   },
   
   loading: {
@@ -203,5 +204,201 @@ export default {
     selectTwoPlayers: "Por favor, selecciona exactamente 2 jugadores para comparar.",
     serverError: "El servidor encontró un error. Por favor, inténtalo más tarde.",
     parsingError: "Hubo un error al procesar la respuesta. Por favor, inténtalo de nuevo."
+  },
+  metrics: {
+    // Unidades
+    units: {
+      percent: '%',
+      minutes: 'min',
+      meters: 'm',
+      count: ''
+    },
+    
+    // Categorías
+    categories: {
+      participation: "Participación",
+      passing: "Pases",
+      attacking: "Ataque",
+      defensive: "Defensa",
+      physical: "Físico",
+      discipline: "Disciplina",
+      goalkeeper: "Portero",
+      general: "General"
+    },
+    
+    // Participación en partidos
+    matches: "Partidos",
+    matchesInStart: "Partidos como Titular",
+    matchesSubstituted: "Veces Sustituido",
+    matchesComingOff: "Veces Entró desde Banquillo",
+    minutesOnField: "Minutos Jugados",
+    minutesTagged: "Minutos Registrados",
+    
+    // Goles y Tiros
+    goals: "Goles",
+    assists: "Asistencias",
+    shots: "Tiros",
+    headShots: "Remates de Cabeza",
+    shotsOnTarget: "Tiros a Puerta",
+    headShotsOnTarget: "Remates de Cabeza a Puerta",
+    shotAssists: "Asistencias de Tiro",
+    shotOnTargetAssists: "Asistencias de Tiro a Puerta",
+    secondAssists: "Segundas Asistencias",
+    thirdAssists: "Terceras Asistencias",
+    goalConversion: "Tasa de Conversión de Goles",
+    xgShot: "Goles Esperados (xG)",
+    xgAssist: "Asistencias Esperadas (xA)",
+    xgSave: "Paradas Esperadas (xGS)",
+    touchInBox: "Toques en el Área",
+    
+    // Tarjetas y Faltas
+    yellowCards: "Tarjetas Amarillas",
+    redCards: "Tarjetas Rojas",
+    directRedCards: "Tarjetas Rojas Directas",
+    fouls: "Faltas Cometidas",
+    foulsSuffered: "Faltas Sufridas",
+    yellowCardsPerFoul: "Tarjetas Amarillas por Falta",
+    
+    // Duelos
+    duels: "Duelos",
+    duelsWon: "Duelos Ganados",
+    defensiveDuels: "Duelos Defensivos",
+    defensiveDuelsWon: "Duelos Defensivos Ganados",
+    offensiveDuels: "Duelos Ofensivos",
+    offensiveDuelsWon: "Duelos Ofensivos Ganados",
+    aerialDuels: "Duelos Aéreos",
+    aerialDuelsWon: "Duelos Aéreos Ganados",
+    fieldAerialDuels: "Duelos Aéreos en Campo",
+    fieldAerialDuelsWon: "Duelos Aéreos en Campo Ganados",
+    pressingDuels: "Duelos de Presión",
+    pressingDuelsWon: "Duelos de Presión Ganados",
+    looseBallDuels: "Duelos por Balón Suelto",
+    looseBallDuelsWon: "Duelos por Balón Suelto Ganados",
+    
+    // Pases
+    passes: "Pases",
+    successfulPasses: "Pases Exitosos",
+    smartPasses: "Pases Inteligentes",
+    successfulSmartPasses: "Pases Inteligentes Exitosos",
+    passesToFinalThird: "Pases al Último Tercio",
+    successfulPassesToFinalThird: "Pases Exitosos al Último Tercio",
+    crosses: "Centros",
+    successfulCrosses: "Centros Exitosos",
+    forwardPasses: "Pases Hacia Adelante",
+    successfulForwardPasses: "Pases Hacia Adelante Exitosos",
+    backPasses: "Pases Hacia Atrás",
+    successfulBackPasses: "Pases Hacia Atrás Exitosos",
+    throughPasses: "Pases Filtrados",
+    successfulThroughPasses: "Pases Filtrados Exitosos",
+    keyPasses: "Pases Clave",
+    successfulKeyPasses: "Pases Clave Exitosos",
+    verticalPasses: "Pases Verticales",
+    successfulVerticalPasses: "Pases Verticales Exitosos",
+    longPasses: "Pases Largos",
+    successfulLongPasses: "Pases Largos Exitosos",
+    passLength: "Longitud Media de Pase",
+    longPassLength: "Longitud Media de Pase Largo",
+    progressivePasses: "Pases Progresivos",
+    successfulProgressivePasses: "Pases Progresivos Exitosos",
+    lateralPasses: "Pases Laterales",
+    successfulLateralPasses: "Pases Laterales Exitosos",
+    receivedPass: "Pases Recibidos",
+    
+    // Acciones Ofensivas
+    dribbles: "Regates",
+    successfulDribbles: "Regates Exitosos",
+    attackingActions: "Acciones de Ataque",
+    successfulAttackingActions: "Acciones de Ataque Exitosas",
+    dribbleDistanceFromOpponentGoal: "Distancia Media de Regate a Portería",
+    progressiveRun: "Carreras Progresivas",
+    linkupPlays: "Jugadas de Combinación",
+    successfulLinkupPlays: "Jugadas de Combinación Exitosas",
+    accelerations: "Aceleraciones",
+    
+    // Juego Defensivo
+    interceptions: "Intercepciones",
+    defensiveActions: "Acciones Defensivas",
+    successfulDefensiveAction: "Acciones Defensivas Exitosas",
+    recoveries: "Recuperaciones de Balón",
+    counterpressingRecoveries: "Recuperaciones en Contrapresión",
+    opponentHalfRecoveries: "Recuperaciones en Campo Contrario",
+    dangerousOpponentHalfRecoveries: "Recuperaciones Peligrosas en Campo Contrario",
+    slidingTackles: "Entradas Deslizantes",
+    successfulSlidingTackles: "Entradas Deslizantes Exitosas",
+    shotsBlocked: "Tiros Bloqueados",
+    clearances: "Despejes",
+    dribblesAgainst: "Regateado", 
+    dribblesAgainstWon: "Regates Defendidos",
+    
+    // Pérdidas y Posesión
+    losses: "Pérdidas de Balón",
+    ownHalfLosses: "Pérdidas en Campo Propio",
+    dangerousOwnHalfLosses: "Pérdidas Peligrosas en Campo Propio",
+    missedBalls: "Balones Perdidos",
+    ballRecoveries: "Recuperaciones de Balón",
+    
+    // Balón Parado
+    freeKicks: "Tiros Libres Ejecutados",
+    freeKicksOnTarget: "Tiros Libres a Puerta",
+    directFreeKicks: "Tiros Libres Directos",
+    directFreeKicksOnTarget: "Tiros Libres Directos a Puerta",
+    corners: "Córners Ejecutados",
+    penalties: "Penaltis Ejecutados",
+    successfulPenalties: "Penaltis Marcados",
+    penaltiesConversion: "Tasa de Conversión de Penaltis",
+    
+    // Estadísticas de Portero
+    gkCleanSheets: "Porterías a Cero",
+    gkConcededGoals: "Goles Recibidos",
+    gkShotsAgainst: "Tiros Recibidos",
+    gkSaves: "Paradas",
+    gkExits: "Salidas del Portero",
+    gkSuccessfulExits: "Salidas Exitosas del Portero",
+    gkAerialDuels: "Duelos Aéreos (Portero)",
+    gkAerialDuelsWon: "Duelos Aéreos Ganados (Portero)",
+    goalKicks: "Saques de Puerta",
+    goalKicksShort: "Saques de Puerta Cortos",
+    goalKicksLong: "Saques de Puerta Largos",
+    successfulGoalKicks: "Saques de Puerta Exitosos",
+    
+    // Otros
+    offsides: "Fueras de Juego",
+    win: "Tasa de Victorias",
+    
+    // Nuevas métricas (específicas del sistema)
+    newDuelsWon: "Nuevos Duelos Ganados",
+    newDefensiveDuelsWon: "Nuevos Duelos Defensivos Ganados",
+    newOffensiveDuelsWon: "Nuevos Duelos Ofensivos Ganados",
+    newSuccessfulDribbles: "Nuevos Regates Exitosos"
+  },
+  positions: {
+    gk: "Portero",
+    lcb: "Defensa Central Izquierdo",
+    rcb: "Defensa Central Derecho",
+    cb: "Defensa Central",
+    lb: "Lateral Izquierdo",
+    rb: "Lateral Derecho",
+    lwb: "Carrilero Izquierdo",
+    rwb: "Carrilero Derecho",
+    ldmf: "Mediocentro Defensivo Izquierdo",
+    rdmf: "Mediocentro Defensivo Derecho",
+    dmf: "Mediocentro Defensivo",
+    lcmf: "Mediocentro Izquierdo",
+    rcmf: "Mediocentro Derecho",
+    cmf: "Mediocentro",
+    lamf: "Mediocentro Ofensivo Izquierdo",
+    ramf: "Mediocentro Ofensivo Derecho",
+    amf: "Mediocentro Ofensivo",
+    lw: "Extremo Izquierdo",
+    rw: "Extremo Derecho",
+    lwf: "Delantero Izquierdo",
+    rwf: "Delantero Derecho",
+    cf: "Delantero Centro"
+    // Añadir otros códigos de posición según sea necesario
+  },
+  player: {
+    leftFoot: "Izquierdo",
+    rightFoot: "Derecho",
+    bothFeet: "Ambos"
   }
 };

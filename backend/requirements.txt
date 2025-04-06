@@ -5,7 +5,7 @@ flask-cors==3.0.10
 gunicorn==20.1.0
 
 # Data Validation and Models
-pydantic==2.4.2
+pydantic # Removed version pin to allow pip to find compatible version
 typing-extensions==4.8.0
 
 # HTTP Requests and API
@@ -22,3 +22,6 @@ tqdm==4.66.2
 
 # JSON Handling
 ujson==5.8.0
+
+# Numerical Computing
+numpy==1.26.4 # Added for statistical calculations

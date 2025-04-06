@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Heart, User, UserCircle, Trophy, TrendingUp, BarChart3, Clock, 
         Package, Calendar, Footprints, GitCompare } from 'lucide-react';
 import { 
@@ -13,6 +13,10 @@ import {
   normalizeMetricsForRadar, 
   NEGATIVE_STATS 
 } from '../utils/playerUtils';
+import { 
+  formatMetricName, getMetricIcon, getMetricCategory, 
+  formatPlayerPositionCode, formatPreferredFoot // Import new formatters
+} from '../utils/formatters';
 
 /**
  * PlayerDashboard Component - Displays player information in a modal
@@ -22,6 +26,14 @@ const PlayerDashboard = ({ player, metrics = [], onClose, onViewComplete }) => {
   const { isPlayerFavorite, toggleFavorite } = useFavorites();
   const { startComparison } = useComparison();
   const { sessionId, currentSearchResults } = useSession();
+  
+  // Add local state for immediate feedback
+  const [localFavorite, setLocalFavorite] = useState(isPlayerFavorite(player));
+  
+  // Sync local state with global state
+  useEffect(() => {
+    setLocalFavorite(isPlayerFavorite(player));
+  }, [player, isPlayerFavorite]);
   
   // We no longer need this effect since we're using the current search results directly
   
@@ -49,18 +61,29 @@ const PlayerDashboard = ({ player, metrics = [], onClose, onViewComplete }) => {
     
     // If goalkeeper, show different key metrics
     if (player.is_goalkeeper) {
-      return allMetrics.filter(m => 
+      const metrics = allMetrics.filter(m => 
         ["gkSaves", "gkSuccessfulExits", "goalkeeperExitsPerformed", 
          "successfulPasses", "successfulLongPasses"].some(term => m.key?.includes(term))
       ).slice(0, 6);
+      
+      // Traduzir os nomes das métricas
+      return metrics.map(metric => ({
+        ...metric,
+        name: formatMetricName(metric.key, t)
+      }));
     }
     
     // Filter to key metrics that exist in the data
-    return allMetrics.filter(m => 
+    const metrics = allMetrics.filter(m => 
       keyMetricNames.some(key => m.key?.includes(key))
     ).slice(0, 6); // Limit to 6 metrics for readability
+    
+    // Traduzir os nomes das métricas
+    return metrics.map(metric => ({
+      ...metric,
+      name: formatMetricName(metric.key, t)
+    }));
   };
-  
   // Get selected metrics for radar
   const selectedRadarMetrics = selectRadarMetrics(radarMetrics);
 
@@ -129,10 +152,11 @@ const PlayerDashboard = ({ player, metrics = [], onClose, onViewComplete }) => {
         <div className="flex-1">
           <h2 className="text-2xl font-bold text-white">{player.name}</h2>
           <div className="text-gray-300 flex flex-wrap gap-x-4 mt-1">
-            {player.positions && (
+            {/* Format positions using the new function */}
+            {player.positions && player.positions.length > 0 && (
               <span className="flex items-center">
                 <UserCircle className="mr-1" size={16} />
-                {player.positions.join(', ')}
+                {player.positions.map(pos => formatPlayerPositionCode(pos, t)).join(', ')}
               </span>
             )}
             {player.age && (
@@ -144,22 +168,37 @@ const PlayerDashboard = ({ player, metrics = [], onClose, onViewComplete }) => {
           </div>
         </div>
         
-        {/* Favorite button */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation(); // Prevent event bubbling
-            toggleFavorite(player);
-            console.log('Toggle favorite:', player.name, 'isFavorite:', !isFavorite);
-          }}
-          className={`p-2 rounded-full ${
-            isFavorite 
-              ? 'bg-red-500 bg-opacity-20 text-red-400 hover:bg-opacity-30' 
-              : 'bg-gray-700 text-gray-400 hover:text-white hover:bg-gray-650'
-          }`}
-          title={isFavorite ? t('playerDashboard.removeFromFavorites') : t('playerDashboard.addToFavorites')}
-        >
-          <Heart size={20} fill={isFavorite ? '#f56565' : 'none'} />
-        </button>
+        // ...existing code...
+
+
+
+{/* Favorite button */}
+<button
+  onClick={(e) => {
+    e.stopPropagation();
+    // Atualizar estado local imediatamente para feedback instantâneo
+    setLocalFavorite(!localFavorite);
+    // Atualizar estado global
+    toggleFavorite(player);
+  }}
+  className={`p-2 rounded-full transition-all duration-300 transform hover:scale-110 active:scale-95 ${
+    localFavorite 
+      ? 'bg-red-500 bg-opacity-20 text-red-400 hover:bg-opacity-30' 
+      : 'bg-gray-700 text-gray-400 hover:text-white hover:bg-gray-650'
+  }`}
+  aria-pressed={localFavorite}
+  role="button"
+  title={localFavorite ? t('playerDashboard.removeFromFavorites') : t('playerDashboard.addToFavorites')}
+>
+  <Heart 
+    size={20} 
+    fill={localFavorite ? '#f56565' : 'none'} 
+    className={`transition-transform duration-300 ease-in-out ${
+      localFavorite ? 'scale-125' : 'scale-100'
+    }`}
+  />
+</button>
+
       </div>
       
       {/* Player Content */}
@@ -174,10 +213,13 @@ const PlayerDashboard = ({ player, metrics = [], onClose, onViewComplete }) => {
             
             <div className="space-y-3">
               {/* Position */}
-              {player.positions && (
+              {/* Format positions using the new function */}
+              {player.positions && player.positions.length > 0 && (
                 <div className="flex">
                   <div className="w-1/3 text-gray-400">{t('playerDashboard.position')}</div>
-                  <div className="w-2/3 text-white">{player.positions.join(', ')}</div>
+                  <div className="w-2/3 text-white">
+                    {player.positions.map(pos => formatPlayerPositionCode(pos, t)).join(', ')}
+                  </div>
                 </div>
               )}
               
@@ -190,10 +232,11 @@ const PlayerDashboard = ({ player, metrics = [], onClose, onViewComplete }) => {
               )}
               
               {/* Preferred Foot */}
+              {/* Format preferred foot using the new function */}
               {player.foot && (
                 <div className="flex">
                   <div className="w-1/3 text-gray-400">{t('playerDashboard.foot')}</div>
-                  <div className="w-2/3 text-white">{player.foot}</div>
+                  <div className="w-2/3 text-white">{formatPreferredFoot(player.foot, t)}</div>
                 </div>
               )}
               
@@ -223,31 +266,44 @@ const PlayerDashboard = ({ player, metrics = [], onClose, onViewComplete }) => {
             </div>
           </div>
           
-          {/* Key stats grid */}
-          <div className="bg-gray-750 rounded-lg p-5">
-            <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
-              <BarChart3 className="mr-2" size={18} />
-              {t('playerDashboard.statistics')}
-            </h3>
-            
-            <div className="grid grid-cols-2 gap-3">
-              {playerMetrics.slice(0, 6).map((metric, index) => (
-                <div key={index} className="bg-gray-800 rounded-lg p-3">
-                  <div className="text-xs text-gray-400 mb-1">{metric.name}</div>
-                  <div className="flex justify-between items-center">
-                    <div className={`${metric.colorClass || 'text-white'} font-medium`}>
-                      {metric.value}
-                    </div>
-                    {metric.positionAverage && (
-                      <div className="text-xs text-gray-400">
-                        avg: {metric.positionAverage.toFixed(1)}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
+         {/* Key stats grid */}
+<div className="bg-gray-750 rounded-lg p-5">
+  <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
+    <BarChart3 className="mr-2" size={18} />
+    {t('playerDashboard.statistics')}
+  </h3>
+  
+  <div className="grid grid-cols-2 gap-3">
+    {playerMetrics.slice(0, 6).map((metric, index) => {
+      // Obter o nome formatado usando a função de tradução
+      const name = formatMetricName(metric.key, t);
+      
+      // Obter o ícone e categoria separadamente
+      const iconName = getMetricIcon(metric.key);
+      const category = getMetricCategory(metric.key);
+      
+      return (
+        <div key={index} className={`bg-gray-800 rounded-lg p-3 metric-${category}`}>
+          <div className="flex items-center gap-2 text-xs text-gray-400 mb-1">
+            {/* Renderizar o ícone usando a classe de ícone */}
+            <span className={`icon icon-${iconName} text-gray-500`} style={{fontSize: '14px'}} />
+            {name}
           </div>
+          <div className="flex justify-between items-center">
+            <div className={`${metric.colorClass || 'text-white'} font-medium`}>
+              {metric.value}
+            </div>
+            {metric.positionAverage && (
+              <div className="text-xs text-gray-400">
+                avg: {metric.positionAverage.toFixed(1)}
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    })}
+  </div>
+</div>
           
           {/* View Complete Profile Button */}
           <button

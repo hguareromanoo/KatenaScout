@@ -208,14 +208,10 @@ def extract_player_entities(memory: ConversationMemory, message: str, call_claud
         context_messages = memory.messages[-memory.context_window*2:] if memory.messages else []
     
     system_prompt = """
+   ## Your task:
     Extract the names of football players mentioned for comparison in the context of this conversation.
-    
-    If specific players are not mentioned by name but referenced (e.g., "these two players", "compare them"), 
-    use the conversation context to determine which players are being discussed.
-    
-    For example, if the conversation shows search results for several players and then the user says 
-    "compare the top two", you should identify those players from the context.
-    """
+    You must fetch player's complete names from partial mentions or nicknames. Identify which players the user is referring to.
+    These are the players you must fetch the players from: json.dumps(memory.)
     
     # Define tool schema for player extraction
     schema = {

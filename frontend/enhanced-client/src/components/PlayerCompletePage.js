@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   X, Heart, ArrowLeft, User, UserCircle, Trophy, TrendingUp, 
   BarChart3, Clock, Package, Calendar, Globe, Footprints,
-  Loader
+  Loader, Briefcase, Building // Added Briefcase and Building icons
 } from 'lucide-react';
 import { 
   Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, 
@@ -11,11 +11,13 @@ import {
 import { useTranslation, useFavorites, useSession } from '../contexts';
 import { playerService } from '../api/api';
 import { 
-  isValidPlayer, formatPositions, getValueColor
+  isValidPlayer, getValueColor // Removed formatPositions as we'll use formatPlayerPositionCode
 } from '../utils';
 import { 
   playerStatsToMetricsWithColors, NEGATIVE_STATS, normalizeMetricsForRadar 
 } from '../utils/playerUtils';
+// Import the new formatters
+import { formatPlayerPositionCode, formatPreferredFoot } from '../utils/formatters'; 
 
 /**
  * PlayerCompletePage - Full detailed player profile
@@ -211,13 +213,14 @@ const PlayerCompletePage = ({ player, onClose }) => {
         <div className="flex-1">
           <h2 className="text-2xl font-bold text-white">{player.name}</h2>
           <div className="text-gray-300 flex flex-wrap gap-x-4 mt-1">
-            {player.positions && (
+            {/* Format positions using the new function */}
+            {activePlayer.positions && activePlayer.positions.length > 0 && (
               <span className="flex items-center">
                 <UserCircle className="mr-1" size={16} />
-                {player.positions.join(', ')}
+                {activePlayer.positions.map(pos => formatPlayerPositionCode(pos, t)).join(', ')}
               </span>
             )}
-            {player.age && (
+            {activePlayer.age && (
               <span className="flex items-center">
                 <Calendar className="mr-1" size={16} />
                 {player.age} {t('playerDashboard.age')}
@@ -229,10 +232,11 @@ const PlayerCompletePage = ({ player, onClose }) => {
                 {player.nationality}
               </span>
             )}
-            {player.foot && (
+            {/* Format preferred foot using the new function */}
+            {activePlayer.foot && (
               <span className="flex items-center">
                 <Footprints className="mr-1" size={16} />
-                {player.foot}
+                {formatPreferredFoot(activePlayer.foot, t)}
               </span>
             )}
           </div>
@@ -369,14 +373,17 @@ const PlayerCompletePage = ({ player, onClose }) => {
                 </h3>
                 
                 <div className="space-y-3">
-                  {player.positions && (
+                  {/* Format positions using the new function */}
+                  {activePlayer.positions && activePlayer.positions.length > 0 && (
                     <div className="flex">
                       <div className="w-1/3 text-gray-400">{t('playerDashboard.position')}</div>
-                      <div className="w-2/3 text-white">{player.positions.join(', ')}</div>
+                      <div className="w-2/3 text-white">
+                        {activePlayer.positions.map(pos => formatPlayerPositionCode(pos, t)).join(', ')}
+                      </div>
                     </div>
                   )}
                   
-                  {player.nationality && (
+                  {activePlayer.nationality && (
                     <div className="flex">
                       <div className="w-1/3 text-gray-400">{t('playerCompletePage.nationality', 'Nationality')}</div>
                       <div className="w-2/3 text-white">{player.nationality}</div>
@@ -390,14 +397,15 @@ const PlayerCompletePage = ({ player, onClose }) => {
                     </div>
                   )}
                   
-                  {player.foot && (
+                  {/* Format preferred foot using the new function */}
+                  {activePlayer.foot && (
                     <div className="flex">
                       <div className="w-1/3 text-gray-400">{t('playerDashboard.foot')}</div>
-                      <div className="w-2/3 text-white">{player.foot}</div>
+                      <div className="w-2/3 text-white">{formatPreferredFoot(activePlayer.foot, t)}</div>
                     </div>
                   )}
                   
-                  {player.height && (
+                  {activePlayer.height && (
                     <div className="flex">
                       <div className="w-1/3 text-gray-400">{t('playerDashboard.height')}</div>
                       <div className="w-2/3 text-white">{player.height} cm</div>
@@ -567,16 +575,22 @@ const PlayerCompletePage = ({ player, onClose }) => {
               
               {/* Professional Information */}
               <div>
-                <h4 className="text-lg text-white mb-3 border-b border-gray-700 pb-2">{t('playerCompletePage.professionalInformation', 'Professional Information')}</h4>
+                <h4 className="text-lg text-white mb-3 border-b border-gray-700 pb-2 flex items-center">
+                   <Briefcase className="mr-2" size={18} /> {/* Added Icon */}
+                   {t('playerCompletePage.professionalInformation', 'Professional Information')}
+                </h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {player.positions && (
+                  {/* Format positions using the new function */}
+                  {activePlayer.positions && activePlayer.positions.length > 0 && (
                     <div className="flex flex-col">
                       <span className="text-gray-400 text-sm">{t('playerDashboard.position', 'Position')}</span>
-                      <span className="text-white">{player.positions.join(', ')}</span>
+                      <span className="text-white">
+                        {activePlayer.positions.map(pos => formatPlayerPositionCode(pos, t)).join(', ')}
+                      </span>
                     </div>
                   )}
                   
-                  {player.value && (
+                  {activePlayer.value && (
                     <div className="flex flex-col">
                       <span className="text-gray-400 text-sm">{t('playerDashboard.value', 'Market Value')}</span>
                       <span className="text-white">{player.value}</span>
@@ -590,24 +604,27 @@ const PlayerCompletePage = ({ player, onClose }) => {
                     </div>
                   )}
                   
-                  {player.contract_until && (
+                  {/* Contract Expiration - Combine checks */}
+                  {(activePlayer.contract_until || (activePlayer.contract && activePlayer.contract.contractExpiration)) && (
                     <div className="flex flex-col">
-                      <span className="text-gray-400 text-sm">{t('playerCompletePage.contractUntil', 'Contract Until')}</span>
-                      <span className="text-white">{player.contract_until}</span>
+                      <span className="text-gray-400 text-sm flex items-center">
+                        <Calendar className="mr-1" size={14} /> {/* Added Icon */}
+                        {t('playerCompletePage.contractExpiration', 'Contract Expiration')}
+                      </span>
+                      <span className="text-white">
+                        {activePlayer.contract_until || (activePlayer.contract && activePlayer.contract.contractExpiration) || t('playerCompletePage.unknown', 'Unknown')}
+                      </span>
                     </div>
                   )}
                   
-                  {player.contract && player.contract.contractExpiration && (
+                  {/* Agencies */}
+                  {activePlayer.contract && activePlayer.contract.agencies && activePlayer.contract.agencies.length > 0 && (
                     <div className="flex flex-col">
-                      <span className="text-gray-400 text-sm">{t('playerCompletePage.contractExpiration', 'Contract Expiration')}</span>
-                      <span className="text-white">{player.contract.contractExpiration}</span>
-                    </div>
-                  )}
-                  
-                  {player.contract && player.contract.agencies && player.contract.agencies.length > 0 && (
-                    <div className="flex flex-col">
-                      <span className="text-gray-400 text-sm">{t('playerCompletePage.agencies', 'Agencies')}</span>
-                      <span className="text-white">{player.contract.agencies.join(', ')}</span>
+                       <span className="text-gray-400 text-sm flex items-center">
+                         <Building className="mr-1" size={14} /> {/* Added Icon */}
+                         {t('playerCompletePage.agencies', 'Agencies')}
+                       </span>
+                      <span className="text-white">{activePlayer.contract.agencies.join(', ')}</span>
                     </div>
                   )}
                 </div>
