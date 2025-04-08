@@ -95,11 +95,13 @@ const ChatInterface = ({ expanded = true }) => {
          
       // Add user's message to chat
       addMessage({ text: input, sender: 'user' });
+      const currentInput = input; // Store input before clearing
+      setInput(''); // Clear input immediately
 
       // Prepare the request body for the unified backend
       const requestBody = {
         session_id: sessionId,
-        query: input,
+        query: currentInput, // Use stored input for the API call
         is_follow_up: chatHistory.length > 0,
         satisfaction: isSatisfactionResponse ? false : null,
         language: currentLanguage
@@ -244,7 +246,7 @@ const ChatInterface = ({ expanded = true }) => {
       });
     } finally {
       setIsLoading(false);
-      setInput('');
+      // Input is already cleared, just reset search status
       // Reset the player search status for the next query
       // We'll set it again when the next query is submitted
       setTimeout(() => setIsPlayerSearch(false), 500);
@@ -693,9 +695,8 @@ const ChatInterface = ({ expanded = true }) => {
       
       {/* Input Area - Restored fixed positioning */}
       {/* Input Area - Fixed positioning, adjusted for sidebar on desktop */}
-      <div 
-        className="border-t border-gray-700 p-3 bg-gray-800 fixed bottom-0 left-0 right-0 md:left-64 z-20 transition-transform duration-300 ease-in-out" // Added md:left-64
-        style={{ transform: isLoading ? 'translateY(100%)' : 'translateY(0)' }} // Keep the transform for loading state
+      <div
+        className="border-t border-gray-700 p-3 bg-gray-800 fixed bottom-0 left-0 right-0 md:left-64 z-20" // Removed transition-transform and style
         ref={inputAreaRef} // Add ref to the input area
       >
         <form onSubmit={handleSubmit} className="flex">
