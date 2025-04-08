@@ -1,724 +1,660 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Send, Menu, User } from 'lucide-react';
-import { useTranslation, useSession, useUI, useComparison } from '../contexts';
-import { chatService, playerService } from '../api/api';
-import { formatMetricName } from '../utils/formatters';
+import React, { useState, useEffect } from 'react';
+import { 
+  X, Heart, ArrowLeft, User, UserCircle, Trophy, TrendingUp, 
+  BarChart3, Clock, Package, Calendar, Globe, Footprints,
+  Loader, Briefcase, DollarSign, Building, Users, Shield
+} from 'lucide-react';
+import { 
+  Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, 
+  ResponsiveContainer, Tooltip, Legend 
+} from 'recharts';
+import { useTranslation, useFavorites, useSession } from '../contexts';
+import { playerService } from '../api/api';
+import { 
+  isValidPlayer, formatPositions, getValueColor,
+  formatPlayerPosition, formatPlayerPositions, formatPreferredFoot
+} from '../utils';
+import { 
+  playerStatsToMetricsWithColors, NEGATIVE_STATS, normalizeMetricsForRadar 
+} from '../utils/playerUtils';
 
 /**
- * ChatInterface Component - Handles user chat interaction and player search
+ * PlayerCompletePage - Full detailed player profile
  */
-const ChatInterface = ({ expanded = true }) => {
-  const { t, currentLanguage } = useTranslation();
-  const { setSidebarOpen } = useUI();
-  const { sessionId, handlePlayerSelected, chatHistory, addMessage, updateSearchResults } = useSession();
-  const { startComparison, completeComparison } = useComparison();
+const PlayerCompletePage = ({ player, onClose }) => {
+  const { t } = useTranslation();
+  const { isPlayerFavorite, toggleFavorite } = useFavorites();
+  const { session } = useSession();
+  const [activeTab, setActiveTab] = useState('overview');
+  const [completePlayer, setCompletePlayer] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   
-  const [input, setInput] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [isPlayerSearch, setIsPlayerSearch] = useState(false);
-  const [lastMessageWasSatisfactionQuestion, setLastMessageWasSatisfactionQuestion] = useState(false);
+  // Use state to track favorite status for better responsiveness
+  const [localFavorite, setLocalFavorite] = useState(isPlayerFavorite(player));
   
-  // States for player comparison selection
-  const [isComparisonMode, setIsComparisonMode] = useState(false);
-  const [selectedPlayersForComparison, setSelectedPlayersForComparison] = useState([]);
-  const [lastSearchResults, setLastSearchResults] = useState([]);
-  
-  // Refs for layout calculation
-  const messagesContainerRef = useRef(null);
-  const inputAreaRef = useRef(null);
-  const messagesEndRef = useRef(null);
-
-  // State for input area height
-  const [inputAreaHeight, setInputAreaHeight] = useState(0);
-  
-  // Scroll to bottom when chat history changes
+  // This will update the local state if the context changes
   useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    setLocalFavorite(isPlayerFavorite(player));
+  }, [player, isPlayerFavorite]);
+  
+  // Use the complete profile data that's already included with the player
+  useEffect(() => {
+    if (!player) {
+      setError('Invalid player data');
+      setLoading(false);
+      return;
     }
-  }, [chatHistory]);
-
-  // Calculate and set input area height for dynamic padding
-  const updateInputAreaHeight = useCallback(() => {
-    if (inputAreaRef.current) {
-      setInputAreaHeight(inputAreaRef.current.offsetHeight);
-    }
-  }, []);
-
-  useEffect(() => {
-    updateInputAreaHeight();
-    window.addEventListener('resize', updateInputAreaHeight);
-    // Also update if isLoading changes, as it affects visibility
-    return () => window.removeEventListener('resize', updateInputAreaHeight);
-  }, [updateInputAreaHeight, isLoading]);
-
-  // Update height when isLoading or chatHistory changes
-  useEffect(() => {
-    // Update immediately
-    updateInputAreaHeight(); 
-    // Also update after a short delay in case of transition/animation
-    const timer = setTimeout(updateInputAreaHeight, 50); 
-    return () => clearTimeout(timer);
-  }, [isLoading, chatHistory.length, updateInputAreaHeight]); // Depend on isLoading, chatHistory length, and the update function
-
-  /**
-   * Handle form submission to send message
-   */
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!input.trim() || isLoading) return;
-
+    
     try {
-      setIsLoading(true);
+      setLoading(true);
       
-      // Check if it looks like a player search query
-      const playerSearchKeywords = [
-        'player', 'jogador', 'attacking', 'midfielder', 'defender', 'goalkeeper', 
-        'goleiro', 'forward', 'striker', 'find', 'search', 'buscar', 'procurar',
-        'midfielder', 'meio-campista', 'defense', 'attack', 'zagueiro', 'atacante',
-        'fast', 'tall', 'rápido', 'alto', 'shooting', 'passing', 'dribbling'
-      ];
-      
-      // Check if any keywords are in the input (case insensitive)
-      const lowerInput = input.toLowerCase();
-      setIsPlayerSearch(playerSearchKeywords.some(word => lowerInput.includes(word.toLowerCase())));
-      
-      // Check if we're responding to a satisfaction question
-      const isSatisfactionResponse = lastMessageWasSatisfactionQuestion && 
-        (lowerInput.includes('não') || 
-         lowerInput.includes('refinar') || 
-         lowerInput.includes('outros') ||
-         lowerInput.includes('no') || 
-         lowerInput.includes('more') ||
-         lowerInput.includes('other') ||
-         lowerInput.includes('different'));
-         
-      // Add user's message to chat
-      addMessage({ text: input, sender: 'user' });
-
-      // Prepare the request body for the unified backend
-      const requestBody = {
-        session_id: sessionId,
-        query: input,
-        is_follow_up: chatHistory.length > 0,
-        satisfaction: isSatisfactionResponse ? false : null,
-        language: currentLanguage
-      };
-
-      const data = await chatService.enhancedSearch(requestBody);
-      
-      if (data.success) {
-        // Get players from the response based on the type of response
-        let playersData = [];
-        let responseText = '';
-        let responseType = '';
+      // Check if player already has complete_profile data
+      if (player.complete_profile) {
+        console.log("Using complete_profile data already included with player");
         
-        // Handle different response types from unified backend
-        if (data.players) {
-          // Standard search results
-          playersData = data.players;
-          responseText = data.response;
-          responseType = 'search';
-          // Confirm it was a player search
-          setIsPlayerSearch(true);
-          console.log(`Found ${playersData.length} players in search results:`, 
-            playersData.map(p => p.name).join(', '));
-          
-          // Explicitly update search results for comparison
-          if (playersData.length > 0) {
-            // Store in session context
-            updateSearchResults(playersData);
-            
-            // Also store in local state for comparison feature
-            setLastSearchResults(playersData);
-            
-            // Exit comparison mode when new search results arrive
-            if (isComparisonMode) {
-              setIsComparisonMode(false);
-              setSelectedPlayersForComparison([]);
-            }
-          }
-        } else if (data.comparison) {
-          // Debugging info to see what's received from backend
-          console.log("Received comparison data:", data);
-          
-          // Comparison results
-          playersData = data.players || [];
-          // Ensure responseText is a string - data.comparison could be an object or null
-          responseText = typeof data.comparison === 'string' 
-            ? data.comparison 
-            : (data.text || data.response || t('playerComparison.defaultText', 'Player comparison results'));
-          responseType = 'comparison';
-          
-          // Determine if this is an in-chat comparison (text-only) or visual comparison (with player cards)
-          // For in-chat comparison, we shouldn't treat it as a player search with cards
-          const isInChatComparison = input.toLowerCase().includes('compare') || 
-                                    input.toLowerCase().includes('comparar') ||
-                                    data.in_chat_comparison === true;
-                                    
-          console.log("Is in-chat comparison:", isInChatComparison, "Flag from backend:", data.in_chat_comparison);
-                                    
-          // Only set player search if it's not an in-chat comparison
-          setIsPlayerSearch(!isInChatComparison);
-          
-          console.log(`Found ${playersData.length} players in comparison results:`, 
-            playersData.map(p => p.name).join(', '),
-            isInChatComparison ? '(in-chat comparison)' : '(visual comparison)');
-          
-          // Only update search results and show player cards if it's not an in-chat comparison
-          if (playersData.length > 0 && !isInChatComparison) {
-            updateSearchResults(playersData);
-          }
-        } else if (data.explanations) {
-          // Stats explanation
-          responseText = data.text || data.response;
-          responseType = 'explanation';
-          // Stats explanation is not directly a player search
-          setIsPlayerSearch(false);
-        } else {
-          // Text-only response (like casual conversation)
-          responseText = data.response;
-          responseType = 'conversation';
-          // Generic conversation is not a player search
-          setIsPlayerSearch(false);
-        }
-
-        // Check if the response contains a satisfaction question (with safety check for undefined responseText)
-        const hasSatisfactionQuestion = responseText && typeof responseText === 'string' ? (
-          responseText.toLowerCase().includes('satisfeito') || 
-          responseText.toLowerCase().includes('satisfied') ||
-          responseText.toLowerCase().includes('refinar sua busca') ||
-          responseText.toLowerCase().includes('refine your search')
-        ) : false;
-        
-        setLastMessageWasSatisfactionQuestion(hasSatisfactionQuestion);
-
-        // Determine if we should show player cards for this message
-        // Debug values used in the condition
-        console.log("DEBUG - Values for card display decision:", {
-          responseType: responseType,
-          inputHasCompare: input.toLowerCase().includes('compare'),
-          inputHasComparar: input.toLowerCase().includes('comparar'),
-          inChatComparisonFlag: data.in_chat_comparison,
-          rawData: data
-        });
-        
-        const shouldShowPlayerCards = 
-          responseType === 'search' || // Always show cards for search results
-          (responseType === 'comparison' && !input.toLowerCase().includes('compare') && 
-           !input.toLowerCase().includes('comparar') && data.in_chat_comparison !== true);
-           
-        console.log("DEBUG - Decision to show player cards:", shouldShowPlayerCards);
-        
-        // Add the response to the chat
-        addMessage({
-          text: responseText,
-          sender: 'bot',
-          showPlayerSelection: shouldShowPlayerCards && playersData.length > 0,
-          players: shouldShowPlayerCards ? playersData : [],
-          // Add metadata for special responses
-          responseType: responseType,
-          explanations: data.explanations,
-          comparison_aspects: data.comparison_aspects
-        });
-        
-        // For player comparison results, potentially trigger comparison view
-        if (data.comparison && playersData && playersData.length >= 2) {
-          // This could trigger a comparison view or another action
-          console.log('Comparison results available:', playersData.length, 'players');
-        }
-      } else {
-        // Handle error response
-        addMessage({ 
-          text: data.message || data.error || t('chat.errorMessage'),
-          sender: 'bot',
-          isError: true
-        });
-      }
-    } catch (error) {
-      console.error('Error:', error);
-      addMessage({
-        text: t('chat.errorMessage'),
-        sender: 'bot',
-        isError: true
-      });
-    } finally {
-      setIsLoading(false);
-      setInput('');
-      // Reset the player search status for the next query
-      // We'll set it again when the next query is submitted
-      setTimeout(() => setIsPlayerSearch(false), 500);
-    }
-  };
-
-  /**
-   * Handle player selection from search results
-   */
-  const handlePlayerSelect = (player) => {
-    try {
-      // Safety check for player object
-      if (!player) {
-        console.error("[ERROR] Player is undefined or null");
-        addMessage({
-          text: t('errors.playerNotFound'),
-          sender: 'bot',
-          isError: true
-        });
-        return;
-      }
-      
-      // Extract metrics from the player object with validation
-      const playerMetrics = Object.entries(player.stats || {}).map(([key, value]) => {
-        return {
-          name: formatMetricName(key),
-          value: value !== undefined && value !== null ? value : 0, // Provide fallback
-          key: key,
-          originalValue: value // Keep original for debugging
+        // Create an enhanced player object with the complete profile data
+        const enhancedPlayer = {
+          ...player,
+          // Merge the complete profile stats with the existing stats
+          stats: {
+            ...player.stats,
+            ...player.complete_profile.stats
+          },
+          // Add position averages
+          position_averages: player.complete_profile.position_averages || {}
         };
-      });
-      
-      // Ensure this player is in the search results
-      // This will allow it to be used for comparison
-      updateSearchResults([player]);
-  
-      addMessage({
-        text: `${t('chat.showingDetails')} ${player.name || t('playerDashboard.player')}...`,
-        sender: 'bot'
-      });
-      
-      // Call the session context method to show the player dashboard
-      handlePlayerSelected(player, playerMetrics);
-    } catch (error) {
-      console.error("[CRITICAL] Error in handlePlayerSelect:", error);
-      // Add a nice error message to the chat
-      addMessage({
-        text: t('errors.loadingFailed'),
-        sender: 'bot',
-        isError: true
-      });
-    }
-  };
-  
-  /**
-   * Toggle comparison selection mode
-   */
-  const toggleComparisonMode = () => {
-    // If turning off comparison mode, clear selections
-    if (isComparisonMode) {
-      setSelectedPlayersForComparison([]);
-    }
-    setIsComparisonMode(!isComparisonMode);
-  };
-
-  /**
-   * Handle player selection/deselection for comparison
-   */
-  const handlePlayerSelectionForComparison = (player) => {
-    setSelectedPlayersForComparison(prev => {
-      // Check if player is already selected
-      const isAlreadySelected = prev.some(p => 
-        (p.id && player.id && p.id === player.id) || 
-        (p.wyId && player.wyId && p.wyId === player.wyId) ||
-        (p.name && player.name && p.name === player.name)
-      );
-      
-      if (isAlreadySelected) {
-        // Remove player if already selected
-        return prev.filter(p => 
-          !((p.id && player.id && p.id === player.id) || 
-            (p.wyId && player.wyId && p.wyId === player.wyId) ||
-            (p.name && player.name && p.name === player.name))
-        );
-      } else {
-        // Add player if not already selected (limit to 2 players)
-        if (prev.length < 2) {
-          return [...prev, player];
-        } else {
-          // Already have 2 players - replace the oldest one
-          return [prev[1], player];
-        }
-      }
-    });
-  };
-
-  /**
-   * Start the comparison with selected players
-   */
-  const startComparisonWithSelected = async () => {
-    if (selectedPlayersForComparison.length < 2) {
-      console.error("[ERROR] Need to select 2 players for comparison");
-      addMessage({
-        text: t('errors.selectTwoPlayers', 'Please select 2 players to compare'),
-        sender: 'bot',
-        isError: true
-      });
-      return;
-    }
-    
-    // Exit comparison mode
-    setIsComparisonMode(false);
-    
-    try {
-      console.log("Selected players for comparison:", selectedPlayersForComparison);
-      
-      // Get the two players for comparison
-      const player1 = selectedPlayersForComparison[0];
-      const player2 = selectedPlayersForComparison[1];
-      
-      // Trigger the visual comparison modal
-      startComparison(player1);
-      completeComparison(player2);
-      
-      // Success message in chat
-      addMessage({
-        text: t('chat.comparisonStarted', 'Opening comparison between {player1} and {player2}.')
-          .replace('{player1}', player1.name)
-          .replace('{player2}', player2.name),
-        sender: 'bot'
-      });
-    } catch (error) {
-      console.error("[ERROR] Starting comparison failed:", error);
-      addMessage({
-        text: t('errors.comparisonFailed', 'Failed to start player comparison'),
-        sender: 'bot',
-        isError: true
-      });
-    } finally {
-      setSelectedPlayersForComparison([]); // Clear selections after comparison
-    }
-  };
-
-  /**
-   * Legacy handler for direct player comparison (keeping for compatibility)
-   */
-  const handleComparePlayersSelect = async (players) => {
-    if (!players || players.length < 2) {
-      console.error("[ERROR] Not enough players for comparison");
-      addMessage({
-        text: t('errors.notEnoughPlayers', 'Not enough players to compare'),
-        sender: 'bot',
-        isError: true
-      });
-      return;
-    }
-    
-    try {
-      console.log("Players for direct comparison:", players);
-      
-      // Get the two players for comparison
-      const player1 = players[0];
-      const player2 = players[1];
-      
-      // Trigger the visual comparison modal
-      startComparison(player1);
-      completeComparison(player2);
-      
-      // Success message in chat
-      addMessage({
-        text: t('chat.comparisonStarted', 'Opening comparison between {player1} and {player2}.')
-          .replace('{player1}', player1.name)
-          .replace('{player2}', player2.name),
-        sender: 'bot'
-      });
-    } catch (error) {
-      console.error("[ERROR] Starting comparison failed:", error);
-      addMessage({
-        text: t('errors.comparisonFailed', 'Failed to start player comparison'),
-        sender: 'bot',
-        isError: true
-      });
-    }
-  };
-
-  return (
-    // Ensure h-screen and overflow-hidden on root
-    <div className="flex flex-col w-full h-screen md:h-auto transition-all duration-300 bg-gray-900 border-r border-gray-700 chat-container overflow-hidden"> 
-      {/* Mokoto Glitch styled header */}
-      <div className="bg-gradient-to-r from-green-900 to-blue-900 p-4 flex items-center border-b border-gray-700 relative overflow-hidden">
-        {/* Glitch effect patterns */}
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute inset-0 opacity-10 bg-grid-pattern"></div>
-          <div className="absolute right-0 top-0 w-1/3 h-full opacity-15 glitch-bar"></div>
-          <div className="absolute left-0 bottom-0 w-2/3 h-1/4 opacity-10 glitch-pixels"></div>
-        </div>
         
-        {/* Mobile Menu Toggle - shown only on mobile */}
+        setCompletePlayer(enhancedPlayer);
+      } else {
+        // No complete_profile data, just use the player as is
+        console.warn('No complete_profile data found, using regular player data');
+        setCompletePlayer(player);
+      }
+    } catch (err) {
+      console.error('Error processing player data:', err);
+      setError(err.message || 'Failed to process player data');
+      // Fall back to the passed-in player on error
+      setCompletePlayer(player);
+    } finally {
+      setLoading(false);
+    }
+  }, [player]);
+
+  // Show loading state while fetching data
+  if (loading) {
+    return (
+      <div className="h-[95vh] flex flex-col items-center justify-center">
+        <Loader className="animate-spin text-green-500 w-12 h-12 mb-4" />
+        <p className="text-gray-300">{t('loading.fetchingPlayerData', 'Fetching player data...')}</p>
+      </div>
+    );
+  }
+
+  // Check if we have valid player data
+  const activePlayer = completePlayer || player;
+  if (!isValidPlayer(activePlayer)) {
+    return (
+      <div className="p-6">
+        <h3 className="text-xl text-red-400 mb-4">{t('errors.playerNotFound')}</h3>
+        <p className="text-gray-300 mb-4">{error || t('errors.loadingFailed')}</p>
         <button 
-          onClick={() => setSidebarOpen && setSidebarOpen(true)}
-          className="text-white md:hidden p-2 mr-2 rounded-md hover:bg-blue-600 transition flex items-center justify-center"
-          aria-label="Open menu"
+          onClick={onClose} 
+          className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded text-white"
         >
-          <Menu size={22} />
+          {t('playerDashboard.close')}
+        </button>
+      </div>
+    );
+  }
+  
+  // Prepare metrics from player stats using utility with color support
+  const metrics = playerStatsToMetricsWithColors(activePlayer);
+  
+  // Prepare normalized metrics for radar chart
+  const radarMetrics = normalizeMetricsForRadar(metrics);
+  
+  // Select key metrics for the radar chart - no more than 8 for readability
+  const selectRadarMetrics = (allMetrics) => {
+    const keyMetricNames = [
+      // Attacking
+      "goals", "assists", "xgShot", 
+      // Passing
+      "successfulPasses", "progressivePasses", "keyPasses",
+      // Defending
+      "defensiveDuelsWon", "interceptions",
+      // Possession
+      "successfulDribbles", "progressiveRun",
+      // Physical
+      "aerialDuelsWon", "duelsWon"
+    ];
+    
+    // If goalkeeper, show different key metrics
+    if (activePlayer.is_goalkeeper) {
+      return allMetrics.filter(m => 
+        ["gkSaves", "gkSuccessfulExits", "goalkeeperExitsPerformed", 
+         "successfulPasses", "successfulLongPasses", "ballRecoveries"].some(term => m.key?.includes(term))
+      ).slice(0, 8);
+    }
+    
+    // Filter to key metrics that exist in the data
+    return allMetrics.filter(m => 
+      keyMetricNames.some(key => m.key?.includes(key))
+    ).slice(0, 8); // Limit to 8 metrics for readability
+  };
+  
+  // Get selected metrics for radar
+  const selectedRadarMetrics = selectRadarMetrics(radarMetrics);
+  
+  // Group metrics by category for better organization
+  const metricCategories = {
+    attacking: metrics.filter(m => ["goals", "assists", "shots", "shotsOnTarget", "xgShot", "xgAssist", 
+                                   "goalConversion", "shotsOnTarget"].some(term => m.key?.includes(term))),
+    passing: metrics.filter(m => ["passes", "forwardPasses", "backPasses", "lateralPasses", "longPasses", 
+                                 "progressivePasses", "passesToFinalThird", "smartPasses", "throughPasses",
+                                 "keyPasses", "crosses"].some(term => m.key?.includes(term))),
+    defending: metrics.filter(m => ["defensiveDuels", "interceptions", "slidingTackles", "clearances", 
+                                   "ballRecoveries", "opponentHalfRecoveries", "counterpressingRecoveries"]
+                                   .some(term => m.key?.includes(term))),
+    possession: metrics.filter(m => ["successfulDribbles", "progressiveRun", "offensiveDuels", 
+                                    "ballLosses", "dangerousOwnHalfLosses", "accelerations"]
+                                    .some(term => m.key?.includes(term))),
+    physical: metrics.filter(m => ["aerialDuels", "duels"].some(term => m.key?.includes(term))),
+    goalkeeping: metrics.filter(m => ["gkSaves", "gkSuccessfulExits", "goalkeeperExitsPerformed", 
+                                     "successfulGoalKicks"].some(term => m.key?.includes(term))),
+  };
+  
+  // Filter out empty categories
+  const activeCategories = Object.entries(metricCategories)
+    .filter(([_, metrics]) => metrics.length > 0)
+    .reduce((obj, [key, value]) => ({...obj, [key]: value}), {});
+  
+  return (
+    <div className="h-[95vh] flex flex-col overflow-hidden">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-gray-800 to-gray-750 p-6 flex items-center relative">
+        {/* Back/Close button */}
+        <button 
+          onClick={onClose}
+          className="absolute top-3 left-3 text-gray-400 hover:text-white p-1 rounded-full hover:bg-gray-700 z-10"
+        >
+          <ArrowLeft size={24} />
         </button>
         
-        <div className="w-10 h-10 mr-3 flex items-center justify-center shadow-lg">
-          <img src="/logo.png" alt="Katena Logo" className="w-full h-full" />
-        </div>
-        <div className="glitch-text">
-          <h1 className="text-xl font-bold text-white relative">{t('chat.headerTitle')}</h1>
-          <p className="text-xs text-green-200 opacity-80">{t('chat.headerSubtitle')}</p>
-        </div>
-      </div>
-
-      {/* Chat Area */}
-      {/* Chat Area - Dynamic padding applied with transition */}
-      <div 
-        className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-900 bg-opacity-90 relative custom-scrollbar transition-all duration-300 ease-in-out" // Added transition
-        ref={messagesContainerRef}
-        style={{ paddingBottom: `${inputAreaHeight}px` }} // Dynamic padding
-      >
-        {/* Soccer field background pattern */}
-        <div className="absolute inset-0 opacity-5 pointer-events-none">
-          <div className="w-full h-full border-2 border-white"></div>
-          <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-white"></div>
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 border-2 border-white rounded-full"></div>
+        {/* Player image */}
+        <div className="w-24 h-24 bg-gray-700 rounded-full mr-5 flex items-center justify-center overflow-hidden relative mt-5">
+          {player.image_url || player.imageDataURL ? (
+            <img 
+              src={playerService.getPlayerImageUrl(player)} 
+              alt={player.name} 
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                // Log error for debugging
+                console.warn(`CompletePage: Image load failed for player ${player.name} (ID: ${player.wyId || player.id})`);
+                
+                e.target.onerror = null; 
+                e.target.style.display = 'none';
+                // Only add fallback icon if it doesn't exist yet
+                if (!e.target.parentNode.querySelector('.player-fallback-icon')) {
+                  const fallbackDiv = document.createElement('div');
+                  fallbackDiv.className = 'flex items-center justify-center w-full h-full player-fallback-icon';
+                  fallbackDiv.innerHTML = '<span class="text-3xl">⚽</span>';
+                  e.target.parentNode.appendChild(fallbackDiv);
+                }
+              }} 
+            />
+          ) : (
+            <UserCircle className="text-gray-500 w-full h-full" />
+          )}
         </div>
         
-        {chatHistory.length === 0 && (
-          <div className="text-center py-10 relative z-10">
-            <div className="w-20 h-20 mx-auto mb-4 flex items-center justify-center shadow-lg">
-              <img src="/logo.png" alt="Katena Logo" className="w-full h-full" />
-            </div>
-            <h2 className="text-2xl font-bold text-white mb-2">{t('chat.welcomeTitle')}</h2>
-            <p className="text-gray-300 mb-6 max-w-md mx-auto">{t('chat.welcomeMessage')}</p>
+        {/* Player info */}
+        <div className="flex-1">
+          <h2 className="text-2xl font-bold text-white">{player.name}</h2>
+          <div className="text-gray-300 flex flex-wrap gap-x-4 mt-1">
+            {player.positions && (
+              <span className="flex items-center">
+                <UserCircle className="mr-1" size={16} />
+                {player.positions.join(', ')}
+              </span>
+            )}
+            {player.age && (
+              <span className="flex items-center">
+                <Calendar className="mr-1" size={16} />
+                {player.age} {t('playerDashboard.age')}
+              </span>
+            )}
+            {player.nationality && (
+              <span className="flex items-center">
+                <Globe className="mr-1" size={16} />
+                {player.nationality}
+              </span>
+            )}
+            {player.foot && (
+              <span className="flex items-center">
+                <Footprints className="mr-1" size={16} />
+                {player.foot}
+              </span>
+            )}
+          </div>
+        </div>
+        
+        {/* Favorite button */}
+        <button
+          onClick={(e) => {
+            e.preventDefault(); // Prevent default
+            e.stopPropagation(); // Prevent event bubbling
             
-            <div className="bg-gray-800 rounded-lg p-5 mx-auto max-w-md text-left border-l-4 border-green-500">
-              <p className="text-white mb-3 font-medium">{t('chat.examplesTitle')}</p>
-              <div className="space-y-2">
-                <div className="bg-gray-700 rounded-lg p-3 text-sm text-gray-300">
-                  {t('chat.example1')}
+            // Update local state immediately for responsive UI
+            setLocalFavorite(!localFavorite);
+            
+            // Then update the global state
+            toggleFavorite(player);
+          }}
+          className={`p-2 rounded-full ${
+            localFavorite 
+              ? 'bg-red-500 bg-opacity-20 text-red-400 hover:bg-opacity-30' 
+              : 'bg-gray-700 text-gray-400 hover:text-white hover:bg-gray-650'
+          }`}
+          title={localFavorite ? t('playerDashboard.removeFromFavorites') : t('playerDashboard.addToFavorites')}
+        >
+          <Heart size={20} fill={localFavorite ? '#f56565' : 'none'} />
+        </button>
+      </div>
+      
+      {/* Tabs Navigation */}
+      <div className="bg-gray-800 border-b border-gray-700">
+        <div className="flex">
+          <button
+            className={`px-6 py-3 text-sm font-medium ${
+              activeTab === 'overview' 
+                ? 'text-white border-b-2 border-green-500' 
+                : 'text-gray-400 hover:text-gray-300'
+            }`}
+            onClick={() => setActiveTab('overview')}
+          >
+            {t('playerDashboard.overview', 'Overview')}
+          </button>
+          <button
+            className={`px-6 py-3 text-sm font-medium ${
+              activeTab === 'stats' 
+                ? 'text-white border-b-2 border-green-500' 
+                : 'text-gray-400 hover:text-gray-300'
+            }`}
+            onClick={() => setActiveTab('stats')}
+          >
+            {t('playerDashboard.statistics', 'Statistics')}
+          </button>
+          <button
+            className={`px-6 py-3 text-sm font-medium ${
+              activeTab === 'details' 
+                ? 'text-white border-b-2 border-green-500' 
+                : 'text-gray-400 hover:text-gray-300'
+            }`}
+            onClick={() => setActiveTab('details')}
+          >
+            {t('playerDashboard.details', 'Details')}
+          </button>
+        </div>
+      </div>
+      
+      {/* Tab Content - Scrollable */}
+      <div className="flex-1 overflow-y-auto p-6 bg-gray-900">
+        {/* Overview Tab */}
+        {activeTab === 'overview' && (
+          <div className="grid grid-cols-1 lg:grid-cols-7 gap-6">
+            {/* Radar Chart */}
+            <div className="lg:col-span-4 bg-gray-800 rounded-lg p-5">
+              <h3 className="text-lg font-semibold text-white mb-4">{t('playerCompletePage.performanceOverview', 'Performance Overview')}</h3>
+              <div style={{ height: '400px' }}>
+                {selectedRadarMetrics.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RadarChart outerRadius="70%" data={selectedRadarMetrics}>
+                      <PolarGrid stroke="#4a5568" />
+                      <PolarAngleAxis 
+                        dataKey="name" 
+                        tick={{ fill: '#a0aec0', fontSize: '11px' }} 
+                      />
+                      <PolarRadiusAxis 
+                        angle={30} 
+                        domain={[0, 100]} 
+                        tick={{ fill: '#718096', fontSize: '10px' }} 
+                      />
+                      <Radar
+                        name={activePlayer.name}
+                        dataKey="displayValue"  
+                        stroke="#48bb78"
+                        fill="#48bb78"
+                        fillOpacity={0.5}
+                      />
+                      <Tooltip content={({ active, payload }) => {
+                        if (active && payload && payload.length) {
+                          const metric = payload[0].payload;
+                          const isNegative = metric.key && NEGATIVE_STATS.includes(metric.key);
+                          
+                          return (
+                            <div className="bg-gray-800 border border-gray-700 p-2 rounded shadow-lg">
+                              <p className="text-gray-300 text-xs">{metric.name}</p>
+                              <p className={`${metric.colorClass || 'text-white'} font-bold text-sm`}>
+                                {metric.value} {isNegative && <span className="text-xs italic">({t('playerCompletePage.lowerIsBetter', 'lower is better')})</span>}
+                              </p>
+                              {metric.positionAverage && (
+                                <div className="flex justify-between text-xs mt-1">
+                                  <span className="text-gray-400">{t('playerCompletePage.positionAvg', 'Position avg')}:</span>
+                                  <span className="text-gray-300">{metric.positionAverage.toFixed(1)}</span>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        }
+                        return null;
+                      }} />
+                      <Legend />
+                    </RadarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-full flex items-center justify-center text-gray-400">
+                    {t('playerDashboard.noMetrics', 'No metrics available for this player.')}
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            {/* Player Details */}
+            <div className="lg:col-span-3 space-y-6">
+              {/* Basic Info */}
+              <div className="bg-gray-800 rounded-lg p-5">
+                <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
+                  <User className="mr-2" size={18} />
+                  {t('playerCompletePage.playerInformation', 'Player Information')}
+                </h3>
+                
+                <div className="space-y-3">
+                  {player.positions && (
+                    <div className="flex">
+                      <div className="w-1/3 text-gray-400">{t('playerDashboard.position')}</div>
+                      <div className="w-2/3 text-white">{player.positions.join(', ')}</div>
+                    </div>
+                  )}
+                  
+                  {player.nationality && (
+                    <div className="flex">
+                      <div className="w-1/3 text-gray-400">{t('playerCompletePage.nationality', 'Nationality')}</div>
+                      <div className="w-2/3 text-white">{player.nationality}</div>
+                    </div>
+                  )}
+                  
+                  {player.age && (
+                    <div className="flex">
+                      <div className="w-1/3 text-gray-400">{t('playerDashboard.age')}</div>
+                      <div className="w-2/3 text-white">{player.age}</div>
+                    </div>
+                  )}
+                  
+                  {player.foot && (
+                    <div className="flex">
+                      <div className="w-1/3 text-gray-400">{t('playerDashboard.foot')}</div>
+                      <div className="w-2/3 text-white">{player.foot}</div>
+                    </div>
+                  )}
+                  
+                  {player.height && (
+                    <div className="flex">
+                      <div className="w-1/3 text-gray-400">{t('playerDashboard.height')}</div>
+                      <div className="w-2/3 text-white">{player.height} cm</div>
+                    </div>
+                  )}
+                  
+                  {player.weight && (
+                    <div className="flex">
+                      <div className="w-1/3 text-gray-400">{t('playerDashboard.weight')}</div>
+                      <div className="w-2/3 text-white">{player.weight} kg</div>
+                    </div>
+                  )}
+                  
+                  {player.value && (
+                    <div className="flex">
+                      <div className="w-1/3 text-gray-400">{t('playerDashboard.value')}</div>
+                      <div className="w-2/3 text-white">{player.value}</div>
+                    </div>
+                  )}
                 </div>
-                <div className="bg-gray-700 rounded-lg p-3 text-sm text-gray-300">
-                  {t('chat.example2')}
-                </div>
-                <div className="bg-gray-700 rounded-lg p-3 text-sm text-gray-300">
-                  {t('chat.example3')}
+              </div>
+              
+              {/* Key Stats */}
+              <div className="bg-gray-800 rounded-lg p-5">
+                <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
+                  <TrendingUp className="mr-2" size={18} />
+                  {t('playerCompletePage.keyAttributes', 'Key Attributes')}
+                </h3>
+                
+                <div className="grid grid-cols-2 gap-3">
+                  {metrics.slice(0, 6).map((metric, index) => (
+                    <div key={index} className="bg-gray-750 rounded-lg p-3">
+                      <div className="text-xs text-gray-400 mb-1">{metric.name}</div>
+                      <div className={`${metric.colorClass || 'text-white'} font-medium flex items-center justify-between`}>
+                        <span>{metric.value}</span>
+                        {metric.positionAverage && (
+                          <span className="text-xs text-gray-400">
+                            avg: {metric.positionAverage.toFixed(1)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
           </div>
         )}
         
-        {/* Display Chat Messages */}
-        {chatHistory.map((message, index) => (
-          <div key={index} className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-[85%] md:max-w-[75%] rounded-lg p-3 ${
-              message.sender === 'user' 
-                ? 'bg-green-700 text-white' 
-                : 'bg-gray-800 text-gray-200'
-            }`}>
-              {/* Message Content */}
-              <div className={`whitespace-pre-wrap ${message.isError ? 'text-red-300' : ''}`}>{message.text}</div>
-              
-              {/* Player Selection Section */}
-              {message.showPlayerSelection && message.players && message.players.length > 0 && (
-                <div className="mt-4 pt-4 border-t border-gray-700">
-                  <div className="flex justify-between items-center mb-2">
-                    <h3 className="text-gray-300 font-medium">{t('chat.playersFoundText')}</h3>
-                    
-                    {/* Compare Players Toggle Button - Only show if we have multiple players */}
-                    {message.players.length > 1 && (
-                      <button
-                        onClick={() => toggleComparisonMode()}
-                        className={`text-sm px-3 py-1 rounded ${
-                          isComparisonMode 
-                            ? 'bg-red-600 hover:bg-red-700 text-white' 
-                            : 'bg-blue-600 hover:bg-blue-700 text-white'
-                        }`}
-                      >
-                        {isComparisonMode 
-                          ? t('chat.cancelCompare', 'Cancel Compare') 
-                          : t('chat.comparePlayersButton', 'Compare Players')}
-                      </button>
-                    )}
-                  </div>
+        {/* Statistics Tab */}
+        {activeTab === 'stats' && (
+          <div className="bg-gray-800 rounded-lg p-6">
+            <h3 className="text-xl font-semibold text-white mb-6">{t('playerCompletePage.completeStatistics', 'Complete Statistics')}</h3>
+            
+            {/* Display stats by category with collapsible sections */}
+            <div className="space-y-8">
+              {Object.entries(activeCategories).map(([category, categoryMetrics]) => (
+                <div key={category} className="mb-6">
+                  <h4 className="text-lg font-medium text-white mb-4 capitalize border-b border-gray-700 pb-2">
+                    {t(`playerCompletePage.categoryStats.${category}`, `${category.charAt(0).toUpperCase() + category.slice(1)} Statistics`)}
+                  </h4>
                   
-                  {/* Player list for selection */}
-                  <div className="space-y-2 max-h-60 overflow-y-auto pr-1 custom-scrollbar">
-                    {message.players.map(player => {
-                      // Check if this player is selected for comparison
-                      const isSelected = selectedPlayersForComparison.some(p => 
-                        (p.id && player.id && p.id === player.id) || 
-                        (p.wyId && player.wyId && p.wyId === player.wyId) ||
-                        (p.name && player.name && p.name === player.name)
-                      );
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {categoryMetrics.map((metric, index) => {
+                      const isNegativeStat = NEGATIVE_STATS.includes(metric.key);
                       
                       return (
-                        <div 
-                          key={player.id || player.name}
-                          className={`${
-                            isComparisonMode 
-                              ? isSelected ? 'bg-blue-700 hover:bg-blue-600' : 'bg-gray-750 hover:bg-gray-700' 
-                              : 'bg-gray-750 hover:bg-gray-700'
-                          } rounded-lg p-2 cursor-pointer transition-colors ${
-                            isSelected ? 'border-2 border-blue-400' : ''
-                          }`}
-                          onClick={() => isComparisonMode 
-                            ? handlePlayerSelectionForComparison(player) 
-                            : handlePlayerSelect(player)
-                          }
-                        >
-                          <div className="flex items-center">
-                            {/* Checkbox for comparison mode */}
-                            {isComparisonMode && (
-                              <div className="mr-2">
-                                <div className={`w-5 h-5 rounded flex items-center justify-center ${
-                                  isSelected ? 'bg-blue-500 text-white' : 'bg-gray-700'
-                                }`}>
-                                  {isSelected && <span>✓</span>}
-                                </div>
+                        <div key={index} className="bg-gray-750 rounded-lg p-4">
+                          <div className="flex justify-between items-center">
+                            <div className="text-sm text-gray-400 mb-1">{metric.name}</div>
+                            {isNegativeStat && (
+                              <div className="text-xs text-gray-500 italic">{t('playerCompletePage.lowerIsBetter', 'Lower is better')}</div>
+                            )}
+                          </div>
+                          
+                          <div className="flex justify-between items-center">
+                            <div className={`${metric.colorClass || 'text-white'} text-xl font-medium`}>
+                              {metric.value}
+                            </div>
+                            {metric.positionAverage && (
+                              <div className="text-sm text-gray-400">
+                                {t('playerCompletePage.average', 'Avg')}: {metric.positionAverage.toFixed(1)}
                               </div>
                             )}
-                            
-                            <div className="w-10 h-10 bg-gray-700 rounded-full flex items-center justify-center mr-2">
-                              {player.image_url || player.imageDataURL ? (
-                                <img 
-                                  src={playerService.getPlayerImageUrl(player)} 
-                                  alt={player.name} 
-                                  className="w-full h-full rounded-full object-cover"
-                                  onError={(e) => {
-                                    // Log error for debugging
-                                    console.warn(`Image load failed for player ${player.name} (ID: ${player.wyId || player.id})`);
-                                    
-                                    // Prevent infinite error loop
-                                    e.target.onerror = null;
-                                    // Hide the broken image
-                                    e.target.style.display = 'none';
-                                    // Replace with Katena logo
-                                    const parent = e.target.parentNode;
-                                    if (!parent.querySelector('.fallback-icon')) {
-                                      const img = document.createElement("img");
-                                      img.src = "/logo.png";
-                                      img.alt = "Player";
-                                      img.className = "w-7 h-7 fallback-icon";
-                                      parent.appendChild(img);
-                                    }
-                                  }}
-                                />
-                              ) : (
-                                <User className="text-gray-500" size={20} />
-                              )}
-                            </div>
-                            <div>
-                              <div className="text-sm font-medium text-white">{player.name}</div>
-                              <div className="text-xs text-gray-400">
-                                {player.positions && player.positions.join(', ')}
-                              </div>
-                            </div>
+                          </div>
+                          
+                          <div className="mt-2 w-full bg-gray-700 rounded-full h-2">
+                            <div 
+                              className={`${metric.colorClass ? metric.colorClass.replace('text-', 'bg-') : "bg-green-500"} h-2 rounded-full`}
+                              style={{ 
+                                width: `${Math.min(100, Math.max(0, isNegativeStat 
+                                  ? (metric.positionAverage && metric.value > 0 
+                                    ? Math.min(100, (metric.positionAverage / metric.value * 100)) 
+                                    : 100)
+                                  : metric.value))}%` 
+                              }}
+                            ></div>
                           </div>
                         </div>
                       );
                     })}
                   </div>
-                  
-                  {/* Comparison Controls - Only show if in comparison mode */}
-                  {isComparisonMode && (
-                    <div className="mt-4 flex flex-col">
-                      <div className="mb-2 text-sm text-gray-300">
-                        {t('chat.selectedPlayersCount', 'Selected Players')}: {selectedPlayersForComparison.length}/2
-                      </div>
-                      <button
-                        onClick={startComparisonWithSelected}
-                        disabled={selectedPlayersForComparison.length < 2}
-                        className={`w-full py-2 rounded-lg text-white font-medium ${
-                          selectedPlayersForComparison.length < 2
-                            ? 'bg-gray-600 cursor-not-allowed'
-                            : 'bg-green-600 hover:bg-green-700'
-                        }`}
-                      >
-                        {t('chat.compareSelectedButton', 'Compare Selected Players')}
-                      </button>
-                    </div>
-                  )}
                 </div>
-              )}
+              ))}
               
-              {/* Stats Explanation Section */}
-              {message.responseType === 'explanation' && message.explanations && (
-                <div className="mt-4 pt-4 border-t border-gray-700">
-                  <h3 className="text-gray-300 mb-2 font-medium">{t('chat.statsExplanationTitle', 'Statistics Explained')}</h3>
-                  <div className="space-y-3 mt-2">
-                    {Object.entries(message.explanations).map(([stat, explanation]) => (
-                      <div key={stat} className="bg-gray-750 rounded-lg p-3">
-                        <div className="font-medium text-green-400 mb-1">{stat}</div>
-                        <div className="text-sm text-gray-300">{explanation}</div>
-                      </div>
-                    ))}
-                  </div>
+              {/* No stats message if no categories are available */}
+              {Object.keys(activeCategories).length === 0 && (
+                <div className="text-center py-8 text-gray-400">
+                  {t('playerCompletePage.noStatsAvailable', 'No statistics available for this player.')}
                 </div>
               )}
-              
-              {/* Comparison Results Section */}
-              {message.responseType === 'comparison' && message.comparison_aspects && message.comparison_aspects.length > 0 && (
-                <div className="mt-4 pt-4 border-t border-gray-700">
-                  <h3 className="text-gray-300 mb-2 font-medium">{t('chat.comparisonAspectsTitle', 'Comparison Aspects')}</h3>
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {message.comparison_aspects.map(aspect => (
-                      <span key={aspect} className="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs">
-                        {aspect}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        ))}
-        
-        {/* Loading Message */}
-        {isLoading && (
-          <div className="flex justify-start">
-            <div className="bg-gray-800 text-gray-300 rounded-lg p-3 flex items-center">
-              {isPlayerSearch ? (
-                /* Logo loader for player search */
-                <div className="soccer-loader">
-                  <span role="img" aria-label="Soccer Ball" className="text-xl animate-bounce">⚽</span>
-                </div>
-              ) : (
-                /* Jumping dots with gradient for general queries */
-                <div className="jumping-dots">
-                  <span></span>
-                  <span></span>
-                  <span></span>
-                </div>
-              )}
-              {isPlayerSearch ? t('chat.analyzing') : t('chat.thinking', 'Thinking...')}
             </div>
           </div>
         )}
         
-        {/* Invisible element to scroll to */}
-        <div ref={messagesEndRef} />
-      </div>
-      
-      {/* Input Area - Restored fixed positioning */}
-      {/* Input Area - Fixed positioning, adjusted for sidebar on desktop */}
-      <div 
-        className="border-t border-gray-700 p-3 bg-gray-800 fixed bottom-0 left-0 right-0 md:left-64 z-20 transition-transform duration-300 ease-in-out" // Added md:left-64
-        style={{ transform: isLoading ? 'translateY(100%)' : 'translateY(0)' }} // Keep the transform for loading state
-        ref={inputAreaRef} // Add ref to the input area
-      >
-        <form onSubmit={handleSubmit} className="flex">
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            className="flex-1 bg-gray-700 border border-gray-600 rounded-l-lg py-2 px-4 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent" // Changed py-3 to py-2
-            placeholder={t('chat.inputPlaceholder')}
-            disabled={isLoading}
-          />
-          <button
-            type="submit"
-            className={`bg-green-700 hover:bg-green-600 text-white px-4 rounded-r-lg flex items-center justify-center ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-            disabled={isLoading}
-            aria-label="Send message"
-          >
-            <Send size={20} />
-          </button>
-        </form>
+        {/* Details Tab */}
+        {activeTab === 'details' && (
+          <div className="bg-gray-800 rounded-lg p-6">
+            <h3 className="text-xl font-semibold text-white mb-6">{t('playerCompletePage.playerDetails', 'Player Details')}</h3>
+            
+            <div className="space-y-6">
+              {/* Personal Information */}
+              <div>
+                <h4 className="text-lg text-white mb-3 border-b border-gray-700 pb-2 flex items-center">
+                  <User className="mr-2" size={18} />
+                  {t('playerCompletePage.personalInformation', 'Personal Information')}
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex flex-col">
+                    <span className="text-gray-400 text-sm flex items-center">
+                      <UserCircle className="mr-1" size={14} />
+                      {t('playerCompletePage.fullName', 'Full Name')}
+                    </span>
+                    <span className="text-white">{player.name}</span>
+                  </div>
+                  
+                  {player.nationality && (
+                    <div className="flex flex-col">
+                      <span className="text-gray-400 text-sm flex items-center">
+                        <Globe className="mr-1" size={14} />
+                        {t('playerCompletePage.nationality', 'Nationality')}
+                      </span>
+                      <span className="text-white">{player.nationality}</span>
+                    </div>
+                  )}
+                  
+                  {player.age && (
+                    <div className="flex flex-col">
+                      <span className="text-gray-400 text-sm flex items-center">
+                        <Calendar className="mr-1" size={14} />
+                        {t('playerDashboard.age', 'Age')}
+                      </span>
+                      <span className="text-white">{player.age} {t('playerCompletePage.years', 'years')}</span>
+                    </div>
+                  )}
+                  
+                  {player.foot && (
+                    <div className="flex flex-col">
+                      <span className="text-gray-400 text-sm flex items-center">
+                        <Footprints className="mr-1" size={14} />
+                        {t('playerDashboard.foot', 'Preferred Foot')}
+                      </span>
+                      <span className="text-white">{formatPreferredFoot(player.foot, t)}</span>
+                    </div>
+                  )}
+                  
+                  {player.height && (
+                    <div className="flex flex-col">
+                      <span className="text-gray-400 text-sm flex items-center">
+                        <TrendingUp className="mr-1" size={14} />
+                        {t('playerDashboard.height', 'Height')}
+                      </span>
+                      <span className="text-white">{player.height} {t('playerCompletePage.cm', 'cm')}</span>
+                    </div>
+                  )}
+                  
+                  {player.weight && (
+                    <div className="flex flex-col">
+                      <span className="text-gray-400 text-sm flex items-center">
+                        <Package className="mr-1" size={14} />
+                        {t('playerDashboard.weight', 'Weight')}
+                      </span>
+                      <span className="text-white">{player.weight} {t('playerCompletePage.kg', 'kg')}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              {/* Professional Information */}
+              <div>
+                <h4 className="text-lg text-white mb-3 border-b border-gray-700 pb-2 flex items-center">
+                  <Briefcase className="mr-2" size={18} />
+                  {t('playerCompletePage.professionalInformation', 'Professional Information')}
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {player.positions && (
+                    <div className="flex flex-col">
+                      <span className="text-gray-400 text-sm flex items-center">
+                        <Shield className="mr-1" size={14} />
+                        {t('playerDashboard.position', 'Position')}
+                      </span>
+                      <span className="text-white">{formatPlayerPositions(player.positions, t)}</span>
+                    </div>
+                  )}
+                  
+                  {player.value && (
+                    <div className="flex flex-col">
+                      <span className="text-gray-400 text-sm flex items-center">
+                        <DollarSign className="mr-1" size={14} />
+                        {t('playerDashboard.value', 'Market Value')}
+                      </span>
+                      <span className="text-white">{player.value}</span>
+                    </div>
+                  )}
+                  
+                  {player.current_club && (
+                    <div className="flex flex-col">
+                      <span className="text-gray-400 text-sm flex items-center">
+                        <Building className="mr-1" size={14} />
+                        {t('playerCompletePage.currentClub', 'Current Club')}
+                      </span>
+                      <span className="text-white">{player.current_club}</span>
+                    </div>
+                  )}
+                  
+                  {(player.contract_until || (player.contract && player.contract.contractExpiration)) && (
+                    <div className="flex flex-col">
+                      <span className="text-gray-400 text-sm flex items-center">
+                        <Calendar className="mr-1" size={14} />
+                        {t('playerCompletePage.contractUntil', 'Contract Until')}
+                      </span>
+                      <span className="text-white">
+                        {player.contract_until || (player.contract && player.contract.contractExpiration) || t('playerCompletePage.unknown', 'Unknown')}
+                      </span>
+                    </div>
+                  )}
+                  
+                  {player.contract && player.contract.agencies && player.contract.agencies.length > 0 && (
+                    <div className="flex flex-col">
+                      <span className="text-gray-400 text-sm flex items-center">
+                        <Users className="mr-1" size={14} />
+                        {t('playerCompletePage.agencies', 'Agencies')}
+                      </span>
+                      <span className="text-white">
+                        {player.contract.agencies.join(', ')}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
 };
 
-export default ChatInterface;
+export default PlayerCompletePage;
