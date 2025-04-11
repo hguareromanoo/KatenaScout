@@ -169,7 +169,7 @@ const PlayerCompletePage = ({ player, onClose }) => {
     .reduce((obj, [key, value]) => ({...obj, [key]: value}), {});
   
   return (
-    <div className="h-[95vh] flex flex-col overflow-hidden">
+    <div className="flex flex-col"> {/* Removed h-[95vh] and overflow-hidden */}
       {/* Header */}
       <div className="bg-gradient-to-r from-gray-800 to-gray-750 p-6 flex items-center relative">
         {/* Back/Close button */}

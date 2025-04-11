@@ -38,7 +38,8 @@ const FavoritesView = () => {
       {/* Complete Player Profile View - Shown when a user clicks "View Complete Profile" */}
       {showingCompleteProfile && selectedPlayer && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-800 rounded-xl w-full max-w-5xl max-h-[95vh] overflow-hidden relative">
+          {/* Changed overflow-hidden to overflow-y-auto */}
+          <div className="bg-gray-800 rounded-xl w-full max-w-5xl max-h-[95vh] overflow-y-auto relative"> 
             <ErrorBoundary>
               <PlayerCompletePage 
                 player={selectedPlayer}
@@ -49,8 +50,10 @@ const FavoritesView = () => {
         </div>
       )}
       
-      <div className="max-w-5xl mx-auto w-full p-4 pt-20 md:pt-6 flex-1 overflow-hidden flex flex-col">
-        <div className="bg-gray-800 rounded-xl shadow-lg overflow-hidden flex flex-col flex-1">
+      {/* Removed overflow-hidden */}
+      <div className="max-w-5xl mx-auto w-full p-4 pt-20 md:pt-6 flex-1 flex flex-col"> 
+        {/* Removed overflow-hidden */}
+        <div className="bg-gray-800 rounded-xl shadow-lg flex flex-col flex-1"> 
           {/* Header - Fixed */}
           <div className="bg-gradient-to-r from-green-900 to-blue-900 p-4 md:p-6 sticky top-0 z-10">
             <div className="flex items-center justify-between">

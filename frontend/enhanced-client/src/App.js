@@ -129,8 +129,8 @@ function App() {
       
       {/* Remove the floating menu button - we'll add it to the header instead */}
       
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col h-screen overflow-hidden">
+      {/* Main Content - Changed overflow-hidden to overflow-y-auto */}
+      <div className="flex-1 flex flex-col h-screen overflow-y-auto"> 
         
         {/* Mobile Header with Menu Button - only visible on mobile */}
         <div className="md:hidden fixed top-0 left-0 right-0 z-30 bg-gray-800 bg-opacity-70 backdrop-blur-sm border-b border-gray-700 p-3 px-4 flex items-center">
@@ -172,7 +172,8 @@ function App() {
             {/* Complete Player Profile View - Shown when a user clicks "See complete profile" */}
             {showingCompleteProfile && completeProfilePlayer && (
               <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-                <div className="bg-gray-800 rounded-xl w-full max-w-5xl max-h-[95vh] overflow-hidden relative">
+                {/* Changed overflow-hidden to overflow-y-auto */}
+                <div className="bg-gray-800 rounded-xl w-full max-w-5xl max-h-[95vh] overflow-y-auto relative"> 
                   <ErrorBoundary>
                     <PlayerCompletePage 
                       player={completeProfilePlayer}
