@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Send, Menu, User } from 'lucide-react';
 import { useTranslation, useSession, useUI, useComparison } from '../contexts';
 import { chatService, playerService } from '../api/api';
@@ -23,7 +23,13 @@ const ChatInterface = ({ expanded = true }) => {
   const [selectedPlayersForComparison, setSelectedPlayersForComparison] = useState([]);
   const [lastSearchResults, setLastSearchResults] = useState([]);
   
+  // Refs for layout calculation
+  const messagesContainerRef = useRef(null);
+  const inputAreaRef = useRef(null);
   const messagesEndRef = useRef(null);
+
+  // State for input area height
+  const [inputAreaHeight, setInputAreaHeight] = useState(0);
   
   // Scroll to bottom when chat history changes
   useEffect(() => {
@@ -31,6 +37,29 @@ const ChatInterface = ({ expanded = true }) => {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [chatHistory]);
+
+  // Calculate and set input area height for dynamic padding
+  const updateInputAreaHeight = useCallback(() => {
+    if (inputAreaRef.current) {
+      setInputAreaHeight(inputAreaRef.current.offsetHeight);
+    }
+  }, []);
+
+  useEffect(() => {
+    updateInputAreaHeight();
+    window.addEventListener('resize', updateInputAreaHeight);
+    // Also update if isLoading changes, as it affects visibility
+    return () => window.removeEventListener('resize', updateInputAreaHeight);
+  }, [updateInputAreaHeight, isLoading]);
+
+  // Update height when isLoading or chatHistory changes
+  useEffect(() => {
+    // Update immediately
+    updateInputAreaHeight(); 
+    // Also update after a short delay in case of transition/animation
+    const timer = setTimeout(updateInputAreaHeight, 50); 
+    return () => clearTimeout(timer);
+  }, [isLoading, chatHistory.length, updateInputAreaHeight]); // Depend on isLoading, chatHistory length, and the update function
 
   /**
    * Handle form submission to send message
@@ -66,11 +95,13 @@ const ChatInterface = ({ expanded = true }) => {
          
       // Add user's message to chat
       addMessage({ text: input, sender: 'user' });
+      const currentInput = input; // Store input before clearing
+      setInput(''); // Clear input immediately
 
       // Prepare the request body for the unified backend
       const requestBody = {
         session_id: sessionId,
-        query: input,
+        query: currentInput, // Use stored input for the API call
         is_follow_up: chatHistory.length > 0,
         satisfaction: isSatisfactionResponse ? false : null,
         language: currentLanguage
@@ -215,7 +246,7 @@ const ChatInterface = ({ expanded = true }) => {
       });
     } finally {
       setIsLoading(false);
-      setInput('');
+      // Input is already cleared, just reset search status
       // Reset the player search status for the next query
       // We'll set it again when the next query is submitted
       setTimeout(() => setIsPlayerSearch(false), 500);
@@ -402,7 +433,8 @@ const ChatInterface = ({ expanded = true }) => {
   };
 
   return (
-    <div className="flex flex-col w-full h-full md:h-auto transition-all duration-300 bg-gray-900 border-r border-gray-700 chat-container overflow-hidden">
+    // Ensure h-screen and overflow-hidden on root
+    <div className="flex flex-col w-full h-screen md:h-auto transition-all duration-300 bg-gray-900 border-r border-gray-700 chat-container overflow-hidden"> 
       {/* Mokoto Glitch styled header */}
       <div className="bg-gradient-to-r from-green-900 to-blue-900 p-4 flex items-center border-b border-gray-700 relative overflow-hidden">
         {/* Glitch effect patterns */}
@@ -431,7 +463,12 @@ const ChatInterface = ({ expanded = true }) => {
       </div>
 
       {/* Chat Area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-900 bg-opacity-90 relative custom-scrollbar" style={{ maxHeight: 'calc(100vh - 140px)' }}>
+      {/* Chat Area - Dynamic padding applied with transition */}
+      <div 
+        className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-900 bg-opacity-90 relative custom-scrollbar transition-all duration-300 ease-in-out" // Added transition
+        ref={messagesContainerRef}
+        style={{ paddingBottom: `${inputAreaHeight}px` }} // Dynamic padding
+      >
         {/* Soccer field background pattern */}
         <div className="absolute inset-0 opacity-5 pointer-events-none">
           <div className="w-full h-full border-2 border-white"></div>
@@ -656,14 +693,18 @@ const ChatInterface = ({ expanded = true }) => {
         <div ref={messagesEndRef} />
       </div>
       
-      {/* Input Area - fixed at bottom of chat */}
-      <div className="border-t border-gray-700 p-3 bg-gray-800 sticky bottom-0 left-0 right-0 z-20">
+      {/* Input Area - Restored fixed positioning */}
+      {/* Input Area - Fixed positioning, adjusted for sidebar on desktop */}
+      <div
+        className="border-t border-gray-700 p-3 bg-gray-800 fixed bottom-0 left-0 right-0 md:left-64 z-20" // Removed transition-transform and style
+        ref={inputAreaRef} // Add ref to the input area
+      >
         <form onSubmit={handleSubmit} className="flex">
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            className="flex-1 bg-gray-700 border border-gray-600 rounded-l-lg py-3 px-4 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+            className="flex-1 bg-gray-700 border border-gray-600 rounded-l-lg py-2 px-4 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent" // Changed py-3 to py-2
             placeholder={t('chat.inputPlaceholder')}
             disabled={isLoading}
           />
