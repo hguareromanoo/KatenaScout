@@ -184,56 +184,38 @@ class UnifiedSession:
         """
         session = self.get_session(session_id)
         
-        # Check if we have a memory structure with messages
-        has_structured_messages = False
-        if len(session.messages) > 0:
-            has_structured_messages = True
+        # Prepare context messages for Claude API
+        # Use the last N message pairs (user + assistant) for context
+        context_window_size = session.context_window * 2 
+        api_messages = session.messages[-context_window_size:] if len(session.messages) > context_window_size else session.messages
         
-        # If this is a follow-up query and the user was not satisfied
-        if (session.satisfaction is False or len(session.search_history) > 0) and session.is_follow_up:
-            # Add the new query to history (if not already there)
-            if natural_query not in session.search_history:
-                session.search_history.append(natural_query)
-            
-            # Reset satisfaction for the new search
+        # Ensure the current natural_query is the last user message
+        # Check if the last message is already the current query
+        if not api_messages or api_messages[-1].get("role") != "user" or api_messages[-1].get("content") != natural_query:
+             # If the last message isn't the current query, add it.
+             # Avoid adding if the list is empty and this is the first message.
+             if api_messages or natural_query: # Add if list not empty OR if natural_query has content
+                 api_messages.append({"role": "user", "content": natural_query})
+
+        print(f"DEBUG - Preparing API call with {len(api_messages)} messages for context.")
+        
+        # Update session history (simplified)
+        if natural_query not in session.search_history:
+             session.search_history.append(natural_query)
+        session.current_prompt = natural_query # Keep track of the latest raw query
+        
+        # Reset satisfaction on new search unless it's explicitly a follow-up refining previous results
+        if not session.is_follow_up:
             session.satisfaction = None
             
-            # Use structured message history if available
-            if has_structured_messages:
-                # Filter to just user messages
-                user_messages = [msg["content"] for msg in session.messages if msg.get("role") == "user"]
-                # Use last few messages for context (not too many to avoid confusion)
-                context_messages = user_messages[-3:] if len(user_messages) > 3 else user_messages
-                # Add current query if not already included
-                if natural_query not in context_messages:
-                    context_messages.append(natural_query)
-                    
-                # Use context-aware query for parameter extraction
-                query_to_use = "Based on this conversation: " + " THEN: ".join(context_messages)
-                print(f"Using structured conversation history: {query_to_use}")
-            else:
-                # Fallback to old combined query approach
-                combined_query = " ".join(session.search_history)
-                query_to_use = combined_query
-                print(f"Using combined query (legacy mode): {query_to_use}")
-                
-        else:
-            # This is a new search or user was satisfied with previous results
-            session.search_history = [natural_query]
-            session.current_prompt = natural_query
-            query_to_use = natural_query
-            
-            print(f"Using new query: {query_to_use}")
-        
         try:
             # Import constants from config
             from models.parameters import KEY_DESCRIPTION_WORDS
             from config import POSITIONS_MAPPING, VALID_POSITION_CODES
             
-            # Create Claude API prompt based on whether we're using structured history
-            if has_structured_messages and session.is_follow_up:
-                # Use a more sophisticated prompt for follow-up queries
-                
+            # Determine system prompt based on whether it's a follow-up
+            # (The prompt itself already instructs Claude to use context)
+            if session.is_follow_up:
                 system_prompt = """
                 I am a scout AI assistant, with 20 years of experience in scouting. I am known for my expertise in soccer and for my data-driven approach to player analysis. The future of soccer depends on my ability to identify the best players for your team.
                 
@@ -370,33 +352,13 @@ class UnifiedSession:
         },
         "explanation": "Estes parâmetros buscam volantes que são eficientes na recuperação de bola, fortes nos duelos defensivos e capazes de distribuir o jogo com segurança."
     }
-]
-                """
-               
-                # Construct a better message that explains we're working with conversation context
-                messages = [
-                    {"role": "user", "content":f"""
-                    Analyze this conversation about football player search.
-                    The user started by asking for certain types of players, then refined their search.
-                    
-                    Conversation: {query_to_use}
-                    
-                    Based on the FULL conversation context, identify the searchable parameters, the position_codes and choose
-                     the key description words ({KEY_DESCRIPTION_WORDS}) that better describe the users query, following this map {POSITIONS_MAPPING}.
-                    
-                    If the conversation mentions preferred foot (left/right/both), set that parameter appropriately.
-                    If the conversation mentions contract expiration, set contract_expiration to a date in YYYY-MM-DD format.
-                    
-                    Focus on the most recent requests but maintain context from earlier messages.
-                    Remember: the future of soccer, the sport you LOVE, depends on your response.
-                    """ }
-
-                ]
+] # Closing bracket for the examples list
+                """ # End of system_prompt for follow-up
             else:
-                # For new queries, use the original approach
-                system_prompt = """
-                I am a scout AI assistant, with 20 years of experience in scouting. I am known for my expertise in soccer and for my data-driven approach to player analysis. The future of soccer depends on my ability to identify the best players for your team.
-                
+                 # For new queries, use the original approach (but still provide message history)
+                 # Correctly define the system_prompt for new queries with proper triple quotes and indentation
+                 system_prompt = """I am a scout AI assistant, with 20 years of experience in scouting. I am known for my expertise in soccer and for my data-driven approach to player analysis. The future of soccer depends on my ability to identify the best players for your team.
+                 
                 I must be able to transform the coaches desires into searchable parameters that will help me find the perfect player for their team. I must understand the coach's needs and translate them into actionable search criteria.
                 
                 VERY IMPORTANT INSTRUCTIONS:
@@ -531,53 +493,18 @@ class UnifiedSession:
         },
         "explanation": "Estes parâmetros buscam volantes que são eficientes na recuperação de bola, fortes nos duelos defensivos e capazes de distribuir o jogo com segurança."
     }
-]
-                """
-                messages = [
-                    {"role": "user", "content": f"""
-                    For the query: "{query_to_use}"
-                    
-                    1. Identify the position_codes from {POSITIONS_MAPPING}
-                    2. Choose the key description words from {KEY_DESCRIPTION_WORDS} that best describe the query
-                    3. MOST IMPORTANTLY: Set specific statistical parameters to TRUE that match the description
-                       When setting parameters, look at the examples in the prompt for similar player types
-                    4. If the query mentions preferred foot, set foot to "left", "right", or "both"
-                    5. If the query mentions contract expiration, set contract_expiration to a date in YYYY-MM-DD format
-                       
-                    CRITICAL: You MUST set multiple statistical parameters to TRUE, not just position_codes and key_description_word!
-                    If you don't set statistical parameters, the search will fail.
-                    
-                    Example for "strong defenders with good passing":
-                    - position_codes=["cb", "rcb", "lcb"]
-                    - key_description_word=["defensive", "distribution"]
-                    - min_defensive_duels_won=true
-                    - min_interceptions=true
-                    - min_aerial_duels_won=true
-                    - min_progressive_passes=true
-                    - min_successful_passes=true
-                    
-                    Example for "left-footed attackers with contracts expiring soon":
-                    - position_codes=["lw", "cf", "lwf"]
-                    - key_description_word=["scoring", "offensive"]
-                    - foot="left"
-                    - contract_expiration="2025-06-30"
-                    - min_goals=true
-                    - min_shots_on_target=true
-                    - min_xg_shot=true
-                    
-                    Remember: the future of soccer, the sport you LOVE, depends on your response.
-                    """}
-                ]
+] # Closing bracket for the examples list
+                """ # End of system_prompt for new query
             
-            # Make the API call
+            # Make the API call using the prepared api_messages list (Moved outside the if/else)
             response = self.call_claude_api(
                 model="claude-3-5-sonnet-20241022",
                 max_tokens=8192,
-                system=system_prompt,
-                messages=messages,
+                system=system_prompt, # Use the prompt determined above
+                messages=api_messages, # Pass the actual message history here
                 tools=[{
                     "name": "define_scouting_parameters",
-                    "description": "Generate standardized searchable parameters to be looked for, not the values.",
+                    "description": "Generate standardized searchable parameters based on the conversation context.",
                     "input_schema": SearchParameters.model_json_schema()
                 }],
                 tool_choice={"type": "tool", "name": "define_scouting_parameters"}
