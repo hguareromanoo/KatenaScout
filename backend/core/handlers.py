@@ -6,12 +6,15 @@ This module contains handlers for different user intents.
 
 from typing import Dict, List, Any, Optional
 import json
-from core.session import SessionData
-from core.intent import generate_follow_up_suggestions
-from core.comparison import compare_players, find_players_for_comparison
+from core.session import SessionData, UnifiedSession # Need UnifiedSession for type hint
+from core.intent import generate_follow_up_suggestions, extract_comparison_entities # Keep entity extraction reference if needed elsewhere
+# Import the new function and keep the old ones for now
+from core.comparison import compare_players, find_players_for_comparison, generate_in_chat_comparison_text 
 from config import SUPPORTED_LANGUAGES
+from models.parameters import SearchParameters # Needed for aspect_params type hint
+from services.data_service import find_player_by_id # Needed to resolve names to IDs
 
-# Language-specific prompts for response generation
+# Language-specific prompts for response generation (Keep this function as it might be used elsewhere)
 def get_language_specific_prompt(language: str) -> str:
     """Get language-specific system prompt for response generation"""
     prompts = {
@@ -120,7 +123,7 @@ def handle_player_search(session: SessionData, message: str, session_manager) ->
         print(f"DEBUG - About to search with params: {params}")
         players = session_manager.search_players(params)
         print(f"DEBUG - Search returned players of type: {type(players)}")
-        print(f"DEBUG - Players value: {players}")
+        # print(f"DEBUG - Players value: {players}") # Avoid printing large data
         
         # Validate the players return value
         if not isinstance(players, list):
@@ -128,7 +131,7 @@ def handle_player_search(session: SessionData, message: str, session_manager) ->
         
         # Update session with players found
         if players:
-            print(f"DEBUG - Updating session.selected_players with players")
+            print(f"DEBUG - Updating session.selected_players with {len(players)} players")
             session.selected_players = players
         
         # Generate follow-up suggestions
@@ -140,8 +143,6 @@ def handle_player_search(session: SessionData, message: str, session_manager) ->
         
         try:
             # Clean players data before sending to Claude to avoid token overflow
-            # We remove the complete_profile from players for the LLM
-            # but keep it in the response to the frontend
             cleaned_players = clean_players_for_claude(players)
             
             # Create conversational response
@@ -155,15 +156,19 @@ def handle_player_search(session: SessionData, message: str, session_manager) ->
                 ]
             )
             
-            text_response = claude_response.content[0].text
-            
+            text_response = ""
+            if claude_response.content:
+                 for content_item in claude_response.content:
+                      if hasattr(content_item, 'text'):
+                           text_response += content_item.text
+
             # Add response to session history
             session.messages.append({"role": "assistant", "content": text_response})
             
             # Return the response data
             return {
                 "type": "search_results",
-                "players": players,
+                "players": players, # Return full player data to frontend
                 "text": text_response,
                 "follow_up_suggestions": suggestions
             }
@@ -177,7 +182,7 @@ def handle_player_search(session: SessionData, message: str, session_manager) ->
                 name = player.get('name', 'Unknown')
                 positions = ', '.join(player.get('positions', ['Unknown']))
                 score = player.get('score', 0)
-                fallback_response += f"- {name} ({positions}) - Score: {score}\n"
+                fallback_response += f"- {name} ({positions}) - Score: {score:.2f}\n" # Format score
             
             # Add response to session history
             session.messages.append({"role": "assistant", "content": fallback_response})
@@ -196,92 +201,159 @@ def handle_player_search(session: SessionData, message: str, session_manager) ->
             "message": f"Error searching for players: {str(e)}"
         }
 
-def handle_player_comparison(session: SessionData, message: str, session_manager) -> Dict[str, Any]:
+def handle_player_comparison(session: SessionData, message: str, session_manager: UnifiedSession) -> Dict[str, Any]:
     """
-    Handle player comparison intent
+    Handle player comparison intent, fetching focused data based on query aspects.
     
     Args:
         session: The session data
-        message: The user message
-        session_manager: The session manager
+        message: The user message (comparison query)
+        session_manager: The session manager instance
         
     Returns:
-        Response data
+        Response data (type 'text' or 'error')
     """
     try:
-        # Get the players to compare from entities
-        if hasattr(session, "entities") and "players_to_compare" in session.entities:
-            player_names = session.entities["players_to_compare"]
-            
-            # If specific players were mentioned
-            if player_names:
-                # Get original query for additional context
-                original_query = session.entities.get("original_query", message)
-                
-                # Find these players by their names (from chat interface)
-                players = find_players_for_comparison(
-                    session_manager,
-                    session.session_id,
-                    player_names,  # pass player names as identifiers
-                    session.language,
-                    source="chat",  # indicate this is from chat interface
-                    original_query=original_query  # pass original query for context
-                )
-            # Otherwise, check if it's a "top N" comparison
-            elif hasattr(session, "entities") and session.entities.get("compare_top_n", False):
+        print(f"DEBUG: Entering handle_player_comparison for message: '{message}'")
+        
+        # 1. Extract comparison focus/aspects using get_parameters on the comparison query
+        aspect_params: Optional[SearchParameters] = None
+        try:
+            # Use the original comparison message to find focus parameters
+            aspect_params = session_manager.get_parameters(session.session_id, message) 
+            print(f"DEBUG: Extracted aspect_params for comparison focus: {aspect_params.get_true_parameters() if aspect_params else 'None'}")
+        except ValueError as e:
+            # If get_parameters fails for the comparison query, proceed without specific aspects
+            print(f"Warning: Could not extract aspect parameters from comparison query '{message}': {e}. Proceeding with general comparison.")
+            aspect_params = None # Ensure it's None if extraction fails
+
+        # 2. Identify players to compare (using entities already extracted by app.py)
+        player_identifiers = []
+        original_query = message # Default original query
+        compare_top_n = False
+        top_n = 2
+
+        # Use entities populated by extract_comparison_entities (called in app.py)
+        if hasattr(session, "entities"):
+            player_identifiers = session.entities.get("players_to_compare", [])
+            original_query = session.entities.get("original_query", message) # Use query from entity extraction if available
+            compare_top_n = session.entities.get("compare_top_n", False)
+            if compare_top_n:
                 top_n = session.entities.get("top_n", 2)
-                
-                # Use the top N players from the last search
-                if session.selected_players:
-                    players = session.selected_players[:top_n]
-                else:
-                    return {
-                        "type": "error",
-                        "message": "No players available for comparison. Please search for players first."
-                    }
-            else:
-                # If no specific players mentioned and not a "top N" request
-                return {
-                    "type": "error", 
-                    "message": "Please specify which players you'd like to compare."
-                }
+        
+        print(f"DEBUG: Player identifiers from entities: {player_identifiers}")
+        print(f"DEBUG: Compare Top N from entities: {compare_top_n}, N={top_n}")
+
+        players_to_fetch_stubs = [] # Basic info (name, id)
+        if compare_top_n:
+             # Use top N players from the last search results stored in the session
+             if hasattr(session, 'selected_players') and isinstance(session.selected_players, list) and len(session.selected_players) >= top_n:
+                  players_to_fetch_stubs = session.selected_players[:top_n]
+                  print(f"DEBUG: Identified top {top_n} players from session for comparison.")
+             else:
+                  return {"type": "error", "message": f"Not enough players in previous results to compare the top {top_n}."}
+        elif player_identifiers:
+             # Resolve the extracted identifiers (names or IDs) to basic player stubs
+             # This function should ideally return stubs with at least name and ID
+             players_to_fetch_stubs = find_players_for_comparison(
+                 session_manager, session.session_id, player_identifiers, session.language, source="chat", original_query=original_query
+             )
+             print(f"DEBUG: Resolved identifiers to {len(players_to_fetch_stubs)} player stubs.")
         else:
-            # No entities detected, use top 2 from recent search
-            if session.selected_players and len(session.selected_players) >= 2:
-                players = session.selected_players[:2]
-            else:
-                return {
-                    "type": "error",
-                    "message": "No players to compare. Please search for players first or specify which players to compare."
-                }
-        
-        # Ensure we have at least 2 players to compare
-        if len(players) < 2:
-            return {
-                "type": "error",
-                "message": "At least two players are needed for comparison."
-            }
-        
-        # Generate the comparison
-        comparison_result = compare_players(
-            players=players,
+             # Fallback if no specific players identified and not top_n
+             if hasattr(session, 'selected_players') and isinstance(session.selected_players, list) and len(session.selected_players) >= 2:
+                  players_to_fetch_stubs = session.selected_players[:2]
+                  print("DEBUG: Using first 2 players from session as fallback for comparison.")
+             else:
+                  # If still no players, return error
+                  return {"type": "error", "message": "Could not identify which players to compare."}
+
+        # Ensure we have exactly 2 players after resolution/selection
+        if len(players_to_fetch_stubs) < 2:
+            return {"type": "error", "message": "Could not find at least two valid players for comparison."}
+        elif len(players_to_fetch_stubs) > 2:
+             print(f"Warning: More than 2 players identified ({len(players_to_fetch_stubs)}), using the first two.")
+             players_to_fetch_stubs = players_to_fetch_stubs[:2]
+
+
+        # 3. Fetch detailed data for the identified players using aspect_params
+        focused_players_data = []
+        for player_stub in players_to_fetch_stubs:
+            # Ensure player_stub is a dict
+            if not isinstance(player_stub, dict):
+                print(f"Warning: Player stub is not a dictionary: {player_stub}. Skipping.")
+                continue
+
+            player_id = player_stub.get("wyId") or player_stub.get("id") # Prefer wyId if available
+            player_name = player_stub.get("name", "Unknown")
+            
+            if not player_id:
+                 # Attempt to resolve ID if missing (e.g., if find_players_for_comparison only returned name)
+                 print(f"Warning: No ID found for {player_name} in stub, attempting direct lookup.")
+                 try:
+                      # This assumes find_player_by_id can handle name lookups if needed
+                      found_player_data = find_player_by_id(player_name) 
+                      if found_player_data:
+                           player_id = found_player_data.get("wyId") or found_player_data.get("id")
+                           print(f"DEBUG: Resolved ID for {player_name} to {player_id}")
+                      else:
+                           print(f"Error: Could not resolve ID for player {player_name}. Skipping.")
+                           continue 
+                 except Exception as lookup_err:
+                      print(f"Error looking up ID for {player_name}: {lookup_err}. Skipping.")
+                      continue
+
+            print(f"DEBUG: Fetching detailed info for player ID: {player_id} using aspect_params.")
+            try:
+                # Call get_players_info with the aspect_params extracted earlier
+                # Ensure player_id is a string for the function call
+                detailed_info = session_manager.get_players_info(str(player_id), params=aspect_params) 
+                
+                if detailed_info and not detailed_info.get('error'):
+                    # Ensure the fetched data includes the correct name for the comparison function
+                    detailed_info['name'] = player_name # Explicitly set the correct name
+                    focused_players_data.append(detailed_info) 
+                else:
+                    print(f"Warning: Could not get detailed info for player ID {player_id}. Using stub data for comparison.")
+                    focused_players_data.append(player_stub) # Fallback to basic data
+            except Exception as info_err:
+                 print(f"Error fetching detailed info for player ID {player_id}: {info_err}")
+                 focused_players_data.append(player_stub) # Fallback to basic data
+
+        # Ensure we still have 2 players after fetching detailed data
+        if len(focused_players_data) < 2:
+              return {"type": "error", "message": "Failed to retrieve sufficient detailed data for comparison."}
+
+        # --- LOGGING BEFORE TEXT GENERATION ---
+        print(f"DEBUG LOG (handle_player_comparison):")
+        print(f"  - Aspect Params Flags: {aspect_params.get_true_parameters() if aspect_params else 'None'}")
+        print(f"  - Player 1 Data for LLM:")
+        print(f"    - Name: {focused_players_data[0].get('name')}")
+        print(f"    - Stats Dict: {focused_players_data[0].get('stats', {})}")
+        print(f"  - Player 2 Data for LLM:")
+        print(f"    - Name: {focused_players_data[1].get('name')}")
+        print(f"    - Stats Dict: {focused_players_data[1].get('stats', {})}")
+        # --- END LOGGING ---
+
+        # 4. Generate comparison text using focused data
+        print(f"DEBUG: Generating in-chat comparison for {len(focused_players_data)} players.")
+        comparison_text = generate_in_chat_comparison_text(
+            players=focused_players_data, # Pass the data with potentially focused stats
             session_manager=session_manager,
-            language=session.language
+            language=session.language,
+            original_query=original_query
         )
         
-        # Add comparison to session history
+        # 5. Add comparison text to session history
         session.messages.append({
             "role": "assistant", 
-            "content": comparison_result["comparison"]
+            "content": comparison_text
         })
         
-        # Return the comparison data with in_chat_comparison flag
+        # 6. Return a simple text response
         return {
-            "type": "player_comparison",
-            "players": players,
-            "text": comparison_result["comparison"],
-            "comparison_aspects": comparison_result["comparison_aspects"],
-            "in_chat_comparison": True  # Flag to indicate this is an in-chat comparison
+            "type": "text", 
+            "text": comparison_text
         }
     except Exception as e:
         print(f"Error in handle_player_comparison: {str(e)}")
@@ -329,8 +401,12 @@ def handle_stats_explanation(session: SessionData, message: str, session_manager
             ]
         )
         
-        explanation_text = claude_response.content[0].text
-        
+        explanation_text = ""
+        if claude_response.content:
+             for content_item in claude_response.content:
+                  if hasattr(content_item, 'text'):
+                       explanation_text += content_item.text
+
         # Create a structured explanations dictionary
         explanations = {}
         
@@ -446,7 +522,12 @@ def handle_casual_chat(session: SessionData, message: str, session_manager) -> D
         )
         
         # Extract the response text
-        response_text = response.content[0].text
+        response_text = ""
+        if response.content:
+             for content_item in response.content:
+                  if hasattr(content_item, 'text'):
+                       response_text += content_item.text
+
         
         # Add the response to session history
         session.messages.append({"role": "assistant", "content": response_text})
@@ -497,8 +578,3 @@ def handle_fallback(session: SessionData, message: str, session_manager) -> Dict
     
     fallback_text = fallbacks.get(language, fallbacks["english"])
     session.messages.append({"role": "assistant", "content": fallback_text})
-    
-    return {
-        "type": "text",
-        "text": fallback_text
-    }

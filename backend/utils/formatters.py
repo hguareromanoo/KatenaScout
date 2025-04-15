@@ -113,6 +113,7 @@ def format_search_response(
     # Store raw players in the response for direct use
     response_data = {
         'success': True,
+        'type': 'search_results', # Explicitly add type
         'response': main_response,
         'satisfaction_question': satisfaction_question,
         'players': raw_players,  # Use raw players directly
@@ -158,7 +159,9 @@ def format_comparison_response(
     # Store raw players in the response for direct use
     response_data = {
         'success': True,
-        'comparison': comparison_text,
+        'type': 'player_comparison', # Explicitly add type
+        'comparison': comparison_text, # Keep original field name for compatibility if needed
+        'text': comparison_text, # Also use 'text' for consistency? Or rely on formatter in app.py? Let's keep both for now.
         'comparison_aspects': comparison_aspects or [],
         'players': raw_players,  # Use raw players directly
         'language': language,

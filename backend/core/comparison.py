@@ -4,6 +4,132 @@ Player comparison functionality for KatenaScout
 
 from typing import List, Dict, Any, Optional
 from models.parameters import SearchParameters
+import json # Added for formatting player data
+import os # Added for path joining
+import unicodedata # Added for name normalization
+
+# Import constants related to player images
+from config import PLAYER_IMAGES_DIR
+# Import necessary functions from data_service (assuming it exists)
+# If these functions are defined elsewhere, adjust the import path
+try:
+    from services.data_service import find_player_by_id, find_player_by_name
+except ImportError:
+    print("Warning: Could not import find_player_by_id or find_player_by_name from services.data_service.")
+    # Define dummy functions if needed for the code to run without the service
+    def find_player_by_id(player_id_str): return None
+    def find_player_by_name(name_identifier): return None
+
+
+# Helper function to get language-specific prompts (moved to top for clarity)
+def get_language_specific_comparison_prompt(language: str) -> str:
+    """Get language-specific system prompt for player comparison"""
+    prompts = {
+        "english": """You are a football expert system that compares players based on their statistics and profiles.
+Your task is to provide clear, insightful comparisons highlighting key differences between players.
+Focus on their strengths, weaknesses, playing styles, and how they might fit different tactical systems.
+Use football terminology appropriately but ensure explanations remain accessible.
+Always back up your comparisons with specific statistical evidence.
+End your analysis by listing the key aspects you compared.""",
+
+        "portuguese": """Você é um sistema especialista em futebol que compara jogadores com base em suas estatísticas e perfis.
+Sua tarefa é fornecer comparações claras e perspicazes destacando as principais diferenças entre jogadores.
+Concentre-se em seus pontos fortes, pontos fracos, estilos de jogo e como eles podem se adequar a diferentes sistemas táticos.
+Use terminologia de futebol adequadamente, mas garanta que as explicações permaneçam acessíveis.
+Sempre apoie suas comparações com evidências estatísticas específicas.
+Termine sua análise listando os principais aspectos que você comparou.""",
+
+        "spanish": """Eres un sistema experto en fútbol que compara jugadores según sus estadísticas y perfiles.
+Tu tarea es proporcionar comparaciones claras y perspicaces destacando las diferencias clave entre jugadores.
+Concéntrate en sus fortalezas, debilidades, estilos de juego y cómo podrían adaptarse a diferentes sistemas tácticos.
+Utiliza la terminología futbolística de manera apropiada pero asegúrate de que las explicaciones sigan siendo accesibles.
+Respalda siempre tus comparaciones con evidencia estadística específica.
+Finaliza tu análisis enumerando los aspectos clave que comparaste.""",
+
+        "bulgarian": """Вие сте експертна футболна система, която сравнява играчи въз основа на техните статистики и профили.
+Вашата задача е да предоставите ясни, проницателни сравнения, подчертавайки ключовите разлики между играчите.
+Фокусирайте се върху техните силни страни, слабости, стилове на игра и как биха паснали в различни тактически системи.
+Използвайте футболна терминология по подходящ начин, но се уверете, че обясненията остават достъпни.
+Винаги подкрепяйте сравненията си с конкретни статистически доказателства.
+Завършете анализа си, като изброите ключовите аспекти, които сте сравнили."""
+    }
+    
+    return prompts.get(language, prompts["english"])
+
+def generate_in_chat_comparison_text(
+    players: List[Dict[str, Any]],
+    session_manager,
+    language: str = "english",
+    original_query: str = None, # Added original query for context
+    
+) -> str:
+    """
+    Generates a concise textual comparison summary suitable for chat, focusing on relevant stats.
+
+    Args:
+        players: List of player data dictionaries (at least 2). Should contain stats fetched by get_players_info.
+        session_manager: The session manager instance to call the LLM.
+        language: The language for the response.
+        original_query: The user's original query that triggered the comparison.
+        aspect_params: The parameters extracted from the comparison query, used to determine focus.
+
+    Returns:
+        A string containing the comparison text.
+    """
+    if len(players) < 2:
+        return "Cannot generate comparison text, need at least two players."
+
+    player_to_compare =[]
+
+    for player in players:
+
+        player_to_compare.append({
+            "name": player.get("name", "Unknown"),
+            "positions": player.get("positions", []),
+            "age": player.get("age"),
+            "height": player.get("height"),
+            "weight": player.get("weight"),
+            "foot": player.get("foot"),
+            "stats": player.get("stats", {})
+        })
+    # System prompt focused on concise chat summary, emphasizing the *provided* stats
+    system_prompt = f"""You are a concise football analyst providing quick comparison summaries in {language}. 
+Focus on the main differences and key strengths/weaknesses based *only* on the provided data fields (name, positions, age, stats, height, weight). 
+Keep the response suitable for a chat interface (a few paragraphs maximum). Do NOT list 'Key comparison aspects'."""
+
+    # User prompt including the potentially filtered player data and original query
+    # Use ensure_ascii=False for potentially non-ASCII characters in names/stats
+    user_prompt = f"""Based *only* on the provided data below, briefly compare these two players according to the user's request "{original_query or 'compare players'}":
+
+Player 1: {json.dumps(player_to_compare[0], indent=2, ensure_ascii=False)}
+
+Player 2: {json.dumps(player_to_compare[1], indent=2, ensure_ascii=False)}
+
+Provide a short summary comparing their main characteristics and suitability based *specifically on the stats provided* and the user's request. Respond in {language}."""
+
+    try:
+        print(f"DEBUG: Calling LLM for in-chat comparison text generation.")
+        response = session_manager.call_claude_api(
+            model="claude-3-5-sonnet-20241022", # Consider a faster/smaller model if needed
+            max_tokens=500, # Limit token usage for chat response
+            system=system_prompt,
+            messages=[{"role": "user", "content": user_prompt}]
+        )
+        
+        # Extract the comparison text
+        comparison_text = ""
+        if response.content:
+             for content_item in response.content:
+                  if hasattr(content_item, 'text'):
+                       comparison_text += content_item.text
+        
+        print(f"DEBUG: LLM comparison text generated successfully.")
+        return comparison_text if comparison_text else "I couldn't generate a comparison for these players right now."
+
+    except Exception as e:
+        print(f"Error generating in-chat comparison text: {str(e)}")
+        return f"Sorry, I encountered an error trying to compare the players ({str(e)})."
+
 
 def compare_players(
     players: List[Dict[str, Any]], 
@@ -14,16 +140,18 @@ def compare_players(
     formation: str = ""
 ) -> Dict[str, Any]:
     """
-    Generate a comparison between players
+    Generate a detailed comparison between players for the comparison page.
     
     Args:
         players: List of player data to compare (at least 2)
         session_manager: The session manager for API calls
         language: Language for the comparison
         search_weights: Optional weights from search parameters
+        playing_style: Optional tactical playing style context
+        formation: Optional tactical formation context
         
     Returns:
-        Dictionary with comparison text and aspects compared
+        Dictionary with detailed comparison text, aspects, and enhanced data.
     """
     # Ensure we have at least 2 players to compare
     if len(players) < 2:
@@ -37,6 +165,7 @@ def compare_players(
     player_info = []
     for player in players:
         # Create a simplified player data structure for the prompt
+        # Include more stats for detailed comparison
         player_data = {
             "name": player.get("name", "Unknown"),
             "positions": player.get("positions", []),
@@ -45,7 +174,8 @@ def compare_players(
             "weight": player.get("weight"),
             "foot": player.get("foot"),
             "nationality": player.get("nationality"),
-            "stats": player.get("stats", {})
+            # Use complete_profile stats if available, otherwise fallback to main stats
+            "stats": player.get("complete_profile", {}).get("stats", player.get("stats", {})) 
         }
         player_info.append(player_data)
 
@@ -70,26 +200,23 @@ def compare_players(
     all_players_description = "\n\n".join(player_descriptions)
     
     # Generate system prompt based on language
-    system_prompt = get_language_specific_prompt(language)
+    system_prompt = get_language_specific_comparison_prompt(language) # Use helper
     
     # Create tactical context if provided
-    tactical_context = {
+    tactical_context_dict = {
         "english": f"\nPlease analyze them specifically for a {playing_style.replace('_', ' ').title()} style of play in a {formation} formation.",
         "portuguese": f"\nPor favor, analise-os especificamente para um estilo de jogo {playing_style.replace('_', ' ').title()} em uma formação {formation}.",
         "spanish": f"\nPor favor, analízalos específicamente para un estilo de juego {playing_style.replace('_', ' ').title()} en una formación {formation}.",
         "bulgarian": f"\nМоля, анализирайте ги специално за стил на игра {playing_style.replace('_', ' ').title()} във формация {formation}."
-    } if playing_style and formation else {
-        "english": "",
-        "portuguese": "",
-        "spanish": "",
-        "bulgarian": ""
-    }
+    } if playing_style and formation else { lang: "" for lang in ["english", "portuguese", "spanish", "bulgarian"]}
     
+    tactical_context = tactical_context_dict.get(language, "")
+
     # Get language-specific user prompts
     user_prompts = {
         "english": f"""Please compare the following players:
 
-{all_players_description}{tactical_context["english"]}
+{all_players_description}{tactical_context}
 
 Compare these players focusing on their strengths, weaknesses, and how they differ from each other. Consider their statistics, positions, and overall profiles.
 
@@ -99,7 +226,7 @@ Then, identify the key aspects you compared (like "Passing", "Shooting", "Physic
 """,
         "portuguese": f"""Por favor, compare os seguintes jogadores:
 
-{all_players_description}{tactical_context["portuguese"]}
+{all_players_description}{tactical_context}
 
 Compare estes jogadores focando em seus pontos fortes, pontos fracos e como eles diferem um do outro. Considere suas estatísticas, posições e perfis gerais.
 
@@ -109,7 +236,7 @@ Em seguida, identifique os principais aspectos que você comparou (como "Passe",
 """,
         "spanish": f"""Por favor, compara los siguientes jugadores:
 
-{all_players_description}{tactical_context["spanish"]}
+{all_players_description}{tactical_context}
 
 Compara estos jugadores centrándote en sus fortalezas, debilidades y cómo se diferencian entre sí. Considera sus estadísticas, posiciones y perfiles generales.
 
@@ -119,7 +246,7 @@ Luego, identifica los aspectos clave que comparaste (como "Pases", "Tiro", "Pres
 """,
         "bulgarian": f"""Моля, сравнете следните играчи:
 
-{all_players_description}{tactical_context["bulgarian"]}
+{all_players_description}{tactical_context}
 
 Сравнете тези играчи, фокусирайки се върху техните силни страни, слаби страни и как се различават един от друг. Вземете предвид техните статистики, позиции и цялостни профили.
 
@@ -135,23 +262,25 @@ Luego, identifica los aspectos clave que comparaste (como "Pases", "Tiro", "Pres
     # Call Claude API to generate the comparison
     response = session_manager.call_claude_api(
         model="claude-3-5-sonnet-20241022",
-        max_tokens=1500,
+        max_tokens=1500, # Allow more tokens for detailed comparison
         system=system_prompt,
         messages=[{"role": "user", "content": user_message}]
     )
     
     # Extract the comparison text from the content array
     comparison_text = ""
-    for content_item in response.content:
-        if hasattr(content_item, 'text'):
-            comparison_text += content_item.text
+    if response.content:
+        for content_item in response.content:
+            if hasattr(content_item, 'text'):
+                comparison_text += content_item.text
     
     # Extract comparison aspects from the response
     aspects = []
-    if "Key comparison aspects:" in comparison_text:
+    aspects_marker = "Key comparison aspects:"
+    if aspects_marker in comparison_text:
         try:
             # Try to extract the aspects list
-            aspects_text = comparison_text.split("Key comparison aspects:")[1].strip()
+            aspects_text = comparison_text.split(aspects_marker)[1].strip()
             aspects_text = aspects_text.split("\n")[0].strip()  # Take just the first line
             
             # Remove common formatting like brackets, quotes
@@ -159,7 +288,7 @@ Luego, identifica los aspectos clave que comparaste (como "Pases", "Tiro", "Pres
             aspects_text = aspects_text.replace("'", "").replace("\"", "")
             
             # Split the comma-separated list
-            aspects = [aspect.strip() for aspect in aspects_text.split(",")]
+            aspects = [aspect.strip() for aspect in aspects_text.split(",") if aspect.strip()] # Ensure no empty strings
         except Exception as e:
             print(f"Error extracting comparison aspects: {e}")
             # Fall back to default aspects
@@ -173,7 +302,7 @@ Luego, identifica los aspectos clave que comparaste (como "Pases", "Tiro", "Pres
         from core.enhanced_comparison import enhance_player_comparison
         enhanced_data = enhance_player_comparison(
             players=players,
-            comparison_text=comparison_text,
+            comparison_text=comparison_text, # Pass the generated text
             search_weights=search_weights
         )
     except Exception as e:
@@ -181,9 +310,9 @@ Luego, identifica los aspectos clave que comparaste (como "Pases", "Tiro", "Pres
         enhanced_data = None
     
     return {
-        "comparison": comparison_text,
+        "comparison": comparison_text, # The detailed text
         "comparison_aspects": aspects,
-        "enhanced_data": enhanced_data
+        "enhanced_data": enhanced_data # The structured data
     }
 
 def find_players_for_comparison(
@@ -207,7 +336,7 @@ def find_players_for_comparison(
                while chat interface uses names extracted from natural language.
         
     Returns:
-        List of player data dictionaries
+        List of player data dictionaries (stubs with basic info like name, id, wyId)
     """
     # Log source and identifiers for debugging
     print(f"Finding players for comparison from source: {source}")
@@ -217,7 +346,7 @@ def find_players_for_comparison(
     
     # Adapt search strategy based on source
     is_chat_source = source == "chat"
-    result_players = []
+    result_players = [] # This will store player stubs (basic info)
     
     # Get the session
     session = session_manager.get_session(session_id, language)
@@ -255,8 +384,7 @@ def find_players_for_comparison(
         for identifier in player_identifiers:
             # First try to find player in memory by exact ID match
             memory_player = next(
-                (p for p in session.selected_players if str(p.get("id", "")) == str(identifier) or
-                 str(p.get("wyId", "")) == str(identifier)),
+                (p for p in session.selected_players if isinstance(p, dict) and (str(p.get("id", "")) == str(identifier) or str(p.get("wyId", "")) == str(identifier))),
                 None
             )
             
@@ -264,218 +392,123 @@ def find_players_for_comparison(
             if not memory_player and isinstance(identifier, str):
                 # Try exact match first (case-insensitive)
                 memory_player = next(
-                    (p for p in session.selected_players if 
-                     normalize_name(p.get("name", "")) == normalize_name(identifier)),
+                    (p for p in session.selected_players if isinstance(p, dict) and normalize_name(p.get("name", "")) == normalize_name(identifier)),
                     None
                 )
                 
                 # If still not found, try partial name matching
                 if not memory_player:
                     memory_player = next(
-                        (p for p in session.selected_players if 
-                         is_name_part_of(identifier, p.get("name", "")) or
-                         is_name_part_of(p.get("name", ""), identifier)),
+                        (p for p in session.selected_players if isinstance(p, dict) and (is_name_part_of(identifier, p.get("name", "")) or is_name_part_of(p.get("name", ""), identifier))),
                         None
                     )
             
             if memory_player:
-                print(f"Found player in memory: {memory_player.get('name')}")
-                result_players.append(memory_player)
+                # Avoid adding duplicates based on name
+                if not any(rp.get("name") == memory_player.get("name") for rp in result_players):
+                     print(f"Found player in memory: {memory_player.get('name')}")
+                     # Add only essential info for the stub
+                     result_players.append({
+                         "name": memory_player.get("name"),
+                         "id": memory_player.get("id"),
+                         "wyId": memory_player.get("wyId"),
+                         "positions": memory_player.get("positions", []) # Include positions if available
+                     })
+                else:
+                     print(f"Skipping duplicate player from memory: {memory_player.get('name')}")
+
     
     # Step 2: Determine which identifiers we still need to find
     remaining_identifiers = []
     for identifier in player_identifiers:
-        # Check if we already found a player for this identifier
         player_found = False
-        
         # Check by ID
         for player in result_players:
             if (str(player.get("id", "")) == str(identifier) or 
                 str(player.get("wyId", "")) == str(identifier)):
                 player_found = True
                 break
-        
         # Check by name
         if not player_found and isinstance(identifier, str):
             for player in result_players:
-                if (is_name_part_of(identifier, player.get("name", "")) or 
-                    is_name_part_of(player.get("name", ""), identifier)):
+                if is_name_part_of(identifier, player.get("name", "")):
                     player_found = True
                     break
-        
-        # If not found, add to remaining list
         if not player_found:
             remaining_identifiers.append(identifier)
     
-    # Step 3: For remaining identifiers, try direct ID lookup first
-    for identifier in remaining_identifiers[:]:  # Use a copy to safely remove items
-        try:
-            # Try to get player by ID directly first
-            print(f"Trying direct ID lookup for: {identifier}")
-            player_info = session_manager.get_players_info(identifier)
-            
-            if player_info and not player_info.get('error'):
-                print(f"Found player by ID lookup: {player_info.get('name')}")
-                result_players.append(player_info)
-                remaining_identifiers.remove(identifier)  # Remove from remaining list
-        except Exception as e:
-            print(f"Error in direct ID lookup for {identifier}: {e}")
-            # Continue to try other methods
-    
-    # Step 4: For any still remaining, try name search with improved matching
-    # Prioritize based on source
-    if is_chat_source:
-        # For chat source, prioritize all string identifiers
-        remaining_identifiers = [x for x in remaining_identifiers if isinstance(x, str)] + \
-                                [x for x in remaining_identifiers if not isinstance(x, str)]
-    else:
-        # For API source, prioritize numeric IDs first, then strings
-        def sort_key(x):
-            if isinstance(x, (int, float)) or (isinstance(x, str) and x.isdigit()):
-                return 0  # Numeric IDs first
-            else:
-                return 1  # Everything else
-        
-        remaining_identifiers = sorted(remaining_identifiers, key=sort_key)
-    
-    # Enhanced name search for remaining identifiers
-    for identifier in remaining_identifiers:
-        try:
-            # Skip non-string identifiers for name search
-            if not isinstance(identifier, str):
-                print(f"Skipping non-string identifier for name search: {identifier}")
-                continue
-            
-            print(f"Performing enhanced name search for: {identifier}")
-            
-            # Try database search with broader criteria to handle partial names
-            from models.parameters import SearchParameters
-            
-            # First try exact name search
-            search_params = SearchParameters(
-                player_name=identifier,
-                is_name_search=True
-            )
-            
-            search_results = session_manager.search_players(search_params)
-            
-            # If no results or very few, try broadening the search
-            if not search_results or len(search_results) < 2:
-                # Try variations of the name
-                name_parts = identifier.split()
-                if len(name_parts) >= 1:
-                    # If it looks like a first name, try first name search
-                    first_name_search = SearchParameters(
-                        player_name=name_parts[0],
-                        is_name_search=True
-                    )
-                    first_results = session_manager.search_players(first_name_search)
-                    
-                    # Combine results, prioritizing exact matches
-                    if first_results:
-                        # Only add results that match the original query
-                        filtered_results = []
-                        for player in first_results:
-                            if is_name_part_of(identifier, player.get("name", "")):
-                                filtered_results.append(player)
-                        
-                        # Add these to our search results
-                        if filtered_results:
-                            if not search_results:
-                                search_results = filtered_results
-                            else:
-                                # Combine without duplicates
-                                for player in filtered_results:
-                                    if not any(p.get("name") == player.get("name") for p in search_results):
-                                        search_results.append(player)
-            
-            # Process search results
-            if search_results and len(search_results) > 0:
-                # Score all players based on how well they match the identifier
-                scored_players = []
-                for player in search_results:
-                    player_name = player.get("name", "")
-                    
-                    # Calculate match score based on name containment
-                    score = 0
-                    if normalize_name(player_name) == normalize_name(identifier):
-                        score = 1.0  # Exact match
-                    elif is_name_part_of(identifier, player_name):
-                        # Partial matches score based on length of match relative to name
-                        score = len(identifier) / len(player_name)
-                    elif is_name_part_of(player_name, identifier):
-                        score = len(player_name) / len(identifier)
-                    
-                    # Add score to player data
-                    scored_copy = player.copy()
-                    scored_copy["match_score"] = score
-                    scored_players.append(scored_copy)
-                
-                # Sort by match score
-                scored_players.sort(key=lambda p: p.get("match_score", 0), reverse=True)
-                
-                # Take the best match
-                if scored_players:
-                    best_match = scored_players[0]
-                    
-                    # Check if this player is already in results
-                    is_duplicate = False
-                    for existing_player in result_players:
-                        # Check by name since IDs might be missing
-                        if existing_player.get("name") == best_match.get("name"):
-                            is_duplicate = True
-                            break
-                    
-                    if not is_duplicate:
-                        print(f"Adding player from enhanced name search: {best_match.get('name')} (match score: {best_match.get('match_score', 0)})")
-                        # Remove the match score before adding to results
-                        if "match_score" in best_match:
-                            del best_match["match_score"]
-                        result_players.append(best_match)
+    print(f"DEBUG: Remaining identifiers after memory check: {remaining_identifiers}")
+
+    # Step 3: For remaining identifiers, try direct ID lookup using find_player_by_id
+    if remaining_identifiers:
+        ids_to_lookup = [str(id_val) for id_val in remaining_identifiers if isinstance(id_val, (int, float)) or (isinstance(id_val, str) and id_val.isdigit())]
+        print(f"DEBUG: Attempting direct ID lookup for: {ids_to_lookup}")
+        for player_id_str in ids_to_lookup:
+             try:
+                  player_data = find_player_by_id(player_id_str) # Use service directly
+                  if player_data:
+                       # Avoid duplicates
+                       if not any(rp.get("name") == player_data.get("name") for rp in result_players):
+                            print(f"Found player by ID lookup: {player_data.get('name')}")
+                            result_players.append({
+                                "name": player_data.get("name"),
+                                "id": player_data.get("id"),
+                                "wyId": player_data.get("wyId"),
+                                "positions": player_data.get("positions", [])
+                            })
+                            # Attempt to remove the found ID from remaining_identifiers
+                            if player_id_str in remaining_identifiers:
+                                 remaining_identifiers.remove(player_id_str)
+                            # Handle case where identifier might have been int
+                            try: 
+                                 if int(player_id_str) in remaining_identifiers:
+                                      remaining_identifiers.remove(int(player_id_str))
+                            except ValueError: pass # Ignore if not an int
+                       else:
+                            print(f"Skipping duplicate player from ID lookup: {player_data.get('name')}")
+                            # Still remove if found
+                            if player_id_str in remaining_identifiers:
+                                 remaining_identifiers.remove(player_id_str)
+                            try:
+                                 if int(player_id_str) in remaining_identifiers:
+                                      remaining_identifiers.remove(int(player_id_str))
+                            except ValueError: pass
+             except Exception as e:
+                  print(f"Error in direct ID lookup for {player_id_str}: {e}")
+
+    print(f"DEBUG: Remaining identifiers after ID lookup: {remaining_identifiers}")
+
+    # Step 4: For any still remaining (likely names), try name lookup using find_player_by_name
+    if remaining_identifiers:
+        remaining_names = [name for name in remaining_identifiers if isinstance(name, str)]
+        print(f"DEBUG: Attempting name lookup for: {remaining_names}")
+        for name_identifier in remaining_names:
+            try:
+                player_data = find_player_by_name(name_identifier) # Use service directly
+                if player_data:
+                    # Avoid duplicates
+                    if not any(rp.get("name") == player_data.get("name") for rp in result_players):
+                        print(f"Found player by name lookup: {player_data.get('name')}")
+                        result_players.append({
+                            "name": player_data.get("name"),
+                            "id": player_data.get("id"),
+                            "wyId": player_data.get("wyId"),
+                            "positions": player_data.get("positions", [])
+                        })
                     else:
-                        print(f"Skipping duplicate player: {best_match.get('name')}")
-            else:
-                print(f"No players found for identifier: {identifier}")
-        except Exception as e:
-            print(f"Error in enhanced name search for {identifier}: {e}")
-    
+                        print(f"Skipping duplicate player from name lookup: {player_data.get('name')}")
+                else:
+                    print(f"No player found via name lookup for identifier: {name_identifier}")
+            except Exception as e:
+                print(f"Error in name lookup for {name_identifier}: {e}")
+
     # Step 5: Final check and logging
     print(f"Found {len(result_players)} players for comparison")
     if len(result_players) < 2:
         print(f"WARNING: Not enough players found for comparison. Need at least 2, found {len(result_players)}")
     
-    return result_players
+    # Return only the number of players requested initially, prioritizing best matches found
+    # Note: This function now returns stubs, the handler needs to fetch full data
+    return result_players[:len(player_identifiers)] 
 
-def get_language_specific_prompt(language: str) -> str:
-    """Get language-specific system prompt for player comparison"""
-    prompts = {
-        "english": """You are a football expert system that compares players based on their statistics and profiles.
-Your task is to provide clear, insightful comparisons highlighting key differences between players.
-Focus on their strengths, weaknesses, playing styles, and how they might fit different tactical systems.
-Use football terminology appropriately but ensure explanations remain accessible.
-Always back up your comparisons with specific statistical evidence.
-End your analysis by listing the key aspects you compared.""",
-
-        "portuguese": """Você é um sistema especialista em futebol que compara jogadores com base em suas estatísticas e perfis.
-Sua tarefa é fornecer comparações claras e perspicazes destacando as principais diferenças entre jogadores.
-Concentre-se em seus pontos fortes, pontos fracos, estilos de jogo e como eles podem se adequar a diferentes sistemas táticos.
-Use terminologia de futebol adequadamente, mas garanta que as explicações permaneçam acessíveis.
-Sempre apoie suas comparações com evidências estatísticas específicas.
-Termine sua análise listando os principais aspectos que você comparou.""",
-
-        "spanish": """Eres un sistema experto en fútbol que compara jugadores según sus estadísticas y perfiles.
-Tu tarea es proporcionar comparaciones claras y perspicaces destacando las diferencias clave entre jugadores.
-Concéntrate en sus fortalezas, debilidades, estilos de juego y cómo podrían adaptarse a diferentes sistemas tácticos.
-Utiliza la terminología futbolística de manera apropiada pero asegúrate de que las explicaciones sigan siendo accesibles.
-Respalda siempre tus comparaciones con evidencia estadística específica.
-Finaliza tu análisis enumerando los aspectos clave que comparaste.""",
-
-        "bulgarian": """Вие сте експертна футболна система, която сравнява играчи въз основа на техните статистики и профили.
-Вашата задача е да предоставите ясни, проницателни сравнения, подчертавайки ключовите разлики между играчите.
-Фокусирайте се върху техните силни страни, слабости, стилове на игра и как биха паснали в различни тактически системи.
-Използвайте футболна терминология по подходящ начин, но се уверете, че обясненията остават достъпни.
-Винаги подкрепяйте сравненията си с конкретни статистически доказателства.
-Завършете анализа си, като изброите ключовите аспекти, които сте сравнили."""
-    }
-    
-    return prompts.get(language, prompts["english"])
+# Note: get_language_specific_prompt was moved to the top

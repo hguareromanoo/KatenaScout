@@ -15,7 +15,7 @@ const ChatInterface = ({ expanded = true }) => {
   
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isPlayerSearch, setIsPlayerSearch] = useState(false);
+  const [isPlayerSearch, setIsPlayerSearch] = useState(false); // Keep track if the *last* response was a search
   const [lastMessageWasSatisfactionQuestion, setLastMessageWasSatisfactionQuestion] = useState(false);
   
   // States for player comparison selection
@@ -70,20 +70,10 @@ const ChatInterface = ({ expanded = true }) => {
 
     try {
       setIsLoading(true);
-      
-      // Check if it looks like a player search query
-      const playerSearchKeywords = [
-        'player', 'jogador', 'attacking', 'midfielder', 'defender', 'goalkeeper', 
-        'goleiro', 'forward', 'striker', 'find', 'search', 'buscar', 'procurar',
-        'midfielder', 'meio-campista', 'defense', 'attack', 'zagueiro', 'atacante',
-        'fast', 'tall', 'rápido', 'alto', 'shooting', 'passing', 'dribbling'
-      ];
-      
-      // Check if any keywords are in the input (case insensitive)
-      const lowerInput = input.toLowerCase();
-      setIsPlayerSearch(playerSearchKeywords.some(word => lowerInput.includes(word.toLowerCase())));
+      setIsPlayerSearch(false); // Reset search status before new request
       
       // Check if we're responding to a satisfaction question
+      const lowerInput = input.toLowerCase();
       const isSatisfactionResponse = lastMessageWasSatisfactionQuestion && 
         (lowerInput.includes('não') || 
          lowerInput.includes('refinar') || 
@@ -102,7 +92,7 @@ const ChatInterface = ({ expanded = true }) => {
       const requestBody = {
         session_id: sessionId,
         query: currentInput, // Use stored input for the API call
-        is_follow_up: chatHistory.length > 0,
+        is_follow_up: chatHistory.length > 1, // Check if there's more than just the user message we just added
         satisfaction: isSatisfactionResponse ? false : null,
         language: currentLanguage
       };
@@ -110,127 +100,60 @@ const ChatInterface = ({ expanded = true }) => {
       const data = await chatService.enhancedSearch(requestBody);
       
       if (data.success) {
-        // Get players from the response based on the type of response
-        let playersData = [];
-        let responseText = '';
-        let responseType = '';
+        // Determine response type primarily from backend data.type
+        // Use the type sent by the backend, default to 'conversation' if missing
+        const responseType = data.type || 'conversation'; 
+        const playersData = data.players || []; 
+        let responseText = data.response || data.text || data.message || data.error || ''; // Get text content
+
+        // Ensure responseText is a string
+        if (typeof responseText !== 'string') {
+             responseText = t('chat.errorMessage'); // Fallback error message
+        }
         
-        // Handle different response types from unified backend
-        if (data.players) {
-          // Standard search results
-          playersData = data.players;
-          responseText = data.response;
-          responseType = 'search';
-          // Confirm it was a player search
-          setIsPlayerSearch(true);
-          console.log(`Found ${playersData.length} players in search results:`, 
-            playersData.map(p => p.name).join(', '));
-          
-          // Explicitly update search results for comparison
-          if (playersData.length > 0) {
-            // Store in session context
+        // Update search results context only if it's a search response with players
+        // Use the exact type string sent by the backend formatter
+        if (responseType === 'search_results' && playersData.length > 0) { 
             updateSearchResults(playersData);
-            
-            // Also store in local state for comparison feature
             setLastSearchResults(playersData);
-            
-            // Exit comparison mode when new search results arrive
-            if (isComparisonMode) {
-              setIsComparisonMode(false);
-              setSelectedPlayersForComparison([]);
+            setIsPlayerSearch(true); // Mark that the last response was a player search
+            if (isComparisonMode) { // Exit comparison mode on new search results
+                setIsComparisonMode(false);
+                setSelectedPlayersForComparison([]);
             }
-          }
-        } else if (data.comparison) {
-          // Debugging info to see what's received from backend
-          console.log("Received comparison data:", data);
-          
-          // Comparison results
-          playersData = data.players || [];
-          // Ensure responseText is a string - data.comparison could be an object or null
-          responseText = typeof data.comparison === 'string' 
-            ? data.comparison 
-            : (data.text || data.response || t('playerComparison.defaultText', 'Player comparison results'));
-          responseType = 'comparison';
-          
-          // Determine if this is an in-chat comparison (text-only) or visual comparison (with player cards)
-          // For in-chat comparison, we shouldn't treat it as a player search with cards
-          const isInChatComparison = input.toLowerCase().includes('compare') || 
-                                    input.toLowerCase().includes('comparar') ||
-                                    data.in_chat_comparison === true;
-                                    
-          console.log("Is in-chat comparison:", isInChatComparison, "Flag from backend:", data.in_chat_comparison);
-                                    
-          // Only set player search if it's not an in-chat comparison
-          setIsPlayerSearch(!isInChatComparison);
-          
-          console.log(`Found ${playersData.length} players in comparison results:`, 
-            playersData.map(p => p.name).join(', '),
-            isInChatComparison ? '(in-chat comparison)' : '(visual comparison)');
-          
-          // Only update search results and show player cards if it's not an in-chat comparison
-          if (playersData.length > 0 && !isInChatComparison) {
-            updateSearchResults(playersData);
-          }
-        } else if (data.explanations) {
-          // Stats explanation
-          responseText = data.text || data.response;
-          responseType = 'explanation';
-          // Stats explanation is not directly a player search
-          setIsPlayerSearch(false);
         } else {
-          // Text-only response (like casual conversation)
-          responseText = data.response;
-          responseType = 'conversation';
-          // Generic conversation is not a player search
-          setIsPlayerSearch(false);
+             setIsPlayerSearch(false); // Not a player search result
         }
 
-        // Check if the response contains a satisfaction question (with safety check for undefined responseText)
-        const hasSatisfactionQuestion = responseText && typeof responseText === 'string' ? (
-          responseText.toLowerCase().includes('satisfeito') || 
-          responseText.toLowerCase().includes('satisfied') ||
-          responseText.toLowerCase().includes('refinar sua busca') ||
-          responseText.toLowerCase().includes('refine your search')
-        ) : false;
+        // Check if the response contains a satisfaction question
+        const hasSatisfactionQuestion = responseText.toLowerCase().includes('satisfeito') || 
+                                        responseText.toLowerCase().includes('satisfied') ||
+                                        responseText.toLowerCase().includes('refinar sua busca') ||
+                                        responseText.toLowerCase().includes('refine your search');
         
         setLastMessageWasSatisfactionQuestion(hasSatisfactionQuestion);
 
-        // Determine if we should show player cards for this message
-        // Debug values used in the condition
-        console.log("DEBUG - Values for card display decision:", {
-          responseType: responseType,
-          inputHasCompare: input.toLowerCase().includes('compare'),
-          inputHasComparar: input.toLowerCase().includes('comparar'),
-          inChatComparisonFlag: data.in_chat_comparison,
-          rawData: data
-        });
-        
-        const shouldShowPlayerCards = 
-          responseType === 'search' || // Always show cards for search results
-          (responseType === 'comparison' && !input.toLowerCase().includes('compare') && 
-           !input.toLowerCase().includes('comparar') && data.in_chat_comparison !== true);
-           
+        // Simplified logic: Show cards ONLY if the response type from backend is 'search_results'.
+        const shouldShowPlayerCards = responseType === 'search_results';
+
+        console.log("DEBUG - Backend Response Type:", data.type);
+        console.log("DEBUG - Determined Frontend responseType:", responseType);
         console.log("DEBUG - Decision to show player cards:", shouldShowPlayerCards);
-        
+
         // Add the response to the chat
         addMessage({
           text: responseText,
           sender: 'bot',
-          showPlayerSelection: shouldShowPlayerCards && playersData.length > 0,
-          players: shouldShowPlayerCards ? playersData : [],
-          // Add metadata for special responses
-          responseType: responseType,
-          explanations: data.explanations,
-          comparison_aspects: data.comparison_aspects
+          showPlayerSelection: shouldShowPlayerCards && playersData.length > 0, 
+          players: shouldShowPlayerCards ? playersData : [], 
+          responseType: responseType, // Pass the determined type
+          explanations: data.explanations, 
+          comparison_aspects: data.comparison_aspects, 
+          isError: !data.success || responseType === 'error' // Mark error messages
         });
         
-        // For player comparison results, potentially trigger comparison view
-        if (data.comparison && playersData && playersData.length >= 2) {
-          // This could trigger a comparison view or another action
-          console.log('Comparison results available:', playersData.length, 'players');
-        }
       } else {
-        // Handle error response
+        // Handle API call failure
         addMessage({ 
           text: data.message || data.error || t('chat.errorMessage'),
           sender: 'bot',
@@ -238,7 +161,7 @@ const ChatInterface = ({ expanded = true }) => {
         });
       }
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error in handleSubmit:', error);
       addMessage({
         text: t('chat.errorMessage'),
         sender: 'bot',
@@ -246,10 +169,7 @@ const ChatInterface = ({ expanded = true }) => {
       });
     } finally {
       setIsLoading(false);
-      // Input is already cleared, just reset search status
-      // Reset the player search status for the next query
-      // We'll set it again when the next query is submitted
-      setTimeout(() => setIsPlayerSearch(false), 500);
+      // Don't reset isPlayerSearch here, let the next response determine it
     }
   };
 
@@ -270,7 +190,9 @@ const ChatInterface = ({ expanded = true }) => {
       }
       
       // Extract metrics from the player object with validation
-      const playerMetrics = Object.entries(player.stats || {}).map(([key, value]) => {
+      // Use complete_profile if available, otherwise fallback to stats
+      const statsSource = player.complete_profile?.stats || player.stats || {};
+      const playerMetrics = Object.entries(statsSource).map(([key, value]) => {
         return {
           name: formatMetricName(key),
           value: value !== undefined && value !== null ? value : 0, // Provide fallback
@@ -279,8 +201,7 @@ const ChatInterface = ({ expanded = true }) => {
         };
       });
       
-      // Ensure this player is in the search results
-      // This will allow it to be used for comparison
+      // Ensure this player is in the search results context if needed later
       updateSearchResults([player]);
   
       addMessage({
@@ -317,20 +238,13 @@ const ChatInterface = ({ expanded = true }) => {
    */
   const handlePlayerSelectionForComparison = (player) => {
     setSelectedPlayersForComparison(prev => {
-      // Check if player is already selected
-      const isAlreadySelected = prev.some(p => 
-        (p.id && player.id && p.id === player.id) || 
-        (p.wyId && player.wyId && p.wyId === player.wyId) ||
-        (p.name && player.name && p.name === player.name)
-      );
+      // Check if player is already selected using a reliable ID
+      const playerId = player.wyId || player.id || player.name; // Use best available ID
+      const isAlreadySelected = prev.some(p => (p.wyId || p.id || p.name) === playerId);
       
       if (isAlreadySelected) {
         // Remove player if already selected
-        return prev.filter(p => 
-          !((p.id && player.id && p.id === player.id) || 
-            (p.wyId && player.wyId && p.wyId === player.wyId) ||
-            (p.name && player.name && p.name === player.name))
-        );
+        return prev.filter(p => (p.wyId || p.id || p.name) !== playerId);
       } else {
         // Add player if not already selected (limit to 2 players)
         if (prev.length < 2) {
@@ -374,8 +288,8 @@ const ChatInterface = ({ expanded = true }) => {
       // Success message in chat
       addMessage({
         text: t('chat.comparisonStarted', 'Opening comparison between {player1} and {player2}.')
-          .replace('{player1}', player1.name)
-          .replace('{player2}', player2.name),
+          .replace('{player1}', player1.name || 'Player 1')
+          .replace('{player2}', player2.name || 'Player 2'),
         sender: 'bot'
       });
     } catch (error) {
@@ -390,47 +304,7 @@ const ChatInterface = ({ expanded = true }) => {
     }
   };
 
-  /**
-   * Legacy handler for direct player comparison (keeping for compatibility)
-   */
-  const handleComparePlayersSelect = async (players) => {
-    if (!players || players.length < 2) {
-      console.error("[ERROR] Not enough players for comparison");
-      addMessage({
-        text: t('errors.notEnoughPlayers', 'Not enough players to compare'),
-        sender: 'bot',
-        isError: true
-      });
-      return;
-    }
-    
-    try {
-      console.log("Players for direct comparison:", players);
-      
-      // Get the two players for comparison
-      const player1 = players[0];
-      const player2 = players[1];
-      
-      // Trigger the visual comparison modal
-      startComparison(player1);
-      completeComparison(player2);
-      
-      // Success message in chat
-      addMessage({
-        text: t('chat.comparisonStarted', 'Opening comparison between {player1} and {player2}.')
-          .replace('{player1}', player1.name)
-          .replace('{player2}', player2.name),
-        sender: 'bot'
-      });
-    } catch (error) {
-      console.error("[ERROR] Starting comparison failed:", error);
-      addMessage({
-        text: t('errors.comparisonFailed', 'Failed to start player comparison'),
-        sender: 'bot',
-        isError: true
-      });
-    }
-  };
+  // Removed handleComparePlayersSelect as it seems redundant with startComparisonWithSelected
 
   return (
     // Ensure h-screen and overflow-hidden on root
@@ -512,7 +386,7 @@ const ChatInterface = ({ expanded = true }) => {
               {/* Message Content */}
               <div className={`whitespace-pre-wrap ${message.isError ? 'text-red-300' : ''}`}>{message.text}</div>
               
-              {/* Player Selection Section */}
+              {/* Player Selection Section - Render based on showPlayerSelection */}
               {message.showPlayerSelection && message.players && message.players.length > 0 && (
                 <div className="mt-4 pt-4 border-t border-gray-700">
                   <div className="flex justify-between items-center mb-2">
@@ -539,15 +413,12 @@ const ChatInterface = ({ expanded = true }) => {
                   <div className="space-y-2 max-h-60 overflow-y-auto pr-1 custom-scrollbar">
                     {message.players.map(player => {
                       // Check if this player is selected for comparison
-                      const isSelected = selectedPlayersForComparison.some(p => 
-                        (p.id && player.id && p.id === player.id) || 
-                        (p.wyId && player.wyId && p.wyId === player.wyId) ||
-                        (p.name && player.name && p.name === player.name)
-                      );
+                      const playerId = player.wyId || player.id || player.name; // Use best available ID
+                      const isSelected = selectedPlayersForComparison.some(p => (p.wyId || p.id || p.name) === playerId);
                       
                       return (
                         <div 
-                          key={player.id || player.name}
+                          key={playerId} // Use consistent key
                           className={`${
                             isComparisonMode 
                               ? isSelected ? 'bg-blue-700 hover:bg-blue-600' : 'bg-gray-750 hover:bg-gray-700' 
@@ -650,8 +521,10 @@ const ChatInterface = ({ expanded = true }) => {
                 </div>
               )}
               
-              {/* Comparison Results Section */}
-              {message.responseType === 'comparison' && message.comparison_aspects && message.comparison_aspects.length > 0 && (
+              {/* Comparison Results Section - Render based on comparison_aspects */}
+              {/* This might still render for text responses if backend sends aspects */}
+              {/* Check showPlayerSelection is false to avoid showing this for search results */}
+              {message.responseType === 'comparison' && message.comparison_aspects && message.comparison_aspects.length > 0 && !message.showPlayerSelection && (
                 <div className="mt-4 pt-4 border-t border-gray-700">
                   <h3 className="text-gray-300 mb-2 font-medium">{t('chat.comparisonAspectsTitle', 'Comparison Aspects')}</h3>
                   <div className="flex flex-wrap gap-2 mt-2">

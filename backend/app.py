@@ -155,11 +155,14 @@ def enhanced_search():
                 language=language
             ))
         else:
-            # Text response or other types
+            # Text response or other types (like the modified comparison handler, explain_stats, casual_chat, fallback)
             return jsonify({
                 "success": True,
-                "response": response_data["text"],
-                "language": language
+                "type": response_data.get("type", "text"), # Include the type from the handler
+                "response": response_data.get("text", ""), # Use .get for safety
+                "language": language,
+                # Include other potential fields if the handler provides them (e.g., explanations)
+                **{k: v for k, v in response_data.items() if k not in ['success', 'type', 'text', 'language']}
             })
     
     except Exception as e:
@@ -181,7 +184,9 @@ def compare_players():
         "session_id": "unique-session-id",
         "player_ids": ["player_id_1", "player_id_2"],
         "language": "english" (optional),
-        "include_ai_analysis": false (optional, defaults to false)
+        "include_ai_analysis": false (optional, defaults to false),
+        "playing_style": "possession_based" (optional),
+        "formation": "4-3-3" (optional)
     }
     
     Response:
@@ -218,9 +223,10 @@ def compare_players():
         language = validated_data["language"]
         include_ai_analysis = validated_data.get("include_ai_analysis", False)
         
-        # Extract additional tactical parameters
-        playing_style = validated_data.get("playing_style", "")
-        formation = validated_data.get("formation", "")
+        # Extract additional tactical parameters directly from request data
+        # Assuming validator might not handle these yet, provide defaults
+        playing_style = data.get("playing_style", "") # Get from original data
+        formation = data.get("formation", "")       # Get from original data
         
         # Get session
         session = session_manager.get_session(session_id, language)
