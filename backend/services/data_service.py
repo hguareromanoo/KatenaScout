@@ -264,3 +264,8 @@ def get_players_with_position(
             players_list.append(player_data_copy)
     
     return players_list
+
+if __name__ == "__main__":
+    player_data = find_player_by_id(399654)
+    print(player_data)
+    

@@ -230,17 +230,24 @@ def compare_players():
         
         # Get session
         session = session_manager.get_session(session_id, language)
-        
+        players = []
         # Find players for comparison (from direct API)
-        from core.comparison import find_players_for_comparison
-        players = find_players_for_comparison(
-            session_manager,
-            session_id,
-            player_ids,
-            language,
-            source="api"  # indicate this is from direct API
-        )
+        from core.player_search import get_player_info
+        from services.data_service import get_player_database, get_player_database_by_id
+        db = get_player_database()
+        db_by_id = get_player_database_by_id()
+        search_params = SearchParameters(**session.last_search_params)
+        for player_id in player_ids:
+            player = get_player_info(player_id, database=db,database_id=db_by_id,params=search_params)
+            if player:
+                players.append(player)
+            else:
+                print(f"Player with ID {player_id} not found in the database.")
         
+
+
+
+
         # Ensure we have at least 2 players to compare
         if len(players) < 2:
             from utils.formatters import format_error_response

@@ -90,6 +90,7 @@ def generate_in_chat_comparison_text(
             "height": player.get("height"),
             "weight": player.get("weight"),
             "foot": player.get("foot"),
+            "contract_expiration": player.get("contractUntil"),
             "stats": player.get("stats", {})
         })
     # System prompt focused on concise chat summary, emphasizing the *provided* stats

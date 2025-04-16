@@ -8,6 +8,7 @@ All player search operations should use the functions in this module to ensure c
 from typing import List, Dict, Any, Optional
 import os
 import json
+from datetime import datetime
 import unidecode
 from models.parameters import SearchParameters
 from config import MIN_SCORE_THRESHOLD, DEFAULT_SEARCH_LIMIT
@@ -20,6 +21,41 @@ from services.data_service import (
     find_player_by_id,
     find_player_by_name
 )
+def get_date_months_from_now(months):
+    """
+    Calcula uma data X meses a partir de hoje, lidando com bordas de mês
+    
+    Args:
+        months: Número de meses a adicionar
+        
+    Returns:
+        Data formatada como string YYYY-MM-DD
+    """
+    today = datetime.now()
+    # Adicionar os meses ajustando o ano se necessário
+    month = today.month + months
+    year = today.year
+    
+    # Ajustar ano se month > 12
+    if month > 12:
+        year += month // 12
+        month = month % 12
+        # Se month ficou 0, deve ser dezembro do ano anterior
+        if month == 0:
+            month = 12
+            year -= 1
+            
+    # Lidar com dias inválidos (ex: 31 de janeiro + 6 meses seria 31 de julho, mas não existe)
+    # Vamos pegar o último dia válido do mês resultante
+    last_day_of_month = [31, 29 if year % 4 == 0 and (year % 100 != 0 or year % 400 == 0) else 28, 
+                        31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+    
+    # Garantir que o dia não exceda o último dia do mês
+    day = min(today.day, last_day_of_month[month-1])
+    
+    # Criar data e formatar
+    target_date = datetime(year, month, day)
+    return target_date.strftime("%Y-%m-%d")
 
 def search_players(
     params: SearchParameters,
@@ -89,8 +125,11 @@ def search_players(
     print(f"Description: {params.key_description_word}")
     if params.foot and params.foot != "both":
         print(f"Preferred foot: {params.foot}")
+    
+    six_months_from_now = None
     if params.contract_expiration:
-        print(f"Contract expiration: {params.contract_expiration}")
+        six_months_from_now = get_date_months_from_now(6)
+        print(f"Contract expiration: {six_months_from_now}")
     print(f"Statistical params for scoring ({len(scoring_params)}): {scoring_params}")
     print(f"=========================\n")
     
@@ -121,7 +160,7 @@ def search_players(
                     contract_until = player.get("contract").get("contractExpiration")
                 
                 # Skip if contract doesn't expire soon enough
-                if not contract_until or contract_until > params.contract_expiration:
+                if not contract_until or contract_until > six_months_from_now:
                     continue
             
             # Calculate score for this player in this position
