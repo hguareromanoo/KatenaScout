@@ -2169,7 +2169,7 @@ def complete_data_analysis(player_id, language='pt'):
     tactical_role_analysis = tactical_role(player, language=language)
     tactical_style_analysis = calculate_tactical_fit(player, None, language=language)  # Get top 3 tactical styles
     swot_analysis_result = swot_analysis(player=player, language=language)
-    ranking_result = ranking(player)
+    ranking_result = ranking(player, min_minutes=0)
     
     # Create player model that matches the Player model structure
     player_model = {
