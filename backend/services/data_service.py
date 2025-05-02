@@ -11,6 +11,10 @@ from typing import Dict, Any, Optional, List
 # Cache for loaded data files
 _data_cache = {}
 
+
+def find_club_by_id(club_id: str) -> Optional[Dict[str, Any]]:
+    team_json = load_json('team.json')
+    return team_json[club_id] if club_id in team_json else None
 def load_json(filename: str) -> Dict[str, Any]:
     """
     Load a JSON file, trying different paths
@@ -265,7 +269,10 @@ def get_players_with_position(
     
     return players_list
 
+def get_sigma_by_position():
+    return load_json('sigma_statistics_by_position.json')
+
+
 if __name__ == "__main__":
-    player_data = find_player_by_id(399654)
-    print(player_data)
-    
+   team = find_club_by_id("3161")
+   print(team)

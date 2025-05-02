@@ -48,12 +48,14 @@ export default {
     appName: "KatenaScout",
     loading: "Cargando...",
     error: "Lo siento, ocurrió un error",
-    back: "Volver"
+    back: "Volver",
+    remove: "Eliminar",
   },
   navigation: {
     chat: "Chat de Scout IA",
     favorites: "Favoritos",
-    settings: "Configuración"
+    settings: "Configuración",
+    scoutReport: 'Informe Scout Avanzado'
   },
   onboarding: {
     welcome: "Bienvenido a KatenaScout",
@@ -62,6 +64,36 @@ export default {
     continueButton: "Continuar",
     poweredBy: "Desarrollado con Claude AI"
   },
+  // Add inside the scoutReport object
+scoutReport: {
+  headerTitle: 'Informe Scout Avanzado',
+  headerSubtitle: 'Análisis detallado de jugadores',
+  title: 'Informe Scout Avanzado',
+  description: 'Genere un informe scout completo con análisis detallado de estadísticas, perfil táctico, historial de lesiones y valor de mercado.',
+  searchTitle: 'Buscar Jugador',
+  searchPlaceholder: 'Escriba el nombre del jugador...',
+  selectedPlayerTitle: 'Jugador Seleccionado',
+  noPlayerSelected: 'Ningún jugador seleccionado',
+  selectPlayer: 'Seleccione un jugador',
+  recentSearches: 'Búsquedas recientes',
+  clearSearchHistory: 'Limpiar historial',
+  dropPlayerHere: 'Arrastre y suelte un jugador aquí',
+  dragAndDropHint: 'O busque un jugador arriba y haga clic para seleccionar',
+  generateButton: 'Generar Informe',
+  unknownTeam: 'Equipo desconocido',
+  noResults: 'No se encontraron jugadores',
+  generationFailed: 'Error al generar el informe. Por favor, inténtelo de nuevo.',
+  reportReady: 'Informe Listo',
+  reportFor: 'Informe Scout para',
+  openInNewTab: 'Abrir en nueva pestaña',
+  steps: {
+    searchingDatabase: 'Buscando jugador en la base de datos',
+    analyzingMatches: 'Analizando partidos',
+    analyzingStats: 'Analizando estadísticas',
+    analyzingHistory: 'Analizando historial',
+    generatingReport: 'Generando informe'
+  }
+},
   chat: {
     headerTitle: "KatenaScout AI",
     headerSubtitle: "Tu asistente de scouting inteligente",

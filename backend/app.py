@@ -7,12 +7,17 @@ The routes are kept clean by delegating business logic to the core modules.
 
 import os
 import json
-from flask import Flask, request, jsonify, send_from_directory
+import tempfile
+from flask import Flask, request, jsonify, send_from_directory, send_file
 from flask_cors import CORS
 
 # Import core components
 from core.session import UnifiedSession
 from models.parameters import SearchParameters
+
+# Import scout report components
+from core.processor import ScoutReportProcessor, TranslationManager
+from core.generator import generate_scout_report_html, generate_scout_report_pdf
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -30,7 +35,89 @@ def health_check():
         "status": "healthy", 
         "message": "Katena Scout Unified API v4.0 is running"
     })
-
+@app.route('/players/search', methods=['GET'])
+def search_players_by_name():
+    """Lightweight endpoint for searching players directly by name"""
+    try:
+        # Get query parameters
+        query = request.args.get('query', '')
+        limit = int(request.args.get('limit', 15))
+        
+        # Directly search players in database by name
+        from services.data_service import get_player_database, get_team_names
+        db = get_player_database()
+        teams = get_team_names()
+        
+        matched_players = []
+        query_lower = query.lower() if query else ''
+        
+        # If query is empty, return popular players (up to the limit)
+        if not query:
+            # Just return most common players
+            player_count = 0
+            for name, player in db.items():
+                if player_count >= limit:
+                    break
+                
+                # Skip if player has no ID
+                if not player.get('wyId') and not player.get('id'):
+                    continue
+                
+                # Format response data with only necessary fields
+                matched_players.append({
+                    "id": player.get('wyId') or player.get('id'),
+                    "name": name,
+                    "team": {
+                        "name": teams.get(str(player.get('currentTeamId')), {}).get('name', 'Unknown Team') 
+                    },
+                    "positions": player.get('positions', []),
+                    "image_url": f"/player-image/{player.get('wyId') or player.get('id')}"
+                })
+                player_count += 1
+                
+            return jsonify({"success": True, "players": matched_players})
+        
+        # Regular search logic for when query is not empty
+        for name, player in db.items():
+            # Skip if player has no ID
+            if not player.get('wyId') and not player.get('id'):
+                continue
+                
+            # Check if player name contains query
+            name_lower = name.lower()
+            if query_lower in name_lower:
+                # Add relevance score - exact matches or starts with are prioritized
+                score = 0
+                if name_lower == query_lower:
+                    score = 100  # Exact match
+                elif name_lower.startswith(query_lower):
+                    score = 75   # Starts with
+                else:
+                    score = 50   # Contains
+                    
+                # Format response data with only necessary fields
+                matched_players.append({
+                    "id": player.get('wyId') or player.get('id'),
+                    "name": name,
+                    "team": {
+                        "name": teams.get(str(player.get('currentTeamId')), {}).get('name', 'Unknown Team')
+                    },
+                    "positions": player.get('positions', []),
+                    "image_url": f"/player-image/{player.get('wyId') or player.get('id')}",
+                    "score": score  # For sorting by relevance
+                })
+        
+        # Sort by relevance score and limit results
+        matched_players.sort(key=lambda p: p.pop('score', 0), reverse=True)
+        return jsonify({"success": True, "players": matched_players[:limit]})
+        
+    except Exception as e:
+        print(f"Error searching players by name: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": "search_error",
+            "message": "An error occurred while searching for players."
+        })
 @app.route('/enhanced_search', methods=['POST'])
 def enhanced_search():
     """
@@ -384,374 +471,373 @@ def player_image(player_id):
                             return add_cors_headers(response)
                         except Exception as e:
                             print(f"Error decoding image data URL from {field}: {str(e)}")
+                            continue
                     
-                    # Check if it's a URL to an external image
+                    # Check if it's a URL
                     elif image_data_url and isinstance(image_data_url, str) and (image_data_url.startswith('http://') or image_data_url.startswith('https://')):
                         try:
-                            # Fetch the image
-                            img_response = requests.get(image_data_url, timeout=2)
-                            if img_response.status_code == 200:
+                            # Try to fetch the image
+                            response = requests.get(image_data_url, timeout=5)
+                            if response.status_code == 200:
                                 # Get the content type
-                                content_type = img_response.headers.get('Content-Type', 'image/jpeg')
+                                content_type = response.headers.get('Content-Type', 'image/jpeg')
                                 # Return the image with CORS headers
-                                response = app.response_class(img_response.content, mimetype=content_type)
-                                return add_cors_headers(response)
+                                flask_response = app.response_class(response.content, mimetype=content_type)
+                                return add_cors_headers(flask_response)
                         except Exception as e:
-                            print(f"Error fetching image URL from {field}: {str(e)}")
+                            print(f"Error fetching image from URL {image_data_url}: {str(e)}")
+                            continue
         
-        # Second, check for local image files
-        for ext in ['.jpg', '.png', '.jpeg']:
-            image_path = os.path.join(PLAYER_IMAGES_DIR, f"{safe_id}{ext}")
-            if os.path.exists(image_path):
-                response = send_from_directory(PLAYER_IMAGES_DIR, f"{safe_id}{ext}")
+        # If we couldn't find an image in the database, try to find a local file
+        try:
+            # Check if the player image exists in the local directory
+            if os.path.exists(PLAYER_IMAGES_DIR):
+                # Try different file extensions
+                for ext in ['jpg', 'jpeg', 'png', 'webp']:
+                    image_path = os.path.join(PLAYER_IMAGES_DIR, f"{safe_id}.{ext}")
+                    if os.path.exists(image_path):
+                        response = send_from_directory(PLAYER_IMAGES_DIR, f"{safe_id}.{ext}")
+                        return add_cors_headers(response)
+        except Exception as e:
+            print(f"Error serving local image: {str(e)}")
+        
+        # If we still couldn't find an image, return a default image
+        try:
+            default_image_path = os.path.join(PLAYER_IMAGES_DIR, "default.png")
+            if os.path.exists(default_image_path):
+                response = send_from_directory(PLAYER_IMAGES_DIR, "default.png")
                 return add_cors_headers(response)
+        except Exception as e:
+            print(f"Error serving default image: {str(e)}")
         
-        # Finally, return a default avatar image
-        default_image_path = os.path.join(PLAYER_IMAGES_DIR, 'default_avatar.png')
-        if os.path.exists(default_image_path):
-            response = send_from_directory(PLAYER_IMAGES_DIR, 'default_avatar.png')
-        else:
-            # If default avatar doesn't exist, return generic response
-            response = app.response_class(
-                b'No image available',
-                mimetype='text/plain',
-                status=404
-            )
-        
-        return add_cors_headers(response)
-        
-    except Exception as e:
-        print(f"Error serving player image: {str(e)}")
-        response = app.response_class(
-            b'Error serving image',
-            mimetype='text/plain',
-            status=500
-        )
-        return add_cors_headers(response)
-
-@app.route('/follow_up_suggestions/<session_id>', methods=['GET'])
-def get_follow_up_suggestions(session_id):
-    """
-    Get follow-up suggestions for a conversation
+        # If all else fails, return a 404
+        return jsonify({"error": "Image not found"}), 404
     
-    This endpoint returns contextual follow-up suggestions based on the 
-    current conversation state and most recent search results.
-    """
-    try:
-        # Get language from query parameter or default to English
-        language = request.args.get('language', 'english')
-        
-        # Get session
-        session = session_manager.get_session(session_id, language)
-        
-        # Generate follow-up suggestions based on session state
-        from core.intent import generate_follow_up_suggestions
-        
-        # Get the selected players from the session
-        players = session.selected_players if hasattr(session, "selected_players") else []
-        
-        # Generate suggestions
-        suggestions = generate_follow_up_suggestions(session, players)
-        
-        return jsonify({
-            'success': True,
-            'suggestions': suggestions,
-            'language': language
-        })
-        
     except Exception as e:
-        print(f"Error generating follow-up suggestions: {str(e)}")
-        from utils.formatters import format_error_response
-        return jsonify(format_error_response(
-            error="server_error",
-            message="An error occurred while generating follow-up suggestions.",
-            language="english"
-        ))
+        print(f"Error in player image endpoint: {str(e)}")
+        return jsonify({"error": "Server error"}), 500
 
-@app.route('/explain_stats', methods=['POST'])
-def explain_stats():
+@app.route('/scout_report', methods=['POST'])
+def generate_scout_report():
     """
-    Endpoint for explaining football statistics
+    Endpoint for generating a scout report for a player
     
     Request:
     {
         "session_id": "unique-session-id",
-        "stats": ["xG", "progressive passes", "defensive duels"],
-        "language": "english" (optional)
+        "player_id": "12345",
+        "language": "pt" (optional, defaults to "pt"),
+        "format": "html" (optional, defaults to "html")
     }
     
     Response:
-    {
-        "success": true,
-        "explanations": { 
-            "xG": "Expected Goals (xG) measures...",
-            "progressive passes": "Progressive passes are...",
-            "defensive duels": "Defensive duels are..."
-        },
-        "language": "english"
-    }
-    """
-    try:
-        data = request.json
-        
-        # Basic validation
-        if not data or 'stats' not in data or not isinstance(data['stats'], list) or not data['stats']:
-            return jsonify({
-                'success': False,
-                'error': "Missing or invalid stats parameter",
-                'language': data.get('language', 'english')
-            })
-        
-        # Extract data
-        session_id = data.get('session_id', 'default')
-        stats = data.get('stats', [])
-        language = data.get('language', 'english')
-        
-        # Get session
-        session = session_manager.get_session(session_id, language)
-        
-        # Add message to session
-        stats_request = f"Please explain these football statistics: {', '.join(stats)}"
-        session.messages.append({"role": "user", "content": stats_request})
-        
-        # Set intent and entities
-        session.current_intent = "explain_stats"
-        session.entities["stats_to_explain"] = stats
-        
-        # Handle stats explanation
-        from core.handlers import handle_stats_explanation
-        response_data = handle_stats_explanation(session, stats_request, session_manager)
-        
-        # Format response
-        if response_data["type"] == "stats_explanation":
-            return jsonify({
-                'success': True,
-                'explanations': response_data["explanations"],
-                'text': response_data["text"],
-                'language': language
-            })
-        else:
-            # Error case
-            return jsonify({
-                'success': False,
-                'error': "Failed to generate explanations",
-                'message': response_data.get("message", "An error occurred"),
-                'language': language
-            })
-            
-    except Exception as e:
-        print(f"Error in explain stats endpoint: {str(e)}")
-        return jsonify({
-            'success': False,
-            'error': str(e),
-            'message': "An error occurred while explaining statistics. Please try again.",
-            'language': 'english'
-        })
-
-@app.route('/chat_history/<session_id>', methods=['GET'])
-def get_chat_history(session_id):
-    """
-    Get the chat history for a session
-    """
-    try:
-        # Get language from query parameter or default to English
-        language = request.args.get('language', 'english')
-        
-        # Get session
-        session = session_manager.get_session(session_id, language)
-        
-        # Format messages for client
-        formatted_messages = []
-        for msg in session.messages:
-            role = msg.get("role", "unknown")
-            content = msg.get("content", "")
-            
-            # Skip system messages
-            if role == "system":
-                continue
-                
-            formatted_messages.append({
-                "role": role,
-                "content": content,
-                "timestamp": msg.get("timestamp", None)
-            })
-        
-        return jsonify({
-            'success': True,
-            'messages': formatted_messages,
-            'language': language
-        })
-        
-    except Exception as e:
-        print(f"Error retrieving chat history: {str(e)}")
-        return jsonify({
-            'success': False,
-            'error': str(e),
-            'message': "An error occurred while retrieving chat history.",
-            'language': 'english'
-        })
-
-@app.route('/languages', methods=['GET'])
-def get_languages():
-    """Get available languages for the app"""
-    languages = {
-        "english": {
-            "code": "en",
-            "name": "English",
-            "native_name": "English"
-        },
-        "portuguese": {
-            "code": "pt",
-            "name": "Portuguese",
-            "native_name": "Portugu�s"
-        },
-        "spanish": {
-            "code": "es",
-            "name": "Spanish", 
-            "native_name": "Espa�ol"
-        },
-        "bulgarian": {
-            "code": "bg",
-            "name": "Bulgarian",
-            "native_name": "J;30@A:8"
+    - If format is "html":
+        HTML content of the report
+    - If format is "pdf":
+        PDF file download
+    - If error:
+        {
+            "success": false,
+            "error": "error_code",
+            "message": "Error message",
+            "language": "language"
         }
-    }
-    
-    return jsonify({
-        "success": True,
-        "languages": languages,
-        "default": "english"
-    })
-
-@app.route('/tactical_analysis', methods=['POST'])
-def tactical_analysis():
-    """
-    Endpoint for tactical analysis of players in specific styles and formations
-    
-    Request:
-    {
-        "session_id": "unique-session-id",
-        "player_ids": ["player_id_1", "player_id_2"],
-        "playing_style": "possession_based",
-        "formation": "4-3-3",
-        "original_query": "Compare players for possession style",
-        "language": "english" (optional)
-    }
-    
-    Response:
-    {
-        "success": true,
-        "tactical_analysis": "Detailed tactical analysis text",
-        "tactical_data": {
-            "player1_fit": {...},
-            "player2_fit": {...},
-            "tactical_winner": "player1",
-            "winner_name": "Player Name",
-            "key_differences": [...],
-            "style": "possession_based",
-            "style_display_name": "Possession-Based"
-        },
-        "players": [...],
-        "language": "english"
-    }
     """
     try:
         data = request.json
         
         # Validate request data
-        from utils.validators import validate_tactical_analysis_request
-        valid, error_msg, validated_data = validate_tactical_analysis_request(data)
+        if not data:
+            return jsonify({
+                "success": False,
+                "error": "invalid_request",
+                "message": "Request body is required",
+                "language": "english"
+            })
         
-        if not valid:
-            from utils.formatters import format_error_response
-            return jsonify(format_error_response(
-                error="invalid_request", 
-                message=error_msg,
-                language=validated_data.get("language", "english")
-            ))
+        # Check if session_id is provided
+        if "session_id" not in data:
+            return jsonify({
+                "success": False,
+                "error": "invalid_request",
+                "message": "session_id is required",
+                "language": "english"
+            })
         
-        # Extract validated data
-        session_id = validated_data["session_id"]
-        player_ids = validated_data["player_ids"]
-        provided_players = validated_data.get("players", [])
-        playing_style = validated_data["playing_style"]
-        formation = validated_data["formation"]
-        original_query = validated_data["original_query"]
-        language = validated_data["language"]
+        # Check if player_id is provided
+        if "player_id" not in data:
+            return jsonify({
+                "success": False,
+                "error": "invalid_request",
+                "message": "player_id is required",
+                "language": "english"
+            })
+        
+        # Extract data
+        session_id = data["session_id"]
+        player_id = str(data["player_id"])
+        language = data.get("language", "pt")
+        format_type = data.get("format", "html").lower()
+        
+        # Validate language
+        if language not in TranslationManager.SUPPORTED_LANGUAGES:
+            return jsonify({
+                "success": False,
+                "error": "invalid_language",
+                "message": f"Unsupported language. Supported languages: {', '.join(TranslationManager.SUPPORTED_LANGUAGES)}",
+                "language": "english"
+            })
+        
+        # Validate format
+        if format_type not in ["html", "pdf"]:
+            return jsonify({
+                "success": False,
+                "error": "invalid_format",
+                "message": "Unsupported format. Supported formats: html, pdf",
+                "language": language
+            })
         
         # Get session
         session = session_manager.get_session(session_id, language)
         
-        # Use provided players if available, otherwise find by IDs
-        players = []
-        if provided_players and len(provided_players) == 2:
-            # Use the provided complete player objects
-            print("Using provided complete player objects for tactical analysis")
-            players = provided_players
-        else:
-            # Find players by IDs
-            print("Finding players by IDs for tactical analysis")
-            from core.comparison import find_players_for_comparison
-            players = find_players_for_comparison(
-                session_manager,
-                session_id,
-                player_ids,
-                language
-            )
-        
-        # Ensure we have exactly 2 players to compare
-        if len(players) != 2:
-            from utils.formatters import format_error_response
-            return jsonify(format_error_response(
-                error="incorrect_player_count",
-                message="Exactly two players are required for tactical analysis",
-                language=language
-            ))
-        
-        # Generate tactical analysis
-        from core.tactical_analysis import compare_players_tactically, generate_tactical_analysis
-        
-        # First get the tactical fit data
-        tactical_data = compare_players_tactically(
-            players=players,
-            style=playing_style,
-            formation=formation
-        )
-        
-        # Then generate the AI analysis
-        analysis_text = generate_tactical_analysis(
-            players=players,
-            original_query=original_query,
-            playing_style=playing_style,
-            formation=formation,
-            session_manager=session_manager,
-            language=language
-        )
-        
-        # Add to session history
+        # Add request to session history
         session.messages.append({
-            "role": "assistant", 
-            "content": f"Tactical Analysis ({playing_style}, {formation}): {analysis_text[:100]}..."
+            "role": "user",
+            "content": f"Generate scout report for player {player_id}"
         })
         
-        # Format response (using a custom formatter for tactical analysis)
-        return jsonify({
-            "success": True,
-            "tactical_analysis": analysis_text,
-            "tactical_data": tactical_data,
-            "players": players,
-            "language": language
-        })
-        
+        # Create a temporary directory for the report
+        with tempfile.TemporaryDirectory() as temp_dir:
+            try:
+                # Get player info to verify player exists
+                from services.data_service import find_player_by_id
+                player = find_player_by_id(player_id)
+                
+                if not player:
+                    # Add error to session history
+                    session.messages.append({
+                        "role": "assistant",
+                        "content": f"Player with ID {player_id} not found."
+                    })
+                    
+                    return jsonify({
+                        "success": False,
+                        "error": "player_not_found",
+                        "message": f"Player with ID {player_id} not found.",
+                        "language": language
+                    })
+                
+                # Generate the report
+                if format_type == "pdf":
+                    # Generate PDF report
+                    report_path = generate_scout_report_pdf(player_id, language, temp_dir)
+                    
+                    # Add success to session history
+                    session.messages.append({
+                        "role": "assistant",
+                        "content": f"Scout report for {player.get('name', player_id)} generated successfully in PDF format."
+                    })
+                    
+                    # Return the PDF file
+                    return send_file(
+                        report_path,
+                        mimetype='application/pdf',
+                        as_attachment=True,
+                        download_name=f"scout_report_{player_id}_{language}.pdf"
+                    )
+                else:
+                    # Generate HTML report
+                    report_path = generate_scout_report_html(player_id, language, temp_dir)
+                    
+                    # Add success to session history
+                    session.messages.append({
+                        "role": "assistant",
+                        "content": f"Scout report for {player.get('name', player_id)} generated successfully in HTML format."
+                    })
+                    
+                    # Read the HTML content
+                    with open(report_path, 'r', encoding='utf-8') as f:
+                        html_content = f.read()
+                    
+                    # Return the HTML content
+                    return html_content, 200, {'Content-Type': 'text/html; charset=utf-8'}
+            
+            except Exception as e:
+                error_message = f"Error generating scout report: {str(e)}"
+                print(error_message)
+                
+                # Add error to session history
+                session.messages.append({
+                    "role": "assistant",
+                    "content": error_message
+                })
+                
+                return jsonify({
+                    "success": False,
+                    "error": "generation_error",
+                    "message": error_message,
+                    "language": language
+                })
+    
     except Exception as e:
-        print(f"Error in tactical analysis endpoint: {str(e)}")
-        from utils.formatters import format_error_response
-        return jsonify(format_error_response(
-            error="server_error",
-            message="An error occurred during tactical analysis. Please try again.",
-            language="english"
-        ))
+        error_message = f"Error in scout report endpoint: {str(e)}"
+        print(error_message)
+        
+        return jsonify({
+            "success": False,
+            "error": "server_error",
+            "message": "An unexpected error occurred. Please try again.",
+            "language": "english"
+        })
 
-# Run the application
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=False)
+@app.route('/scout_report/<player_id>', methods=['GET'])
+def get_scout_report(player_id):
+    """
+    Endpoint for getting a scout report for a player via GET request
+    
+    Query parameters:
+    - session_id: Session ID (required)
+    - language: Language of the report (optional, defaults to "pt")
+    - format: Format of the report (optional, defaults to "html")
+    
+    Response:
+    - If format is "html":
+        HTML content of the report
+    - If format is "pdf":
+        PDF file download
+    - If error:
+        {
+            "success": false,
+            "error": "error_code",
+            "message": "Error message",
+            "language": "language"
+        }
+    """
+    try:
+        # Get query parameters
+        session_id = request.args.get('session_id')
+        language = request.args.get('language', 'pt')
+        format_type = request.args.get('format', 'html').lower()
+        
+        # Validate session_id
+        if not session_id:
+            return jsonify({
+                "success": False,
+                "error": "invalid_request",
+                "message": "session_id is required",
+                "language": "english"
+            })
+        
+        # Validate language
+        if language not in TranslationManager.SUPPORTED_LANGUAGES:
+            return jsonify({
+                "success": False,
+                "error": "invalid_language",
+                "message": f"Unsupported language. Supported languages: {', '.join(TranslationManager.SUPPORTED_LANGUAGES)}",
+                "language": "english"
+            })
+        
+        # Validate format
+        if format_type not in ["html", "pdf"]:
+            return jsonify({
+                "success": False,
+                "error": "invalid_format",
+                "message": "Unsupported format. Supported formats: html, pdf",
+                "language": language
+            })
+        
+        # Get session
+        session = session_manager.get_session(session_id, language)
+        
+        # Add request to session history
+        session.messages.append({
+            "role": "user",
+            "content": f"Generate scout report for player {player_id}"
+        })
+        
+        # Create a temporary directory for the report
+        with tempfile.TemporaryDirectory() as temp_dir:
+            try:
+                # Get player info to verify player exists
+                from services.data_service import find_player_by_id
+                player = find_player_by_id(player_id)
+                
+                if not player:
+                    # Add error to session history
+                    session.messages.append({
+                        "role": "assistant",
+                        "content": f"Player with ID {player_id} not found."
+                    })
+                    
+                    return jsonify({
+                        "success": False,
+                        "error": "player_not_found",
+                        "message": f"Player with ID {player_id} not found.",
+                        "language": language
+                    })
+                
+                # Generate the report
+                if format_type == "pdf":
+                    # Generate PDF report
+                    report_path = generate_scout_report_pdf(player_id, language, temp_dir)
+                    
+                    # Add success to session history
+                    session.messages.append({
+                        "role": "assistant",
+                        "content": f"Scout report for {player.get('name', player_id)} generated successfully in PDF format."
+                    })
+                    
+                    # Return the PDF file
+                    return send_file(
+                        report_path,
+                        mimetype='application/pdf',
+                        as_attachment=True,
+                        download_name=f"scout_report_{player_id}_{language}.pdf"
+                    )
+                else:
+                    # Generate HTML report
+                    report_path = generate_scout_report_html(player_id, language, temp_dir)
+                    
+                    # Add success to session history
+                    session.messages.append({
+                        "role": "assistant",
+                        "content": f"Scout report for {player.get('name', player_id)} generated successfully in HTML format."
+                    })
+                    
+                    # Read the HTML content
+                    with open(report_path, 'r', encoding='utf-8') as f:
+                        html_content = f.read()
+                    
+                    # Return the HTML content
+                    return html_content, 200, {'Content-Type': 'text/html; charset=utf-8'}
+            
+            except Exception as e:
+                error_message = f"Error generating scout report: {str(e)}"
+                print(error_message)
+                
+                # Add error to session history
+                session.messages.append({
+                    "role": "assistant",
+                    "content": error_message
+                })
+                
+                return jsonify({
+                    "success": False,
+                    "error": "generation_error",
+                    "message": error_message,
+                    "language": language
+                })
+    
+    except Exception as e:
+        error_message = f"Error in scout report endpoint: {str(e)}"
+        print(error_message)
+        
+        return jsonify({
+            "success": False,
+            "error": "server_error",
+            "message": "An unexpected error occurred. Please try again.",
+            "language": "english"
+        })
+
+if __name__ == "__main__":
+    app.run(debug=True, host="0.0.0.0", port=5000)

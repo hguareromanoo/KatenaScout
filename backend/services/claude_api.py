@@ -49,7 +49,8 @@ def call_claude_api_with_retry(
     tool_choice: Optional[Dict[str, Any]] = None,
     max_retries: int = 3,
     initial_backoff: float = 1.0,
-    backoff_factor: float = 2.0
+    backoff_factor: float = 2.0,
+    timeout: float = 30.0
 ) -> ClaudeAPIResponse:
     """
     Make a direct HTTP request to the Claude API with retry logic
@@ -116,7 +117,7 @@ def call_claude_api_with_retry(
             print(f"{log_prefix} Request body: {request_body}")
             
             # Make the request
-            response = requests.post(url, headers=headers, json=request_body, timeout=30)
+            response = requests.post(url, headers=headers, json=request_body, timeout=timeout)
             
             # Log response for debugging
             if response.status_code != 200:
@@ -207,7 +208,8 @@ def call_claude_api(
     system: Optional[str] = None, 
     messages: Optional[List[Dict[str, Any]]] = None, 
     tools: Optional[List[Dict[str, Any]]] = None, 
-    tool_choice: Optional[Dict[str, Any]] = None
+    tool_choice: Optional[Dict[str, Any]] = None,
+    timeout: float = 30.0
 ) -> ClaudeAPIResponse:
     """
     Make a direct HTTP request to the Claude API (with retry logic)
@@ -233,5 +235,7 @@ def call_claude_api(
         system=system,
         messages=messages,
         tools=tools,
-        tool_choice=tool_choice
+        tool_choice=tool_choice,
+        timeout=timeout
+
     )

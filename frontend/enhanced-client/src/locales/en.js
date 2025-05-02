@@ -48,12 +48,14 @@ export default {
     appName: "KatenaScout",
     loading: "Loading...",
     error: "Sorry, an error occurred",
-    back: "Back"
+    back: "Back",
+    remove: "Remove",
   },
   navigation: {
     chat: "AI Scout Chat",
     favorites: "Favorites",
-    settings: "Settings"
+    settings: "Settings",
+    scoutReport: 'Advanced Scout Report'
   },
   onboarding: {
     welcome: "Welcome to KatenaScout",
@@ -62,6 +64,35 @@ export default {
     continueButton: "Continue",
     poweredBy: "Powered by Claude AI"
   },
+scoutReport: {
+  headerTitle: 'Advanced Scout Report',
+  headerSubtitle: 'Detailed player analysis',
+  title: 'Advanced Scout Report',
+  description: 'Generate a complete scout report with detailed analysis of statistics, tactical profile, injury history, and market value.',
+  searchTitle: 'Search Player',
+  searchPlaceholder: 'Type player name...',
+  selectedPlayerTitle: 'Selected Player',
+  noPlayerSelected: 'No player selected',
+  selectPlayer: 'Select a player',
+  recentSearches: 'Recent searches',
+  clearSearchHistory: 'Clear history',
+  dropPlayerHere: 'Drag and drop a player here',
+  dragAndDropHint: 'Or search for a player above and click to select',
+  generateButton: 'Generate Report',
+  unknownTeam: 'Unknown team',
+  noResults: 'No players found',
+  generationFailed: 'Failed to generate report. Please try again.',
+  reportReady: 'Report Ready',
+  reportFor: 'Scout Report for',
+  openInNewTab: 'Open in new tab',
+  steps: {
+    searchingDatabase: 'Searching player in database',
+    analyzingMatches: 'Analyzing matches',
+    analyzingStats: 'Analyzing statistics',
+    analyzingHistory: 'Analyzing history',
+    generatingReport: 'Generating report'
+  }
+},
   chat: {
     headerTitle: "KatenaScout AI",
     headerSubtitle: "Your intelligent scouting assistant",
@@ -156,7 +187,6 @@ export default {
     generateAnalysis: "Generate Analysis",
     defaultText: "Player comparison results"
   },
-  
   tacticalAnalysis: {
     title: "Tactical Context Analysis",
     loading: "Analyzing players...",

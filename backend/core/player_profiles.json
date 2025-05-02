@@ -1,0 +1,524 @@
+{
+  "center_forwards": {
+    "Scoring Striker": {
+      "description": {
+        "en": "A forward focused almost exclusively on finishing chances, operating close to the opposition goal with minimal touches outside the box. Their main contribution is measured by goals scored, exemplified by players like Erling Haaland.",
+        "pt": "Um atacante focado quase exclusivamente em finalizar chances, operando próximo ao gol adversário com toques mínimos fora da área. Sua principal contribuição é medida pelos gols marcados, exemplificado por jogadores como Erling Haaland.",
+        "es": "Un delantero enfocado casi exclusivamente en finalizar oportunidades, operando cerca de la portería rival con mínimos toques fuera del área. Su principal contribución se mide por los goles marcados, ejemplificado por jugadores como Erling Haaland.",
+        "bg": "Нападател, фокусиран почти изключително върху реализирането на голови положения, действащ близо до противниковата врата с минимални докосвания извън наказателното поле. Основният му принос се измерва с отбелязаните голове, илюстриран от играчи като Ерлинг Холанд."
+      },
+      "key_stats": {
+        "goals": 5,
+        "shotsOnTarget": 5,
+        "goalConversion": 5,
+        "touchInBox": 4,
+        "shots": 4,
+        "xgShot": 4,
+        "headShots": 3
+      }
+    },
+    "Target Man": {
+      "description": {
+        "en": "A physically strong striker who acts as the focal point of attack, holding up play, winning aerial duels, and bringing teammates into play. Often receives a high percentage of the team's touches in the penalty area.",
+        "pt": "Um atacante fisicamente forte que atua como ponto focal do ataque, segurando a bola, vencendo duelos aéreos e envolvendo os companheiros no jogo. Frequentemente recebe uma alta porcentagem dos toques da equipe na área de pênalti.",
+        "es": "Un delantero físicamente fuerte que actúa como punto focal del ataque, aguantando el balón, ganando duelos aéreos e incorporando a sus compañeros al juego. A menudo recibe un alto porcentaje de los toques del equipo en el área penal.",
+        "bg": "Физически силен нападател, който действа като фокусна точка на атаката, задържа играта, печели въздушни дуели и включва съотборниците си в играта. Често получава висок процент от докосванията на отбора в наказателното поле."
+      },
+      "key_stats": {
+        "aerialDuelsWon": 5,
+        "receivedPass": 4,
+        "touchInBox": 4,
+        "successfulLinkupPlays": 4,
+        "duelsWon": 4,
+        "offensiveDuelsWon": 3,
+        "goalConversion": 3
+      }
+    },
+    "False 9": {
+      "description": {
+        "en": "A center forward who drops deep into midfield, creating space for others and linking play. Prioritizes movement, passing, and positional fluidity over traditional striker duties.",
+        "pt": "Um centroavante que recua para o meio-campo, criando espaço para outros e conectando o jogo. Prioriza movimento, passes e fluidez posicional sobre as funções tradicionais de atacante.",
+        "es": "Un delantero centro que baja profundo al mediocampo, creando espacio para otros y enlazando el juego. Prioriza el movimiento, el pase y la fluidez posicional sobre las funciones tradicionales de delantero.",
+        "bg": "Централен нападател, който се връща дълбоко в полузащитата, създавайки пространство за другите и свързвайки играта. Приоритизира движението, подаването и позиционната гъвкавост пред традиционните задължения на нападателя."
+      },
+      "key_stats": {
+        "successfulPasses": 5,
+        "keyPasses": 5,
+        "assists": 4,
+        "xgAssist": 4,
+        "successfulSmartPasses": 4,
+        "goals": 3,
+        "progressivePasses": 4
+      }
+    },
+    "Complete Forward": {
+      "description": {
+        "en": "A versatile striker who combines finishing ability with significant involvement in build-up play, contributing both goals and assists while being adept at linking up with teammates.",
+        "pt": "Um atacante versátil que combina capacidade de finalização com envolvimento significativo na construção do jogo, contribuindo com gols e assistências enquanto se mostra habilidoso em conectar-se com os companheiros.",
+        "es": "Un delantero versátil que combina capacidad de definición con una participación significativa en la construcción del juego, aportando tanto goles como asistencias mientras es hábil enlazando con sus compañeros.",
+        "bg": "Универсален нападател, който съчетава способност за завършване с значително участие в изграждането на играта, допринасящ както с голове, така и с асистенции, докато умело се свързва със съотборниците си."
+      },
+      "key_stats": {
+        "goals": 4,
+        "assists": 4,
+        "successfulPasses": 4,
+        "successfulLinkupPlays": 4,
+        "touchInBox": 3,
+        "shotAssists": 3,
+        "duelsWon": 3
+      }
+    },
+    "Mobile Forward": {
+      "description": {
+        "en": "A forward who thrives on movement behind defensive lines, making intelligent runs to stretch defenses and exploit space, particularly effective in counter-attacking systems.",
+        "pt": "Um atacante que prospera no movimento atrás das linhas defensivas, fazendo corridas inteligentes para esticar as defesas e explorar espaços, particularmente eficaz em sistemas de contra-ataque.",
+        "es": "Un delantero que se nutre del movimiento detrás de las líneas defensivas, realizando carreras inteligentes para estirar las defensas y explotar espacios, particularmente efectivo en sistemas de contraataque.",
+        "bg": "Нападател, който процъфтява с движение зад отбранителните линии, правейки интелигентни бягания, за да разтегли защитите и да използва пространството, особено ефективен в контраатакуващи системи."
+      },
+      "key_stats": {
+        "progressiveRun": 5,
+        "accelerations": 5,
+        "goals": 4,
+        "successfulDribbles": 4,
+        "offensiveDuelsWon": 4,
+        "shotOnTargetAssists": 3,
+        "touchInBox": 3
+      }
+    }
+  },
+  "wingers": {
+    "Inverted Winger": {
+      "description": {
+        "en": "A winger who plays on the opposite side of their stronger foot, frequently cutting inside to shoot or create chances, and often occupying central areas to overload the midfield.",
+        "pt": "Um ponta que joga no lado oposto ao seu pé mais forte, frequentemente cortando para dentro para finalizar ou criar chances, e muitas vezes ocupando áreas centrais para sobrecarregar o meio-campo.",
+        "es": "Un extremo que juega en el lado opuesto a su pie más fuerte, frecuentemente recortando hacia dentro para disparar o crear oportunidades, y a menudo ocupando áreas centrales para sobrecargar el mediocampo.",
+        "bg": "Крило, което играе от противоположната страна на силния си крак, често пресичащо навътре, за да стреля или да създава шансове, и често заемащо централни зони, за да претовари полузащитата."
+      },
+      "key_stats": {
+        "successfulDribbles": 5,
+        "shots": 4,
+        "goals": 4,
+        "progressiveRun": 4,
+        "keyPasses": 3,
+        "touchInBox": 3,
+        "xgShot": 3
+      }
+    },
+    "Traditional Winger": {
+      "description": {
+        "en": "A wide player who hugs the touchline, focuses on beating defenders one-on-one, and delivers crosses into the box, maintaining width and stretching opposition defenses.",
+        "pt": "Um jogador de beirada que se mantém próximo à linha lateral, concentra-se em superar os defensores no mano a mano e entrega cruzamentos para a área, mantendo amplitude e esticando as defesas adversárias.",
+        "es": "Un jugador de banda que se mantiene cerca de la línea de cal, se centra en superar a los defensores uno contra uno y envía centros al área, manteniendo amplitud y estirando las defensas rivales.",
+        "bg": "Широк играч, който се придържа към тъчлинията, фокусира се върху преодоляването на защитниците един срещу един и доставя центрирания в наказателното поле, поддържайки ширина и разтягайки противниковите защити."
+      },
+      "key_stats": {
+        "crosses": 5,
+        "successfulCrosses": 5,
+        "successfulDribbles": 4,
+        "assists": 4,
+        "progressiveRun": 4,
+        "accelerations": 3,
+        "shotAssists": 3
+      }
+    },
+    "Inside Forward": {
+      "description": {
+        "en": "A winger who starts wide but consistently drifts into central attacking positions, looking to score or assist, and often becomes a secondary striker in attacking phases.",
+        "pt": "Um ponta que começa aberto mas constantemente se desloca para posições centrais de ataque, buscando marcar ou assistir, e frequentemente se torna um segundo atacante nas fases ofensivas.",
+        "es": "Un extremo que comienza abierto pero se desplaza constantemente hacia posiciones centrales de ataque, buscando anotar o asistir, y a menudo se convierte en un segundo delantero en fases ofensivas.",
+        "bg": "Крило, което започва широко, но постоянно се придвижва към централни атакуващи позиции, опитвайки се да отбележи или асистира, и често се превръща във втори нападател по време на атакуващи фази."
+      },
+      "key_stats": {
+        "goals": 5,
+        "shots": 4,
+        "touchInBox": 4,
+        "shotsOnTarget": 4,
+        "successfulDribbles": 4,
+        "progressiveRun": 3,
+        "xgShot": 3
+      }
+    },
+    "Wide Playmaker": {
+      "description": {
+        "en": "A creative winger who drifts inside to influence play, prioritizing passing and chance creation over direct dribbling or crossing, often acting as an auxiliary midfielder.",
+        "pt": "Um ponta criativo que se desloca para dentro para influenciar o jogo, priorizando passes e criação de chances sobre dribles diretos ou cruzamentos, frequentemente atuando como um meio-campista auxiliar.",
+        "es": "Un extremo creativo que se desplaza hacia dentro para influir en el juego, priorizando el pase y la creación de oportunidades sobre el regate directo o los centros, a menudo actuando como un centrocampista auxiliar.",
+        "bg": "Креативно крило, което се отклонява навътре, за да влияе на играта, приоритизирайки подаването и създаването на шансове пред директното дрибли ране или центриране, често действайки като спомагателен полузащитник."
+      },
+      "key_stats": {
+        "keyPasses": 5,
+        "assists": 5,
+        "successfulSmartPasses": 4,
+        "successfulPasses": 4,
+        "xgAssist": 4,
+        "progressivePasses": 4,
+        "throughPasses": 3
+      }
+    },
+    "Wide Midfielder": {
+      "description": {
+        "en": "A balanced wide player with both defensive and attacking responsibilities, providing tactical discipline, supporting the full-back, and contributing to both phases of play.",
+        "pt": "Um jogador de corredor equilibrado com responsabilidades tanto defensivas quanto ofensivas, proporcionando disciplina tática, apoiando o lateral e contribuindo para ambas as fases do jogo.",
+        "es": "Un jugador de banda equilibrado con responsabilidades tanto defensivas como ofensivas, proporcionando disciplina táctica, apoyando al lateral y contribuyendo a ambas fases del juego.",
+        "bg": "Балансиран широк играч с както защитни, така и нападателни отговорности, осигуряващ тактическа дисциплина, подпомагащ крайния защитник и допринасящ за двете фази на играта."
+      },
+      "key_stats": {
+        "successfulPasses": 4,
+        "defensiveDuelsWon": 4,
+        "recoveries": 4,
+        "interceptions": 3,
+        "progressiveRun": 3,
+        "crosses": 3,
+        "defensiveActions": 4
+      }
+    }
+  },
+  "full_backs": {
+    "Attacking Full-back": {
+      "description": {
+        "en": "A full-back who makes frequent overlapping runs, provides width in attack, and delivers crosses, often acting as an additional winger in possession-heavy teams.",
+        "pt": "Um lateral que faz frequentes corridas de ultrapassagem, proporciona amplitude no ataque e entrega cruzamentos, frequentemente atuando como um ponta adicional em times que mantêm muita posse de bola.",
+        "es": "Un lateral que realiza frecuentes carreras de desdoble, proporciona amplitud en ataque y envía centros, a menudo actuando como un extremo adicional en equipos con mucha posesión.",
+        "bg": "Краен защитник, който прави чести припокриващи се бягания, осигурява ширина в атаката и доставя центрирания, често действащ като допълнително крило в отбори с голямо владение на топката."
+      },
+      "key_stats": {
+        "crosses": 5,
+        "successfulCrosses": 5,
+        "progressiveRun": 4,
+        "assists": 3,
+        "keyPasses": 3,
+        "successfulDribbles": 3,
+        "defensiveDuelsWon": 3
+      }
+    },
+    "Defensive Full-back": {
+      "description": {
+        "en": "A full-back who prioritizes defensive duties, excelling in one-on-one defending, marking wingers, and preventing crosses, with limited involvement in attacking play.",
+        "pt": "Um lateral que prioriza funções defensivas, excelente em defesas individuais, marcando pontas e impedindo cruzamentos, com envolvimento limitado no jogo ofensivo.",
+        "es": "Un lateral que prioriza las labores defensivas, destacando en defensa uno contra uno, marcando a extremos y evitando centros, con participación limitada en el juego ofensivo.",
+        "bg": "Краен защитник, който приоритизира защитните задължения, отличавайки се в защитата един срещу един, маркирането на крила и предотвратяването на центрирания, с ограничено участие в атакуващата игра."
+      },
+      "key_stats": {
+        "defensiveDuelsWon": 5,
+        "interceptions": 5,
+        "dribblesAgainstWon": 4,
+        "clearances": 4,
+        "defensiveActions": 4,
+        "aerialDuelsWon": 3,
+        "successfulPasses": 2
+      }
+    },
+    "Inverted Full-back": {
+      "description": {
+        "en": "A full-back who tucks into central midfield areas during possession, helping create numerical superiority in midfield and supporting ball circulation and build-up play.",
+        "pt": "Um lateral que se desloca para áreas centrais do meio-campo durante a posse, ajudando a criar superioridade numérica no meio-campo e apoiando a circulação de bola e a construção do jogo.",
+        "es": "Un lateral que se desplaza hacia zonas centrales del mediocampo durante la posesión, ayudando a crear superioridad numérica en el centro del campo y apoyando la circulación del balón y la construcción del juego.",
+        "bg": "Краен защитник, който се придвижва към централните зони на полузащитата по време на владение, помагайки за създаване на числено превъзходство в средата на терена и подпомагайки циркулацията на топката и изграждането на играта."
+      },
+      "key_stats": {
+        "successfulPasses": 5,
+        "progressivePasses": 5,
+        "interceptions": 4,
+        "forwardPasses": 4,
+        "defensiveDuelsWon": 3,
+        "recoveries": 3,
+        "lateralPasses": 3
+      }
+    },
+    "Wing-back": {
+      "description": {
+        "en": "A wide defender in a back-three system who covers the entire flank, combining the responsibilities of a full-back and a winger, and contributing extensively to both attack and defense.",
+        "pt": "Um defensor lateral em um sistema de três zagueiros que cobre todo o flanco, combinando as responsabilidades de um lateral e um ponta, e contribuindo extensivamente tanto para o ataque quanto para a defesa.",
+        "es": "Un defensor de banda en un sistema de tres centrales que cubre todo el flanco, combinando las responsabilidades de un lateral y un extremo, y contribuyendo extensamente tanto al ataque como a la defensa.",
+        "bg": "Широк защитник в система с трима централни защитници, който покрива целия фланг, съчетавайки отговорностите на краен защитник и крило, и допринасящ значително както за атаката, така и за защитата."
+      },
+      "key_stats": {
+        "progressiveRun": 5,
+        "crosses": 4,
+        "recoveries": 4,
+        "defensiveDuelsWon": 3,
+        "successfulDribbles": 4,
+        "keyPasses": 3,
+        "interceptions": 3
+      }
+    },
+    "Balanced Full-back": {
+      "description": {
+        "en": "A tactically intelligent full-back who adapts their positioning based on game context, contributing steadily to both defensive solidity and attacking support.",
+        "pt": "Um lateral taticamente inteligente que adapta seu posicionamento com base no contexto do jogo, contribuindo de forma constante tanto para a solidez defensiva quanto para o apoio ofensivo.",
+        "es": "Un lateral tácticamente inteligente que adapta su posicionamiento según el contexto del partido, contribuyendo de manera constante tanto a la solidez defensiva como al apoyo ofensivo.",
+        "bg": "Тактически интелигентен краен защитник, който адаптира позиционирането си въз основа на контекста на играта, допринасяйки стабилно както за защитната солидност, така и за атакуващата подкрепа."
+      },
+      "key_stats": {
+        "defensiveDuelsWon": 4,
+        "successfulPasses": 4,
+        "crosses": 3,
+        "interceptions": 4,
+        "recoveries": 3,
+        "progressiveRun": 3,
+        "lateralPasses": 3
+      }
+    }
+  },
+  "center_backs": {
+    "Ball-playing Defender": {
+      "description": {
+        "en": "A center back comfortable in possession, initiating attacks with accurate passing, and often stepping into midfield to support build-up play.",
+        "pt": "Um zagueiro confortável com a posse de bola, iniciando ataques com passes precisos e frequentemente avançando para o meio-campo para apoiar a construção do jogo.",
+        "es": "Un defensa central cómodo en posesión, iniciando ataques con pases precisos y a menudo avanzando al mediocampo para apoyar la construcción del juego.",
+        "bg": "Централен защитник, комфортен във владение на топката, инициирайки атаки с точни подавания и често навлизащ в средата на терена, за да подпомогне изграждането на играта."
+      },
+      "key_stats": {
+        "successfulPasses": 5,
+        "progressivePasses": 5,
+        "defensiveDuelsWon": 4,
+        "longPasses": 4,
+        "interceptions": 4,
+        "successfulForwardPasses": 3,
+        "dribblesAgainstWon": 3
+      }
+    },
+    "Stopper": {
+      "description": {
+        "en": "An aggressive defender who steps out from the back line to intercept passes, contest duels, and disrupt opposition attacks early.",
+        "pt": "Um defensor agressivo que sai da linha de defesa para interceptar passes, disputar duelos e interromper os ataques adversários precocemente.",
+        "es": "Un defensor agresivo que sale de la línea defensiva para interceptar pases, disputar duelos e interrumpir tempranamente los ataques rivales.",
+        "bg": "Агресивен защитник, който излиза от задната линия, за да пресича подавания, да оспорва двубои и да прекъсва противниковите атаки рано."
+      },
+      "key_stats": {
+        "defensiveDuelsWon": 5,
+        "dribblesAgainstWon": 5,
+        "interceptions": 5,
+        "slidingTackles": 4,
+        "duelsWon": 4,
+        "successfulSlidingTackles": 3,
+        "defensiveActions": 4
+      }
+    },
+    "Covering Defender": {
+      "description": {
+        "en": "A center back who plays a more conservative role, sweeping behind the defensive line, reading the game, and providing last-ditch tackles and clearances.",
+        "pt": "Um zagueiro que desempenha um papel mais conservador, cobrindo atrás da linha defensiva, lendo o jogo e provendo desarmes e cortes de última instância.",
+        "es": "Un defensa central que desempeña un rol más conservador, barriendo detrás de la línea defensiva, leyendo el juego y proporcionando entradas y despejes de última instancia.",
+        "bg": "Централен защитник, който играе по-консервативна роля, покривайки зад отбранителната линия, четейки играта и осигурявайки спасителни шпагати и изчиствания."
+      },
+      "key_stats": {
+        "interceptions": 5,
+        "clearances": 5,
+        "defensiveActions": 5,
+        "defensiveDuelsWon": 4,
+        "aerialDuelsWon": 4,
+        "shotsBlocked": 4,
+        "successfulPasses": 2
+      }
+    },
+    "Libero": {
+      "description": {
+        "en": "A center back who operates as a free defender, stepping into midfield with the ball and acting as an auxiliary playmaker, often seen in systems with three center backs.",
+        "pt": "Um zagueiro que opera como defensor livre, avançando para o meio-campo com a bola e atuando como um meia organizador auxiliar, frequentemente visto em sistemas com três zagueiros.",
+        "es": "Un defensa central que opera como líbero, avanzando al mediocampo con el balón y actuando como un organizador auxiliar, a menudo visto en sistemas con tres centrales.",
+        "bg": "Централен защитник, който действа като свободен защитник, навлизащ в средата на терена с топката и действащ като спомагателен плеймейкър, често срещан в системи с трима централни защитници."
+      },
+      "key_stats": {
+        "progressiveRun": 5,
+        "progressivePasses": 5,
+        "successfulPasses": 5,
+        "longPasses": 4,
+        "defensiveDuelsWon": 4,
+        "interceptions": 3,
+        "successfulDribbles": 3
+      }
+    },
+    "Hybrid Defender": {
+      "description": {
+        "en": "A versatile center back capable of shifting between central and wide defensive roles, adapting to tactical demands such as transitioning between a back three and a back four.",
+        "pt": "Um zagueiro versátil capaz de alternar entre funções defensivas centrais e laterais, adaptando-se a demandas táticas como a transição entre uma linha de três e uma linha de quatro defensores.",
+        "es": "Un defensa central versátil capaz de alternar entre roles defensivos centrales y laterales, adaptándose a exigencias tácticas como la transición entre una defensa de tres y una de cuatro.",
+        "bg": "Универсален централен защитник, способен да се превключва между централни и широки защитни роли, адаптирайки се към тактически изисквания като преминаването между тройна и четворна защитна линия."
+      },
+      "key_stats": {
+        "defensiveDuelsWon": 4,
+        "successfulPasses": 4,
+        "defensiveActions": 4,
+        "interceptions": 4,
+        "recoveries": 3,
+        "progressivePasses": 3,
+        "duelsWon": 3
+      }
+    }
+  },
+  "midfielders": {
+    "Destroyer": {
+      "description": {
+        "en": "A combative midfielder who excels at breaking up opposition play, winning tackles, and providing defensive cover in front of the back line.",
+        "pt": "Um meio-campista combativo que se destaca em quebrar o jogo adversário, ganhar disputas e fornecer cobertura defensiva à frente da linha de defesa.",
+        "es": "Un centrocampista combativo que destaca en romper el juego rival, ganar entradas y proporcionar cobertura defensiva delante de la línea defensiva.",
+        "bg": "Борбен полузащитник, който се отличава в разрушаването на противниковата игра, печеленето на шпагати и осигуряването на защитно покритие пред задната линия."
+      },
+      "key_stats": {
+        "defensiveDuelsWon": 5,
+        "interceptions": 5,
+        "recoveries": 5,
+        "duelsWon": 4,
+        "slidingTackles": 4,
+        "defensiveActions": 4,
+        "successfulSlidingTackles": 3
+      }
+    },
+    "Deep-lying Playmaker": {
+      "description": {
+        "en": "A midfielder who dictates the tempo from deep positions, using vision and passing range to orchestrate play and launch attacks.",
+        "pt": "Um meio-campista que dita o ritmo de posições mais recuadas, usando visão e amplitude de passe para orquestrar o jogo e iniciar ataques.",
+        "es": "Un centrocampista que dicta el tempo desde posiciones profundas, utilizando visión y rango de pase para orquestar el juego e iniciar ataques.",
+        "bg": "Полузащитник, който диктува темпото от дълбоки позиции, използвайки визия и обхват на подаванията, за да оркестрира играта и да започва атаки."
+      },
+      "key_stats": {
+        "successfulPasses": 5,
+        "progressivePasses": 5,
+        "longPasses": 5,
+        "successfulLongPasses": 4,
+        "forwardPasses": 4,
+        "passesToFinalThird": 4,
+        "successfulPassesToFinalThird": 3
+      }
+    },
+    "Box-to-box": {
+      "description": {
+        "en": "A dynamic midfielder who contributes both defensively and offensively, covering large distances, making late runs into the box, and supporting both ends of the pitch.",
+        "pt": "Um meio-campista dinâmico que contribui tanto defensiva quanto ofensivamente, cobrindo grandes distâncias, fazendo corridas tardias para a área e apoiando ambas as extremidades do campo.",
+        "es": "Un centrocampista dinámico que contribuye tanto defensiva como ofensivamente, cubriendo grandes distancias, realizando llegadas tardías al área y apoyando ambos extremos del campo.",
+        "bg": "Динамичен полузащитник, който допринася както в защита, така и в нападение, покривайки големи разстояния, правейки късни набези в наказателното поле и подпомагайки и двата края на терена."
+      },
+      "key_stats": {
+        "recoveries": 4,
+        "progressiveRun": 4,
+        "duelsWon": 4,
+        "shots": 3,
+        "successfulPasses": 4,
+        "interceptions": 3,
+        "touchInBox": 3
+      }
+    },
+    "Advanced Playmaker": {
+      "description": {
+        "en": "A creative midfielder operating in advanced areas, specializing in unlocking defenses with incisive passes and vision, often playing as a 'number 10'.",
+        "pt": "Um meio-campista criativo operando em áreas avançadas, especializado em desbloquear defesas com passes incisivos e visão de jogo, frequentemente atuando como um 'camisa 10'.",
+        "es": "Un centrocampista creativo que opera en zonas avanzadas, especializado en desbloquear defensas con pases incisivos y visión, a menudo jugando como un 'número 10'.",
+        "bg": "Креативен полузащитник, действащ в напреднали зони, специализиран в разбиването на защити с проницателни подавания и визия, често играещ като 'номер 10'."
+      },
+      "key_stats": {
+        "keyPasses": 5,
+        "assists": 5,
+        "xgAssist": 5,
+        "smartPasses": 5,
+        "successfulSmartPasses": 4,
+        "throughPasses": 4,
+        "successfulThroughPasses": 3
+      }
+    },
+    "Anchor": {
+      "description": {
+        "en": "A disciplined midfielder who shields the defense, maintains positional awareness, and controls the rhythm of play, providing balance and stability to the team.",
+        "pt": "Um meio-campista disciplinado que protege a defesa, mantém consciência posicional e controla o ritmo do jogo, proporcionando equilíbrio e estabilidade à equipe.",
+        "es": "Un centrocampista disciplinado que protege la defensa, mantiene conciencia posicional y controla el ritmo del juego, proporcionando equilibrio y estabilidad al equipo.",
+        "bg": "Дисциплиниран полузащитник, който предпазва защитата, поддържа позиционна осъзнатост и контролира ритъма на играта, осигурявайки баланс и стабилност на отбора."
+      },
+      "key_stats": {
+        "interceptions": 5,
+        "defensiveActions": 5,
+        "successfulPasses": 4,
+        "recoveries": 4,
+        "defensiveDuelsWon": 4,
+        "backPasses": 3,
+        "forwardPasses": 3
+      }
+    }
+  },
+  "goalkeepers": {
+    "Shot-stopper": {
+      "description": {
+        "en": "A goalkeeper renowned for reflex saves and blocking shots, excelling in one-on-one situations and close-range efforts.",
+        "pt": "Um goleiro reconhecido por defesas de reflexo e bloqueio de chutes, destacando-se em situações de um contra um e finalizações de curta distância.",
+        "es": "Un portero reconocido por sus reflejos en paradas y bloqueos de tiros, destacando en situaciones uno contra uno y disparos a corta distancia.",
+        "bg": "Вратар, известен с рефлексни спасявания и блокиране на удари, отличаващ се в ситуации един срещу един и опити от близко разстояние."
+      },
+      "key_stats": {
+        "gkSaves": 5,
+        "gkCleanSheets": 4,
+        "shotsBlocked": 4,
+        "gkShotsAgainst": 3,
+        "gkExits": 2,
+        "gkAerialDuelsWon": 3,
+        "gkPenaltySaves": 4
+      }
+    },
+    "Sweeper-keeper": {
+      "description": {
+        "en": "A proactive goalkeeper who plays high off their line, intercepting through balls and acting as an auxiliary defender to support a high defensive line.",
+        "pt": "Um goleiro proativo que joga adiantado, interceptando bolas em profundidade e atuando como um defensor auxiliar para apoiar uma linha defensiva alta.",
+        "es": "Un portero proactivo que juega adelantado de su línea, interceptando pases al espacio y actuando como defensor auxiliar para apoyar una línea defensiva alta.",
+        "bg": "Проактивен вратар, който играе високо от линията си, пресичайки пробивни топки и действайки като спомагателен защитник, за да подкрепи високата отбранителна линия."
+      },
+      "key_stats": {
+        "gkExits": 5,
+        "gkSuccessfulExits": 5,
+        "successfulPasses": 4,
+        "gkSaves": 4,
+        "gkAerialDuelsWon": 3,
+        "recoveries": 3,
+        "interceptions": 3
+      }
+    },
+    "Ball-playing Goalkeeper": {
+      "description": {
+        "en": "A keeper adept with their feet, comfortable receiving and distributing the ball under pressure, and actively involved in the team's build-up play.",
+        "pt": "Um goleiro hábil com os pés, confortável em receber e distribuir a bola sob pressão, e ativamente envolvido na construção do jogo da equipe.",
+        "es": "Un portero hábil con los pies, cómodo recibiendo y distribuyendo el balón bajo presión, y activamente involucrado en la construcción del juego del equipo.",
+        "bg": "Вратар, умел с краката си, комфортен при получаване и разпределяне на топката под натиск, и активно участващ в изграждането на играта на отбора."
+      },
+      "key_stats": {
+        "successfulPasses": 5,
+        "successfulLongPasses": 5,
+        "successfulGoalKicks": 5,
+        "gkSaves": 4,
+        "progressivePasses": 4,
+        "longPasses": 4,
+        "lateralPasses": 3
+      }
+    },
+    "Command Keeper": {
+      "description": {
+        "en": "A vocal and authoritative goalkeeper who organizes the defense, claims crosses, and commands the penalty area, especially during set pieces.",
+        "pt": "Um goleiro vocal e autoritário que organiza a defesa, domina cruzamentos e comanda a área de pênalti, especialmente durante bolas paradas.",
+        "es": "Un portero vocal y autoritario que organiza la defensa, atrapa centros y domina el área penal, especialmente durante jugadas a balón parado.",
+        "bg": "Гласовит и авторитетен вратар, който организира защитата, овладява центрирания и командва наказателното поле, особено по време на статични положения."
+      },
+      "key_stats": {
+        "gkAerialDuelsWon": 5,
+        "gkCleanSheets": 5,
+        "gkSaves": 4,
+        "defensiveActions": 4,
+        "gkSuccessfulExits": 3,
+        "shotsBlocked": 3,
+        "successfulGoalKicks": 3
+      }
+    },
+    "Distribution Specialist": {
+      "description": {
+        "en": "A goalkeeper who excels at launching attacks with precise throws and long passes, initiating quick transitions and counter-attacks.",
+        "pt": "Um goleiro que se destaca em iniciar ataques com lançamentos precisos e passes longos, iniciando transições rápidas e contra-ataques.",
+        "es": "Un portero que destaca en iniciar ataques con lanzamientos precisos y pases largos, generando transiciones rápidas y contraataques.",
+        "bg": "Вратар, който се отличава в започването на атаки с прецизни хвърляния и дълги подавания, инициирайки бързи преходи и контраатаки."
+      },
+      "key_stats": {
+        "successfulLongPasses": 5,
+        "successfulGoalKicks": 5,
+        "successfulPasses": 5,
+        "longPasses": 4,
+        "gkSaves": 4,
+        "passesToFinalThird": 4,
+        "successfulPassesToFinalThird": 3
+      }
+    }
+  }
+}

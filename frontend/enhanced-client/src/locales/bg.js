@@ -48,12 +48,14 @@ export default {
     appName: "KatenaScout",
     loading: "Зареждане...",
     error: "Съжаляваме, възникна грешка",
-    back: "Назад"
+    back: "Назад",
+    remove: "Премахни",
   },
   navigation: {
     chat: "Чат с ИИ Скаут",
     favorites: "Любими",
-    settings: "Настройки"
+    settings: "Настройки",
+    scoutReport: 'Разширен Скаут Доклад'
   },
   onboarding: {
     welcome: "Добре дошли в KatenaScout",
@@ -62,6 +64,36 @@ export default {
     continueButton: "Продължи",
     poweredBy: "Създадено с Claude AI"
   },
+  // Add inside the scoutReport object
+scoutReport: {
+  headerTitle: 'Разширен Скаут Доклад',
+  headerSubtitle: 'Подробен анализ на играчи',
+  title: 'Разширен Скаут Доклад',
+  description: 'Генерирайте пълен скаут доклад с подробен анализ на статистики, тактически профил, история на контузии и пазарна стойност.',
+  searchTitle: 'Търсене на Играч',
+  searchPlaceholder: 'Въведете име на играч...',
+  selectedPlayerTitle: 'Избран Играч',
+  noPlayerSelected: 'Няма избран играч',
+  selectPlayer: 'Изберете играч',
+  recentSearches: 'Последни търсения',
+  clearSearchHistory: 'Изчисти историята',
+  dropPlayerHere: 'Плъзнете и пуснете играч тук',
+  dragAndDropHint: 'Или потърсете играч по-горе и кликнете, за да изберете',
+  generateButton: 'Генериране на Доклад',
+  unknownTeam: 'Неизвестен отбор',
+  noResults: 'Не са намерени играчи',
+  generationFailed: 'Неуспешно генериране на доклад. Моля, опитайте отново.',
+  reportReady: 'Докладът е Готов',
+  reportFor: 'Скаут Доклад за',
+  openInNewTab: 'Отваряне в нов раздел',
+  steps: {
+    searchingDatabase: 'Търсене на играч в базата данни',
+    analyzingMatches: 'Анализиране на мачове',
+    analyzingStats: 'Анализиране на статистики',
+    analyzingHistory: 'Анализиране на история',
+    generatingReport: 'Генериране на доклад'
+  }
+},
   chat: {
     headerTitle: "KatenaScout AI",
     headerSubtitle: "Вашият интелигентен скаутинг асистент",
@@ -102,7 +134,6 @@ export default {
     close: "Затвори",
     noMetrics: "Няма налични метрики за този играч."
   },
-  
   playerCompletePage: {
     performanceOverview: "Преглед на Представянето",
     playerInformation: "Информация за Играча",

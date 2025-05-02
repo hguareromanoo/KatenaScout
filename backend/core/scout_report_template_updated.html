@@ -1,0 +1,2307 @@
+<!DOCTYPE html>
+<html lang="{{ language }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ translations.report_title }} - {{ player.name }}</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Montserrat:wght@600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Reset e Estilos Base */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #FFFFFF;
+            color: #2D3748;
+            line-height: 1.6;
+            padding: 20px;
+        }
+        
+        /* Tipografia */
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Montserrat', sans-serif;
+            color: #2D3748;
+            margin-bottom: 0.8em;
+            font-weight: 700;
+        }
+        
+        h1 { font-size: 2.2rem; }
+        h2 { 
+            font-size: 1.8rem; 
+            color: #3ECF8E; 
+            margin-top: 1.5em; 
+            border-bottom: 2px solid #E2E8F0; 
+            padding-bottom: 0.3em; 
+        }
+        h3 { 
+            font-size: 1.4rem; 
+            font-weight: 600; 
+            margin-top: 1.2em; 
+        }
+        h4 { 
+            font-size: 1.1rem; 
+            font-weight: 600; 
+            color: #718096; 
+            margin-top: 1em; 
+        }
+        
+        p {
+            margin-bottom: 1em;
+            color: #2D3748;
+        }
+        
+        strong {
+            font-weight: 700;
+            color: #3ECF8E;
+        }
+        
+        ul, ol {
+            margin-left: 20px;
+            margin-bottom: 1em;
+        }
+        
+        li {
+            margin-bottom: 0.5em;
+        }
+        
+        /* Layout e Espaçamento */
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 15px;
+        }
+        
+        .section {
+            margin-bottom: 2.5em;
+            padding: 1.5em;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            border: 1px solid #E2E8F0;
+        }
+        
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5em;
+        }
+        
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5em;
+        }
+        
+        .grid-item {
+            background-color: #f8fafc;
+            padding: 1em;
+            border-radius: 6px;
+            border: 1px solid #E2E8F0;
+        }
+        
+        /* Cabeçalho */
+        .report-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 4px solid #3ECF8E;
+            padding-bottom: 1em;
+            margin-bottom: 2em;
+        }
+        
+        .report-header .logo {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #3ECF8E;
+        }
+        
+        .report-header .report-info {
+            text-align: right;
+            font-size: 0.9em;
+            color: #718096;
+        }
+        
+        .confidential {
+            color: #FC8181;
+            font-weight: 600;
+            font-size: 0.85em;
+            margin-top: 0.5em;
+        }
+        
+        /* Seção do Jogador */
+        .player-section {
+            display: flex;
+            gap: 2em;
+            align-items: flex-start;
+        }
+        
+        .player-photo img {
+            max-width: 180px;
+            height: auto;
+            border-radius: 8px;
+            border: 3px solid #E2E8F0;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .player-details {
+            flex-grow: 1;
+        }
+        
+        .player-details h3 {
+            margin-top: 0;
+        }
+        
+        .player-details .detail-item {
+            margin-bottom: 0.6em;
+            font-size: 0.95em;
+        }
+        
+        .player-details .detail-item strong {
+            display: inline-block;
+            min-width: 100px;
+            color: #718096;
+            font-weight: 600;
+        }
+        
+        /* Resumo Executivo */
+        .summary-box {
+            background-color: #f8fafc;
+            padding: 1.5em;
+            border-radius: 6px;
+            border-left: 5px solid #3ECF8E;
+        }
+        
+        .summary-box p {
+            line-height: 1.7;
+        }
+        
+        /* Tabelas */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1.5em;
+            font-size: 0.9em;
+        }
+        
+        th, td {
+            padding: 0.8em 1em;
+            text-align: left;
+            border-bottom: 1px solid #E2E8F0;
+        }
+        
+        th {
+            background-color: #f8fafc;
+            font-weight: 600;
+            color: #718096;
+            text-transform: uppercase;
+            font-size: 0.85em;
+        }
+        
+        tbody tr:hover {
+            background-color: #f1f5f9;
+        }
+        
+        /* Gráficos */
+        .chart-container {
+            position: relative;
+            height: 350px;
+            width: 100%;
+            margin-bottom: 1.5em;
+            padding: 1em;
+            border: 1px solid #E2E8F0;
+            border-radius: 6px;
+        }
+        
+        .radar-chart-container {
+            position: relative;
+            height: 400px;
+            width: 100%;
+            margin-bottom: 1.5em;
+        }
+        
+        /* Análise SWOT - Design Renovado */
+        .swot-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5em;
+            margin-top: 1.5em;
+        }
+        .based-on-label, .recommendation-detail strong {
+            font-weight: 600;
+        }
+        
+        .swot-card {
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .swot-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .swot-header {
+            padding: 1em;
+            color: white;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .swot-header h3 {
+            margin: 0;
+            color: white;
+            font-size: 1.2rem;
+        }
+        
+        .swot-header-icon {
+            font-size: 1.5rem;
+        }
+        
+        .swot-content {
+            background-color: white;
+            padding: 1.2em;
+        }
+        
+        .swot-item {
+            margin-bottom: 1.2em;
+            padding-bottom: 1.2em;
+            border-bottom: 1px solid #E2E8F0;
+            display: flex;
+            flex-direction: column;
+        }
+        .swot-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            width: 100%;
+            margin-bottom: 0.5em;
+        }
+        .swot-item:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+        
+        .swot-text {
+            flex: 1;
+            line-height: 1.4;
+        }
+        
+        .swot-badges {
+            display: flex;
+            gap: 0.5em;
+            margin-left: 1em;
+            flex-shrink: 0;
+        }
+        
+        .percentile-badge {
+            font-size: 0.8em;
+            font-weight: 600;
+            padding: 0.2em 0.6em;
+            border-radius: 10px;
+            color: white;
+            white-space: nowrap;
+        }
+        
+        .importance-badge {
+            font-size: 0.8em;
+            font-weight: 600;
+            padding: 0.2em 0.6em;
+            border-radius: 10px;
+            white-space: nowrap;
+        }
+        
+        /* Cores específicas para cada categoria SWOT */
+        .swot-strengths .swot-header {
+            background-color: #3ECF8E;
+        }
+        
+        .swot-weaknesses .swot-header {
+            background-color: #FC8181;
+        }
+        
+        .swot-opportunities .swot-header {
+            background-color: #4299E1;
+        }
+        
+        .swot-threats .swot-header {
+            background-color: #F6AD55;
+        }
+        
+        /* Cores para os badges de percentil */
+        .percentile-high {
+            background-color: #3ECF8E;
+        }
+        
+        .percentile-medium {
+            background-color: #4299E1;
+        }
+        
+        .percentile-low {
+            background-color: #FC8181;
+        }
+        
+        /* Cores para os badges de importância */
+        .importance-high {
+            background-color: #FEF3C7;
+            color: #D97706;
+        }
+        
+        .importance-medium {
+            background-color: #E0F2FE;
+            color: #0369A1;
+        }
+        
+        .importance-low {
+            background-color: #F1F5F9;
+            color: #64748B;
+        }
+        
+        /* Rodapé */
+        .report-footer {
+            margin-top: 3em;
+            padding-top: 1em;
+            border-top: 1px solid #E2E8F0;
+            font-size: 0.85em;
+            color: #718096;
+            text-align: center;
+        }
+        
+        .report-footer p {
+            margin-bottom: 0.3em;
+        }
+        
+        /* Novos Componentes */
+        /* Cards de métricas para destaques principais */
+        .metrics-summary {
+            margin-top: 1.5em;
+        }
+        
+        .metric-card {
+            background: #f8fafc;
+            padding: 1em;
+            border-radius: 6px;
+            border: 1px solid #E2E8F0;
+            text-align: center;
+        }
+        
+        .metric-card h4 {
+            margin-top: 0;
+            font-size: 0.9em;
+            color: #718096;
+        }
+        
+        .metric-value {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #3ECF8E;
+            margin-top: 0.3em;
+        }
+        
+        /* Barras de progresso para pontuações */
+        .score-bar {
+            height: 8px;
+            background: #E2E8F0;
+            border-radius: 4px;
+            margin-top: 0.3em;
+            overflow: hidden;
+        }
+        
+        .score-fill {
+            height: 100%;
+            background: #3ECF8E;
+        }
+        
+        /* Estilo de seção aprimorado */
+        .section-divider {
+            margin: 2em 0;
+            border-top: 1px dashed #E2E8F0;
+        }
+        
+        /* Blocos de conteúdo para texto gerado por IA */
+        .content-block {
+            background: #fff;
+            border-left: 3px solid #3ECF8E;
+            padding: 1em;
+            margin: 1em 0;
+        }
+        
+        .content-block h3 {
+            margin-top: 0;
+            color: #3ECF8E;
+            font-size: 1.2em;
+        }
+        
+        /* Pontuações de recrutamento */
+        .score-item {
+            text-align: center;
+            padding: 1em;
+            background-color: #f8fafc;
+            border-radius: 6px;
+            border: 1px solid #E2E8F0;
+        }
+        
+        .big-score {
+            font-size: 2em;
+            font-weight: 700;
+            color: #3ECF8E;
+            margin: 0.2em 0;
+        }
+        
+        .tactical-fit-card {
+            padding: 1em;
+            background-color: #f8fafc;
+            border-radius: 6px;
+            border: 1px solid #E2E8F0;
+        }
+        
+        .fit-header {
+            font-weight: 600;
+            color: #2D3748;
+            margin-bottom: 0.5em;
+        }
+        
+        .fit-score {
+            color: #3ECF8E;
+            font-weight: 600;
+            margin-bottom: 0.3em;
+        }
+        
+        .recommendation-content {
+            margin-top: 2em;
+            background-color: #f8fafc;
+            padding: 1.5em;
+            border-radius: 6px;
+            border-left: 5px solid #3ECF8E;
+        }
+        
+        /* Análise tática */
+        .tactical-section {
+            margin-bottom: 1.5em;
+        }
+        
+        .tactical-section h4 {
+            color: #3ECF8E;
+            border-bottom: 1px solid #E2E8F0;
+            padding-bottom: 0.3em;
+            margin-bottom: 0.7em;
+        }
+        
+        .key-metrics {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5em;
+            margin: 0.5em 0;
+        }
+        
+        .metric-tag {
+            background-color: #EDF2F7;
+            border-radius: 20px;
+            padding: 0.2em 0.8em;
+            font-size: 0.9em;
+            color: #4A5568;
+            display: inline-flex;
+            align-items: center;
+        }
+        
+        .metric-tag .value {
+            color: #3ECF8E;
+            font-weight: 600;
+            margin-left: 0.3em;
+        }
+        
+        /* Recomendação de recrutamento */
+        .recommendation-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1em;
+            margin-bottom: 1.5em;
+        }
+        
+        .recommendation-card {
+            background-color: #F8FAFC;
+            border-radius: 8px;
+            padding: 1em;
+            border-left: 4px solid #3ECF8E;
+        }
+        
+        .recommendation-card h4 {
+            margin-top: 0;
+            color: #4A5568;
+            font-size: 1em;
+        }
+        
+        .recommendation-value {
+            font-size: 1.1em;
+            font-weight: 600;
+            margin: 0.5em 0;
+            color: #2D3748;
+        }
+        
+        .recommendation-detail {
+            align-self: flex-start;
+            margin-top: 0.5em;
+            margin-bottom: 0.8em;
+            font-size: 0.9em;
+            color: #3ECF8E;
+        }
+        
+        .recommendation-list {
+            margin: 0.5em 0;
+            padding-left: 1.2em;
+            font-size: 0.9em;
+        }
+        
+        .recommendation-list li {
+            margin-bottom: 0.3em;
+        }
+        
+        .final-recommendation {
+            background-color: #3ECF8E;
+            color: white;
+            padding: 1em;
+            border-radius: 8px;
+            margin: 1em 0;
+            text-align: center;
+        }
+        
+        .final-recommendation h3 {
+            margin-top: 0;
+            color: white;
+            font-weight: 600;
+        }
+        
+        .recommendation-strategy {
+            background-color: #F8FAFC;
+            border-radius: 8px;
+            padding: 1em;
+            margin: 1em 0;
+        }
+
+/* Final recommendation score styling */
+        .final-recommendation {
+            position: relative;
+            padding-bottom: 30px;
+            text-align: center; /* Center all content in the recommendation box */
+        }
+
+        .recommendation-score {
+            font-size: 2em;
+            font-weight: 700;
+            color: white;
+            margin: 15px auto; /* Center with margin auto */
+            display: block; /* Make it a block element */
+        }
+
+        /* For mobile responsiveness */
+        @media (max-width: 768px) {
+            .recommendation-score {
+                margin: 15px auto;
+            }
+        }
+        /* Análise comparativa */
+        .ranking-title {
+            margin-bottom: 1em;
+            color: #2D3748;
+        }
+
+        .ranking-card {
+            background-color: #FFFFFF;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+            border: 1px solid #E2E8F0;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .ranking-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+        }
+
+        .ranking-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1em;
+            background-color: #F8FAFC;
+            border-bottom: 1px solid #E2E8F0;
+        }
+
+        .ranking-badge {
+            background-color: #3ECF8E;
+            color: white;
+            font-weight: 600;
+            padding: 0.3em 0.8em;
+            border-radius: 4px;
+            font-size: 0.9em;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .ranking-position-number {
+            font-size: 1.8em;
+            font-weight: 700;
+            color: #3ECF8E;
+        }
+
+        .ranking-stat {
+            text-align: right;
+        }
+
+        .ranking-fraction {
+            font-size: 1.4em;
+            font-weight: 700;
+            color: #3ECF8E;
+        }
+
+        .ranking-percentile {
+            font-size: 0.85em;
+            color: #718096;
+        }
+
+        .metrics-container {
+            padding: 1em;
+        }
+
+        .metrics-title {
+            font-weight: 600;
+            margin-bottom: 0.8em;
+            color: #4A5568;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+            gap: 0.5em;
+        }
+
+        .metric-tag {
+            background-color: #EDF2F7;
+            color: #4A5568;
+            padding: 0.4em 0.6em;
+            border-radius: 4px;
+            font-size: 0.8em;
+            text-align: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .ranking-empty {
+            padding: 1.5em;
+            text-align: center;
+            color: #718096;
+        }
+        /* Tabela de percentis */
+        .percentile-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1em 0;
+        }
+        
+        .percentile-table th, 
+        .percentile-table td {
+            padding: 0.8em;
+            border-bottom: 1px solid #E2E8F0;
+        }
+        
+        .percentile-table th {
+            background-color: #F8FAFC;
+            text-align: left;
+            font-weight: 600;
+            color: #4A5568;
+        }
+        
+        .percentile-table .category-header {
+            background-color: #EDF2F7;
+            color: #2D3748;
+            font-weight: 700;
+        }
+        
+        .percentile-value {
+            font-weight: 600;
+        }
+        
+        /* Estilo de percentil alto */
+        .high-percentile {
+            color: #3ECF8E;
+        }
+        
+        /* Estilo de percentil baixo */
+        .low-percentile {
+            color: #FC8181;
+        }
+        
+        /* Histórico de lesões */
+        .injury-timeline {
+            position: relative;
+            margin: 2em 0;
+            padding-left: 2em;
+        }
+        
+        .timeline-line {
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background-color: #E2E8F0;
+        }
+        
+        .injury-item {
+            position: relative;
+            margin-bottom: 1.5em;
+            padding-bottom: 1em;
+            border-bottom: 1px dashed #E2E8F0;
+        }
+        
+        .injury-item:last-child {
+            margin-bottom: 0;
+            border-bottom: none;
+        }
+        
+        .injury-item:before {
+            content: '';
+            position: absolute;
+            left: -2em;
+            top: 0.5em;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: #FC8181;
+            border: 2px solid white;
+            box-shadow: 0 0 0 2px #FC8181;
+        }
+        
+        .injury-date {
+            font-weight: 600;
+            color: #4A5568;
+            margin-bottom: 0.3em;
+        }
+        
+        .injury-type {
+            font-weight: 600;
+            color: #FC8181;
+        }
+        
+        .injury-duration {
+            font-size: 0.9em;
+            color: #718096;
+            margin-top: 0.3em;
+        }
+        
+        /* Seletor de idioma */
+        .language-selector {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 1em;
+        }
+        
+        .language-btn {
+            background: none;
+            border: 1px solid #E2E8F0;
+            border-radius: 4px;
+            padding: 0.3em 0.6em;
+            margin-left: 0.5em;
+            cursor: pointer;
+            font-size: 0.9em;
+            color: #718096;
+            transition: all 0.2s ease;
+        }
+        
+        .language-btn:hover,
+        .language-btn.active {
+            background-color: #3ECF8E;
+            color: white;
+            border-color: #3ECF8E;
+        }
+        @media (max-width: 768px) {
+            .swot-item-header {
+                flex-direction: column;
+            }
+            
+            .swot-badges {
+                margin-left: 0;
+                margin-top: 0.5em;
+            }
+        }
+        /* Estilos para impressão */
+        @media print {
+            body {
+                padding: 0;
+                font-size: 10pt;
+                background-color: #fff;
+            }
+            
+            .container {
+                max-width: 100%;
+                padding: 0;
+                margin: 0;
+            }
+            
+            .section {
+                box-shadow: none;
+                border: 1px solid #ccc;
+                margin-bottom: 1.5em;
+                padding: 1em;
+                page-break-inside: avoid;
+            }
+            
+            .report-header, .report-footer {
+                border-color: #ccc;
+            }
+            
+            h2 {
+                color: #333;
+                border-bottom: 1px solid #ccc;
+            }
+            
+            strong { color: #333; }
+            
+            .chart-container {
+                height: 300px;
+                border: 1px solid #ccc;
+            }
+            
+            .swot-container { grid-template-columns: 1fr; }
+            
+            .swot-card { 
+                border: 1px solid #ccc; 
+                box-shadow: none;
+            }
+            
+            .swot-header {
+                background-color: #f0f0f0 !important;
+                color: #333 !important;
+            }
+            
+            .swot-header h3 {
+                color: #333 !important;
+            }
+            
+            .player-section { flex-direction: column; }
+            
+            .player-photo img { max-width: 150px; }
+            
+            table { font-size: 8pt; }
+            
+            th, td { padding: 0.5em; }
+            
+            .grid-3 { grid-template-columns: 1fr; }
+            
+            .big-score { color: #333; }
+            
+            .score-fill { background-color: #666; }
+            
+            .percentile-badge, .importance-badge {
+                background-color: #f0f0f0 !important;
+                color: #333 !important;
+                border: 1px solid #ccc;
+            }
+            
+            .language-selector {
+                display: none;
+            }
+        }
+        /* Responsive Table Styles */
+.percentile-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 2em;
+}
+
+.percentile-table th, 
+.percentile-table td {
+    padding: 0.8em 1em;
+    text-align: left;
+    border-bottom: 1px solid #E2E8F0;
+}
+
+/* Mobile responsive table styles */
+@media (max-width: 768px) {
+    /* Horizontal scrolling for wide tables */
+    .table-responsive-wrapper {
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        position: relative;
+    }
+    
+    .percentile-table {
+        min-width: 650px; /* Ensures table will scroll if smaller */
+    }
+    
+    .percentile-table th, 
+    .percentile-table td {
+        padding: 0.6em 0.8em;
+        font-size: 0.9em;
+    }
+    
+    /* Card view for narrow tables on very small screens */
+    @media (max-width: 480px) {
+        .table-card-view .percentile-table thead {
+            display: none;
+        }
+        
+        .table-card-view .percentile-table, 
+        .table-card-view .percentile-table tbody, 
+        .table-card-view .percentile-table tr {
+            display: block;
+            width: 100%;
+        }
+        
+        .table-card-view .percentile-table tr {
+            margin-bottom: 1em;
+            border: 1px solid #E2E8F0;
+            border-radius: 4px;
+        }
+        
+        .table-card-view .percentile-table td {
+            display: flex;
+            width: 100%;
+            text-align: right;
+            padding-left: 50%;
+            position: relative;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .table-card-view .percentile-table td:before {
+            content: attr(data-label);
+            position: absolute;
+            left: 0.8em;
+            width: 45%;
+            text-align: left;
+            font-weight: 600;
+        }
+        
+        .table-card-view .percentile-table td:last-child {
+            border-bottom: none;
+        }
+    }
+    
+    /* Toggle button for table view modes */
+    .table-view-toggle {
+        display: inline-block;
+        margin-bottom: 1em;
+        background-color: #f3f4f6;
+        border-radius: 4px;
+        overflow: hidden;
+    }
+    
+    .view-toggle-btn {
+        background: none;
+        border: none;
+        padding: 0.5em 0.8em;
+        cursor: pointer;
+        font-size: 0.8em;
+    }
+    
+    .view-toggle-btn.active {
+        background-color: #3ECF8E;
+        color: white;
+    }
+}
+        
+        /* Responsividade para dispositivos móveis */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            
+            .container {
+                padding: 0 10px;
+            }
+            
+            .section {
+                padding: 1em;
+            }
+            
+            .report-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1em;
+            }
+            
+            .report-header .report-info {
+                text-align: left;
+            }
+            
+            .player-section {
+                flex-direction: column;
+            }
+            
+            .player-photo {
+                text-align: center;
+                margin-bottom: 1em;
+            }
+            
+            .player-photo img {
+                max-width: 150px;
+            }
+            
+            .swot-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .grid-2, .grid-3 {
+                grid-template-columns: 1fr;
+            }
+            
+            .recommendation-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            h1 { font-size: 1.8rem; }
+            h2 { font-size: 1.5rem; }
+            h3 { font-size: 1.2rem; }
+        }
+        /* Add this to your existing styles section */
+        .comparative-analysis-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5em;
+        }
+
+        .radar-chart-container {
+            position: relative;
+            height: 400px;
+            width: 100%;
+            margin-bottom: 1.5em;
+        }
+
+        .chart-wrapper {
+            position: relative;
+            height: 100%;
+            width: 100%;
+        }
+
+        @media (max-width: 768px) {
+            .comparative-analysis-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .radar-chart-container {
+                height: 350px;
+            }
+            
+            .tactical-roles-container {
+                grid-template-columns: 1fr;
+            }
+        }
+        /* Explanation boxes for tactical analysis */
+            .explanation-box {
+                background-color: #f8fafc;
+                border-left: 3px solid #4299E1;
+                padding: 1em;
+                margin: 0.5em 0 1.5em 0;
+                border-radius: 6px;
+                font-size: 0.9em;
+            }
+
+            .explanation-box p {
+                margin-bottom: 0.5em;
+            }
+
+            /* Layout for tactical roles and optimal role side by side */
+            .tactical-roles-container {
+                display: grid;
+                grid-template-columns: 3fr 2fr;
+                gap: 1.5em;
+                margin-bottom: 2em;
+            }
+
+            .radar-chart-section {
+                min-height: 400px;
+            }
+
+            /* Optimal role box styling */
+            .optimal-role-box {
+                background-color: #f8fafc;
+                border-left: 3px solid #3ECF8E;
+                padding: 1.2em;
+                border-radius: 6px;
+                height: 100%;
+            }
+
+            .optimal-role-content {
+                display: flex;
+                flex-direction: column;
+            }
+
+            .optimal-role-score {
+                font-size: 2.2em;
+                font-weight: 700;
+                color: #3ECF8E;
+                margin-bottom: 0.2em;
+            }
+
+            .optimal-role-name {
+                font-size: 1.3em;
+                font-weight: 600;
+                margin-bottom: 0.2em;
+            }
+
+            .optimal-role-position {
+                color: #718096;
+                font-size: 0.9em;
+                margin-bottom: 0.8em;
+            }
+
+            .optimal-role-description {
+                margin-top: 0.8em;
+                line-height: 1.5;
+            }
+
+            /* Mobile responsiveness */
+            @media (max-width: 768px) {
+                .tactical-roles-container {
+                    grid-template-columns: 1fr;
+                }
+                
+                .optimal-role-box {
+                    margin-top: 1em;
+                }
+            }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Seletor de Idioma -->
+        <div class="language-selector">
+            <button class="language-btn {% if language == 'pt' %}active{% endif %}" onclick="window.location.href='?lang=pt'">PT</button>
+            <button class="language-btn {% if language == 'en' %}active{% endif %}" onclick="window.location.href='?lang=en'">EN</button>
+            <button class="language-btn {% if language == 'bg' %}active{% endif %}" onclick="window.location.href='?lang=bg'">BG</button>
+            <button class="language-btn {% if language == 'es' %}active{% endif %}" onclick="window.location.href='?lang=es'">ES</button>
+        </div>
+        
+        <!-- 1. Cabeçalho e Identificação -->
+        <header class="report-header">
+            <div class="logo">KatenaScout</div>
+            <div class="report-info">
+                {{ translations.report_title }}<br>
+                {{ translations.generated_on }}: {{ generation_date }}<br>
+                {{ translations.report_id }}: {{ report_id }}<br>
+                <div class="confidential">{{ translations.confidential }}</div>
+            </div>
+        </header>
+        
+        <!-- 2. Seção do Jogador -->
+        <section class="section player-section">
+            <div class="player-photo">
+                {% if player.image_url %}
+                <img src="{{ player.image_url }}" alt="{{ player.name }}">
+                {% else %}
+                <img src="placeholder.png" alt="{{ translations.not_available }}">
+                {% endif %}
+            </div>
+            <div class="player-details">
+                <h3>{{ player.name }} (ID: {{ player.id }})</h3>
+                <div class="grid-2">
+                    <div class="detail-item"><strong>{{ translations.age }}:</strong> {{ player.age }} ({{ translations.birth_date }}: {{ player.birth_date }})</div>
+                    <div class="detail-item"><strong>{{ translations.nationality }}:</strong> {{ player.nationality }}</div>
+                    <div class="detail-item"><strong>{{ translations.height }}:</strong> {{ player.height }} cm</div>
+                    <div class="detail-item"><strong>{{ translations.weight }}:</strong> {{ player.weight }} kg</div>
+                    <div class="detail-item"><strong>{{ translations.foot }}:</strong> {{ player.foot }}</div>
+                    <div class="detail-item"><strong>{{ translations.positions }}:</strong>
+                        {% for pos in player.positions %}
+                            {{ pos }}{% if not loop.last %}, {% endif %}
+                        {% else %}
+                            {{ translations.not_available }}
+                        {% endfor %}
+                    </div>
+                    <div class="detail-item"><strong>{{ translations.current_club }}:</strong> {{ player.club }}</div>
+                    <div class="detail-item"><strong>{{ translations.contract_until }}:</strong> {{ player.contract_until }}</div>
+                    <div class="detail-item"><strong>{{ translations.agent }}:</strong> {{ player.agent }}</div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- 3. Resumo Executivo -->
+        <section class="section">
+            <h2>{{ translations.executive_summary }}</h2>
+            <div class="summary-box">
+                {% if content.executive_summary %}
+                    {{ content.executive_summary | safe }}
+                {% else %}
+                    <p>{{ translations.not_available }}</p>
+                {% endif %}
+            </div>
+        </section>
+        
+<!-- 4. Análise Comparativa -->
+<section class="section">
+    <h2>{{ translations.comparative_analysis }}</h2>
+    
+    <div class="comparative-analysis-container">
+        <!-- Left side: Ranking por Posição -->
+        <div class="ranking-container">
+            <h3 class="ranking-title">{{ translations.rank }}</h3>
+            <div class="explanation-box">
+                <p>{{ translations.ranking_tooltip }}</p>
+            </div>
+            <div class="rankings-grid">
+                {% if ranking %}
+                    {% for rank_item in ranking %}
+                        <div class="ranking-card">
+                            <div class="ranking-header">
+                                <div class="ranking-badge">
+                                    {% if rank_item.position is defined and not rank_item.total %}
+                                        {{ rank_item.position }}
+                                    {% else %}
+                                        {{ rank_item.category }}
+                                    {% endif %}
+                                </div>
+                                {% if rank_item.position is defined and not rank_item.total %}
+                                    <div class="ranking-position-number">{{ rank_item.rank }}</div>
+                                {% else %}
+                                    <div class="ranking-stat">
+                                        <div class="ranking-fraction">{{ rank_item.position }}/{{ rank_item.total }}</div>
+                                        <div class="ranking-percentile">{{ translations.percentile }}: {{ rank_item.percentile }}%</div>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="ranking-card ranking-empty">
+                        <p>{{ translations.not_available }}</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Right side: Radar Chart -->
+        <div class="radar-chart-container">
+            <h3>{{ translations.key_metrics }}</h3>
+            <div class="chart-wrapper">
+                <canvas id="metricsRadarChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Percentile Table - MOVED INSIDE the comparative analysis section -->
+    <h3>{{ translations.percentile }}</h3>
+    <div class="explanation-box">
+        <p>{{ translations.percentiles_tooltip }}</p>
+    </div>
+    {% if percentiles.percentiles_by_category %}
+        <!-- Nova estrutura organizada por categoria funcional -->
+        <div class="grid-2">
+            <!-- Mostrar grupo de posição do jogador para contexto -->
+            <div class="grid-item">
+                <h4>{{ translations.position_group }}</h4>
+                <div class="recommendation-value">{{ translations[percentiles.position_group] }}</div>
+            </div>
+        </div>
+        
+        <!-- Mobile view toggle (only appears on small screens) -->
+        <div class="table-view-toggle" style="display: none;">
+            <button class="view-toggle-btn active" data-view="scroll">{{ translations.scroll_view }}</button>
+            <button class="view-toggle-btn" data-view="card">{{ translations.card_view }}</button>
+        </div>
+        
+        <!-- Table wrapper for horizontal scrolling -->
+        <div class="table-responsive-wrapper">
+            <table class="percentile-table">
+                <thead>
+                    <tr>
+                        <th>{{ translations.category }}</th>
+                        <th>{{ translations.stat_name }}</th>
+                        <th>{{ translations.percentile }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for category, stats in percentiles.percentiles_by_category.items() %}
+                        <tr class="category-header">
+                            <!-- Tradução da categoria -->
+                            <td colspan="3">{{ translations.get(category, category) }}</td>
+                        </tr>
+                        {% for stat_name, percentile in stats.items() %}
+                            <tr>
+                                <td></td>
+                                <td>{{ format_metric_name(stat_name) }}</td>
+                                <td class="percentile-value 
+                                    {% if percentile is not mapping and percentile is number %}
+                                        {% if percentile >= 75 %}high-percentile{% elif percentile <= 25 %}low-percentile{% endif %}
+                                    {% endif %}">
+                                    {% if percentile is not mapping and percentile is number %}
+                                        {{ percentile | round(1) }}%
+                                    {% else %}
+                                        {{ percentile }}
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% elif percentiles.percentiles %}
+        <!-- Estrutura antiga (fallback) -->
+        
+        <!-- Mobile view toggle (only appears on small screens) -->
+        <div class="table-view-toggle" style="display: none;">
+            <button class="view-toggle-btn active" data-view="scroll">{{ translations.scroll_view }}</button>
+            <button class="view-toggle-btn" data-view="card">{{ translations.card_view }}</button>
+        </div>
+        
+        <!-- Table wrapper for horizontal scrolling -->
+        <div class="table-responsive-wrapper">
+            <table class="percentile-table">
+                <thead>
+                    <tr>
+                        <th>{{ translations.category }}</th>
+                        <th>{{ translations.stat_name }}</th>
+                        <th>{{ translations.percentile }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for category, stats in percentiles.percentiles.items() %}
+                        <tr class="category-header">
+                            <td colspan="3">{{ category }}</td>
+                        </tr>
+                        {% for stat_name, percentile in stats.items() %}
+                            <tr>
+                                <td></td>
+                                <td>{{ format_metric_name(stat_name) }}</td>
+                                <td class="percentile-value 
+                                    {% if percentile is not mapping and percentile is number %}
+                                        {% if percentile >= 75 %}high-percentile{% elif percentile <= 25 %}low-percentile{% endif %}
+                                    {% endif %}">
+                                    {% if percentile is not mapping and percentile is number %}
+                                        {{ percentile | round(1) }}%
+                                    {% else %}
+                                        {{ percentile }}
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p>{{ translations.not_available }}</p>
+    {% endif %}
+<!-- 5. Análise SWOT -->
+<section class="section">
+    <h2>{{ translations.swot_analysis }}</h2>
+    
+    <!-- Resumo SWOT -->
+    {% if swot.summary %}
+        <div class="summary-box">
+            <p><strong>{{ translations.summary }}:</strong> {{ swot.summary }}</p>
+        </div>
+    {% endif %}
+    
+    <div class="swot-container">
+        <!-- Pontos Fortes -->
+        <div class="swot-card swot-strengths">
+            <div class="swot-header">
+                <h3>{{ translations.strengths }}</h3>
+                <div class="swot-header-icon">💪</div>
+            </div>
+            <div class="swot-content">
+                {% if swot.strengths %}
+                    {% for item in swot.strengths %}
+                        <div class="swot-item">
+                            <div class="swot-item-header">
+                                <div class="swot-text">{{ item.text }}</div>
+                                <div class="swot-badges">
+                                    {% if item.category %}
+                                        <span class="importance-badge importance-medium">{{ item.category }}</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% if item.percentile %}
+                                <div class="recommendation-detail">
+                                    <span class="percentile-badge percentile-high">{{ item.percentile }}%</span>
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <p>{{ translations.not_available }}</p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Pontos Fracos -->
+        <div class="swot-card swot-weaknesses">
+            <div class="swot-header">
+                <h3>{{ translations.weaknesses }}</h3>
+                <div class="swot-header-icon">⚠️</div>
+            </div>
+            <div class="swot-content">
+                {% if swot.weaknesses %}
+                    {% for item in swot.weaknesses %}
+                        <div class="swot-item">
+                            <div class="swot-item-header">
+                                <div class="swot-text">{{ item.text }}</div>
+                                <div class="swot-badges">
+                                    {% if item.category %}
+                                        <span class="importance-badge importance-medium">{{ item.category }}</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% if item.percentile %}
+                                <div class="recommendation-detail">
+                                    <span class="percentile-badge percentile-low">{{ item.percentile }}%</span>
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <p>{{ translations.not_available }}</p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Oportunidades -->
+        <div class="swot-card swot-opportunities">
+            <div class="swot-header">
+                <h3>{{ translations.opportunities }}</h3>
+                <div class="swot-header-icon">🚀</div>
+            </div>
+            <div class="swot-content">
+                {% if swot.opportunities %}
+                    {% for item in swot.opportunities %}
+                        <div class="swot-item">
+                            <div class="swot-item-header">
+                                <div class="swot-text">{{ item.insight }}</div>
+                                <div class="swot-badges">
+                                    <span class="importance-badge importance-{% if item.importance == 3 %}high{% elif item.importance == 2 %}medium{% else %}low{% endif %}">
+                                        {{ translations.importance }}: {{ item.importance }}
+                                    </span>
+                                </div>
+                            </div>
+                            {% if item.based_on %}
+                                <div class="recommendation-detail">
+                                    <strong>{{ translations.based_on }}:</strong> {{ item.based_on|join(', ') }}
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <p>{{ translations.not_available }}</p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Ameaças -->
+        <div class="swot-card swot-threats">
+            <div class="swot-header">
+                <h3>{{ translations.threats }}</h3>
+                <div class="swot-header-icon">⚡</div>
+            </div>
+            <div class="swot-content">
+                {% if swot.threats %}
+                    {% for item in swot.threats %}
+                        <div class="swot-item">
+                            <div class="swot-item-header">
+                                <div class="swot-text">{{ item.insight }}</div>
+                                <div class="swot-badges">
+                                    <span class="importance-badge importance-{% if item.importance == 3 %}high{% elif item.importance == 2 %}medium{% else %}low{% endif %}">
+                                        {{ translations.importance }}: {{ item.importance }}
+                                    </span>
+                                </div>
+                            </div>
+                            {% if item.based_on %}
+                                <div class="recommendation-detail">
+                                    <strong>{{ translations.based_on }}:</strong> {{ item.based_on|join(', ') }}
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <p>{{ translations.not_available }}</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</section>
+
+</section>      
+        <!-- 6. Análise Tática -->
+        <section class="section">
+            <h2>{{ translations.tactical_analysis }}</h2>
+            
+            <!-- Gráfico de Radar com Perfis Táticos -->
+        <h3>{{ translations.tactical_roles }}</h3>
+        <div class="explanation-box">
+            <p>{{ translations.tactical_role_tooltip }}</p>
+        </div>
+
+        <div class="tactical-roles-container">
+            <div class="radar-chart-section">
+                <div class="radar-chart-container">
+                    <canvas id="tacticalProfilesRadarChart"></canvas>
+                </div>
+            </div>
+            <div class="optimal-role-section">
+                <div class="optimal-role-box">
+                    <h4>{{ translations.optimal_role if translations.optimal_role else "Optimal Role" }}</h4>
+                    <div class="optimal-role-content">
+                        {% if tactical_fit and tactical_fit.optimal_role and tactical_fit.optimal_role.score %}
+                            <div class="optimal-role-score">{{ tactical_fit.optimal_role.score }}%</div>
+                            <div class="optimal-role-name">{{ tactical_fit.optimal_role.profile }}</div>
+                            <div class="optimal-role-position">{{ tactical_fit.optimal_role.position }}</div>
+                            <p class="optimal-role-description">{{ tactical_fit.optimal_role.description }}</p>
+                        {% else %}
+                            <p>{{ translations.not_available }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+            
+            <!-- Cards com Estilos Táticos Compatíveis -->
+        <h3>{{ translations.tactical_styles }}</h3>
+        <div class="explanation-box">
+            <p>{{ translations.tactical_style_tooltip }}</p>
+        </div>
+        <div class="grid-3">
+            {% if tactical_styles %}
+                {% for style in tactical_styles %}
+                    <div class="tactical-fit-card">
+                        <div class="fit-header">{{ style.style }}</div>
+                        <div class="fit-score">{{ style.score }}%</div>
+                        <div class="score-bar">
+                            <div class="score-fill" style="width: {{ style.score }}%;"></div>
+                        </div>
+                        <p class="recommendation-detail">{{ style.description }}</p>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="tactical-fit-card">
+                    <p>{{ translations.not_available }}</p>
+                </div>
+            {% endif %}
+        </div>
+            
+            <!-- Análise Tática Estruturada -->
+            {% if content.tactical_analysis %}
+                <div class="section-divider"></div>
+                
+                <!-- Padrões de Ataque -->
+                {% if content.tactical_analysis.attack_patterns %}
+                    <div class="tactical-section">
+                        <h4>{{ translations.attack_patterns }}</h4>
+                        <p>{{ content.tactical_analysis.attack_patterns.analysis }}</p>
+                        
+                        <div class="key-metrics">
+                            {% for metric in content.tactical_analysis.attack_patterns.key_metrics %}
+                                <div class="metric-tag">{{ metric }}</div>
+                            {% endfor %}
+                        </div>
+                        
+                        {% if content.tactical_analysis.attack_patterns.areas_of_operation %}
+                            <p><strong>{{ translations.areas_of_operation }}:</strong></p>
+                            <ul>
+                                {% for area in content.tactical_analysis.attack_patterns.areas_of_operation %}
+                                    <li>{{ area }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    </div>
+                {% endif %}
+                
+                <!-- Contribuição Defensiva -->
+                {% if content.tactical_analysis.defensive_contribution %}
+                    <div class="tactical-section">
+                        <h4>{{ translations.defensive_contribution }}</h4>
+                        <p>{{ content.tactical_analysis.defensive_contribution.analysis }}</p>
+                        
+                        <div class="key-metrics">
+                            {% for metric in content.tactical_analysis.defensive_contribution.key_metrics %}
+                                <div class="metric-tag">{{ metric }}</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endif %}
+                
+                <!-- Perfil Físico e Técnico -->
+                {% if content.tactical_analysis.physical_technical_profile %}
+                    <div class="tactical-section">
+                        <h4>{{ translations.physical_technical_profile }}</h4>
+                        <p>{{ content.tactical_analysis.physical_technical_profile.analysis }}</p>
+                        
+                        <div class="key-metrics">
+                            {% for metric in content.tactical_analysis.physical_technical_profile.key_metrics %}
+                                <div class="metric-tag">{{ metric }}</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endif %}
+                
+                <!-- Flexibilidade Tática - Fix the improper nesting -->
+                {% if content.tactical_analysis.tactical_flexibility %}
+                <div class="tactical-section">
+                    <h4>{{ translations.tactical_flexibility }}</h4>
+                    <p>{{ content.tactical_analysis.tactical_flexibility.analysis }}</p>
+                    
+                    {% if content.tactical_analysis.tactical_flexibility.best_systems %}
+                        <p><strong>{{ translations.best_systems }}:</strong></p>
+                        <ul>
+                            {% for system in content.tactical_analysis.tactical_flexibility.best_systems %}
+                                <li>{{ system }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                    
+                    {% if content.tactical_analysis.tactical_flexibility.unsuitable_systems %}
+                        <p><strong>{{ translations.unsuitable_systems }}:</strong></p>
+                        <ul>
+                            {% for system in content.tactical_analysis.tactical_flexibility.unsuitable_systems %}
+                                <li>{{ system }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                    
+                    {% if content.tactical_analysis.tactical_flexibility.reasoning %}
+                        <p><strong>{{ translations.reasoning }}:</strong> {{ content.tactical_analysis.tactical_flexibility.reasoning }}</p>
+                    {% endif %}
+                </div>
+                {% endif %}
+                
+                <!-- Recomendações Contextuais -->
+                {% if content.tactical_analysis.contextual_recommendations %}
+                    <div class="tactical-section">
+                        <h4>{{ translations.contextual_recommendations }}</h4>
+                        <p>{{ content.tactical_analysis.contextual_recommendations.analysis }}</p>
+                        
+                        {% if content.tactical_analysis.contextual_recommendations.key_recommendations %}
+                            <p><strong>{{ translations.key_recommendations }}:</strong></p>
+                            <ul>
+                                {% for recommendation in content.tactical_analysis.contextual_recommendations.key_recommendations %}
+                                    <li>{{ recommendation }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                        
+                        {% if content.tactical_analysis.contextual_recommendations.complementary_player_types %}
+                            <p><strong>{{ translations.complementary_player_types }}:</strong></p>
+                            <ul>
+                                {% for player_type in content.tactical_analysis.contextual_recommendations.complementary_player_types %}
+                                    <li>{{ player_type }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    </div>
+                {% endif %}
+                
+                <!-- Resumo Geral -->
+                {% if content.tactical_analysis.overall_summary %}
+                    <div class="tactical-section">
+                        <h4>{{ translations.overall_summary }}</h4>
+                        <p>{{ content.tactical_analysis.overall_summary }}</p>
+                    </div>
+                {% endif %}
+            {% else %}
+                <p>{{ translations.not_available }}</p>
+            {% endif %}
+        </section>
+        <!-- 7. Análise Histórica -->
+        <section class="section">
+            <h2>{{ translations.historical_analysis }}</h2>
+            
+            <!-- Gráfico de Valor de Mercado -->
+            <h3>{{ translations.market_value }}</h3>
+            <div class="chart-container">
+                <canvas id="marketValueChart"></canvas>
+            </div>
+            
+        <!-- Replace the existing injury history table section -->
+        <h3>{{ translations.injury_history }}</h3>
+        {% if injuries %}
+            <!-- Mobile view toggle (only appears on small screens) -->
+            <div class="table-view-toggle" style="display: none;">
+                <button class="view-toggle-btn active" data-view="scroll">{{ translations.scroll_view }}</button>
+                <button class="view-toggle-btn" data-view="card">{{ translations.card_view }}</button>
+            </div>
+            
+            <!-- Table wrapper for horizontal scrolling -->
+            <div class="table-responsive-wrapper">
+                <table class="percentile-table">
+                    <thead>
+                        <tr>
+                            <th>{{ translations.injury_type }}</th>
+                            <th>{{ translations.from_date }}</th>
+                            <th>{{ translations.until_date }}</th>
+                            <th>{{ translations.days_missed }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for injury in injuries %}
+                            <tr>
+                                <td data-label="{{ translations.injury_type }}">{{ injury.type }}</td>
+                                <td data-label="{{ translations.from_date }}">{{ injury.from_date }}</td>
+                                <td data-label="{{ translations.until_date }}">{{ injury.until_date }}</td>
+                                <td data-label="{{ translations.days_missed }}">{{ injury.days_missed }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p>{{ translations.not_available }}</p>
+        {% endif %}
+            <!-- Replace the existing transfers table section -->
+<h3>{{ translations.transfers }}</h3>
+{% if transfers %}
+    <!-- Mobile view toggle (only appears on small screens) -->
+    <div class="table-view-toggle" style="display: none;">
+        <button class="view-toggle-btn active" data-view="scroll">{{ translations.scroll_view }}</button>
+        <button class="view-toggle-btn" data-view="card">{{ translations.card_view }}</button>
+    </div>
+    
+    <!-- Table wrapper for horizontal scrolling -->
+    <div class="table-responsive-wrapper">
+        <table class="percentile-table">
+            <thead>
+                <tr>
+                    <th>{{ translations.date }}</th>
+                    <th>{{ translations.from_club }}</th>
+                    <th>{{ translations.to_club }}</th>
+                    <th>{{ translations.value }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for transfer in transfers %}
+                    <tr>
+                        <td data-label="{{ translations.date }}">{{ transfer.date }}</td>
+                        <td data-label="{{ translations.from_club }}">{{ transfer.from_club }}</td>
+                        <td data-label="{{ translations.to_club }}">{{ transfer.to_club }}</td>
+                        <td data-label="{{ translations.value }}">{{ transfer.fee }}{% if transfer.is_loan %} ({{ translations.loan }}){% endif %}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% else %}
+    <p>{{ translations.not_available }}</p>
+{% endif %}       
+ </section>
+        
+        <!-- 8. Recomendação de Recrutamento -->
+        <section class="section">
+            <h2>{{ translations.recruitment_recommendation }}</h2>
+            
+            {% if content.recruitment_recommendation %}
+                <!-- Viabilidade de Aquisição -->
+                {% if content.recruitment_recommendation.acquisition_viability %}
+                    <div class="recommendation-grid">
+                        <div class="recommendation-card">
+                            <h4>{{ translations.acquisition_viability }}</h4>
+                            <div class="big-score">{{ content.recruitment_recommendation.acquisition_viability.score }}/10</div>
+                            <p>{{ content.recruitment_recommendation.acquisition_viability.rationale }}</p>
+                            
+                            {% if content.recruitment_recommendation.acquisition_viability.risk_factors %}
+                                <p><strong>{{ translations.risk_factors }}:</strong></p>
+                                <ul class="recommendation-list">
+                                    {% for risk in content.recruitment_recommendation.acquisition_viability.risk_factors %}
+                                        <li>{{ risk }}</li>
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Encaixe Técnico-Tático -->
+                        {% if content.recruitment_recommendation.tactical_fit %}
+                            <div class="recommendation-card">
+                                <h4>{{ translations.technical_tactical_fit }}</h4>
+                                <div class="big-score">{{ content.recruitment_recommendation.tactical_fit.score }}/10</div>
+                                <p>{{ content.recruitment_recommendation.tactical_fit.rationale }}</p>
+                            </div>
+                        {% endif %}
+                            
+                                
+
+                        <!-- Perfil de Idade/Desenvolvimento -->
+                        {% if content.recruitment_recommendation.age_development_profile %}
+                            <div class="recommendation-card">
+                                <h4>{{ translations.age_development_profile }}</h4>
+                                <div class="big-score">{{ content.recruitment_recommendation.age_development_profile.score }}/10</div>
+                                <p>{{ content.recruitment_recommendation.age_development_profile.rationale }}</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endif %}
+                
+                <!-- Recomendação Final -->
+                {% if content.recruitment_recommendation.final_recommendation %}
+                    <div class="final-recommendation">
+                        <h3>{{ translations.final_recommendation }}</h3>
+                        {% if content.recruitment_recommendation.final_recommendation.overall_score %}
+                        <div class="recommendation-score">
+                            {{ content.recruitment_recommendation.final_recommendation.overall_score }}/10
+                        </div>
+                        <p><strong>{{ content.recruitment_recommendation.final_recommendation.recommendation }}</strong></p>
+                    {% endif %}
+                        <p>{{ content.recruitment_recommendation.final_recommendation.justification }}</p>
+                    </div>
+                {% endif %}
+                
+                <!-- Estratégia de Aquisição -->
+                {% if content.recruitment_recommendation.acquisition_strategy %}
+                    <div class="recommendation-strategy">
+                        <h4>{{ translations.acquisition_strategy }}</h4>
+                        
+                        {% if content.recruitment_recommendation.acquisition_strategy.negotiation_approach %}
+                            <p><strong>{{ translations.negotiation_approach }}:</strong> {{ content.recruitment_recommendation.acquisition_strategy.negotiation_approach }}</p>
+                        {% endif %}
+                        
+                        {% if content.recruitment_recommendation.acquisition_strategy.suggested_contract %}
+                            <p><strong>{{ translations.suggested_contract }}:</strong> {{ content.recruitment_recommendation.acquisition_strategy.suggested_contract }}</p>
+                        {% endif %}
+                        
+                        {% if content.recruitment_recommendation.acquisition_strategy.integration_plan %}
+                            <p><strong>{{ translations.integration_plan }}:</strong> {{ content.recruitment_recommendation.acquisition_strategy.integration_plan }}</p>
+                        {% endif %}
+                        
+                        {% if content.recruitment_recommendation.acquisition_strategy.key_considerations %}
+                            <p><strong>{{ translations.key_considerations }}:</strong></p>
+                            <ul class="recommendation-list">
+                                {% for consideration in content.recruitment_recommendation.acquisition_strategy.key_considerations %}
+                                    <li>{{ consideration }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            {% endif %}
+        </section>
+        
+        <!-- Rodapé -->
+        <footer class="report-footer">
+            <p>KatenaScout &copy; {{ generation_date.split(' ')[0].split('/')[2] }}</p>
+            <p>{{ translations.report_id }}: {{ report_id }}</p>
+        </footer>
+    </div>
+    
+    <!-- Scripts para gráficos interativos -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Configuração de cores
+            const colors = {
+                primary: '#3ECF8E',
+                secondary: '#4299E1',
+                tertiary: '#F6AD55',
+                danger: '#FC8181',
+                light: '#E2E8F0',
+                dark: '#2D3748',
+                text: '#718096'
+            };
+            
+            // Configuração global do Chart.js
+            Chart.defaults.font.family = "'Inter', sans-serif";
+            Chart.defaults.color = colors.text;
+            Chart.defaults.scale.grid.color = colors.light;
+            Chart.defaults.scale.ticks.color = colors.text;
+            
+            // Registrar plugin de rótulos de dados
+            Chart.register(ChartDataLabels);
+            
+            // Gráfico de Valor de Mercado
+// Gráfico de Valor de Mercado
+// Gráfico de Valor de Mercado
+const createMarketValueChart = () => {
+    const marketValueData = {{ market_value_data|tojson }};
+    
+    if (!marketValueData || marketValueData.length === 0) {
+        console.log('No market value data available');
+        return;
+    }
+    
+    const ctx = document.getElementById('marketValueChart');
+    if (!ctx) {
+        console.log('Market value chart canvas not found');
+        return;
+    }
+    
+    const labels = marketValueData.map(item => {
+        const date = new Date(item.date);
+        return date.toLocaleDateString('{{ language }}', { year: 'numeric', month: 'short' });
+    });
+    
+    // Create the data points with explicit type checking
+    const dataPoints = marketValueData.map((item, index) => {
+        // Ensure value is a valid number
+        let value = parseFloat(item.value);
+        
+        // Check if the parsed value is not a valid number
+        if (isNaN(value)) {
+            console.warn(`Invalid value for ${item.date}: ${item.value} - defaulting to 0`);
+            value = 0;
+        }
+        
+        return {
+            x: labels[index],
+            y: value, // Use the validated value
+            club: item.club || '',
+            valueDisplay: item.value_display || value.toString()
+        };
+    });
+    
+    // Create the chart with more explicit configuration
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: '{{ translations.market_value }}',
+                data: dataPoints,
+                parsing: {
+                    xAxisKey: 'x',
+                    yAxisKey: 'y'
+                },
+                backgroundColor: colors.primary,
+                borderColor: colors.primary,
+                borderWidth: 2,
+                pointBackgroundColor: colors.primary,
+                pointBorderColor: '#fff',
+                pointRadius: 5,
+                pointHoverRadius: 7,
+                tension: 0.3
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const point = context.raw;
+                            return [
+                                `{{ translations.value }}: ${point.valueDisplay}`,
+                                `{{ translations.club }}: ${point.club}`
+                            ];
+                        }
+                    }
+                },
+                // Explicitly disable datalabels plugin
+                datalabels: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: '{{ translations.value }} (€M)',
+                        font: {
+                            weight: 'bold'
+                        }
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: '{{ translations.date }}',
+                        font: {
+                            weight: 'bold'
+                        }
+                    }
+                }
+            }
+        }
+    });
+};// Replace the existing createMetricsRadarChart function
+const createMetricsRadarChart = () => {
+    const radarData = {{ radar_data|tojson }};
+    
+    if (!radarData || !radarData.metrics || Object.keys(radarData.metrics).length === 0) {
+        return;
+    }
+    
+    const ctx = document.getElementById('metricsRadarChart');
+    if (!ctx) return;
+    
+    // Obter a primeira posição disponível
+    const firstPosition = Object.keys(radarData.metrics)[0];
+    const positionData = radarData.metrics[firstPosition];
+    
+    if (!positionData) return;
+    
+    const labels = positionData.labels;
+    const values = positionData.values;
+    
+    // Check if we're on mobile
+    const isMobile = window.innerWidth < 768;
+    
+    new Chart(ctx, {
+        type: 'radar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: firstPosition,
+                data: values,
+                backgroundColor: 'rgba(62, 207, 142, 0.2)',
+                borderColor: colors.primary,
+                borderWidth: 2,
+                pointBackgroundColor: colors.primary,
+                pointBorderColor: '#fff',
+                pointRadius: isMobile ? 3 : 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                r: {
+                    angleLines: {
+                        color: colors.light
+                    },
+                    grid: {
+                        color: colors.light
+                    },
+                    pointLabels: {
+                        font: {
+                            size: isMobile ? 10 : 12
+                        },
+                        callback: function(value) {
+                            // For mobile screens, abbreviate longer labels
+                            if (isMobile && value.length > 10) {
+                                return value.substring(0, 8) + '...';
+                            }
+                            return value;
+                        }
+                    },
+                    suggestedMin: 0,
+                    suggestedMax: 100,
+                    ticks: {
+                        stepSize: 20,
+                        display: !isMobile,
+                        callback: function(value) {
+                            return value + '%';
+                        }
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    position: 'top',
+                    labels: {
+                        boxWidth: isMobile ? 8 : 12,
+                        padding: isMobile ? 10 : 20,
+                        font: {
+                            size: isMobile ? 10 : 12
+                        }
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return context.dataset.label + ': ' + context.raw + '%';
+                        }
+                    }
+                },
+                datalabels: {
+                    display: false
+                }
+            }
+        }
+    });
+};
+// Table responsiveness controls - complete function
+function setupTableResponsiveness() {
+    const toggleContainers = document.querySelectorAll('.table-view-toggle');
+    
+    // Set up each toggle container
+    toggleContainers.forEach(toggleContainer => {
+        const tableWrapper = toggleContainer.nextElementSibling;
+        if (!tableWrapper || !tableWrapper.classList.contains('table-responsive-wrapper')) return;
+        
+        // Only show toggle on mobile
+        if (window.innerWidth <= 480) {
+            toggleContainer.style.display = 'inline-block';
+            
+            // Setup toggle buttons
+            const scrollViewBtn = toggleContainer.querySelector('.view-toggle-btn[data-view="scroll"]');
+            const cardViewBtn = toggleContainer.querySelector('.view-toggle-btn[data-view="card"]');
+            
+            if (scrollViewBtn && cardViewBtn) {
+                scrollViewBtn.addEventListener('click', function() {
+                    tableWrapper.classList.remove('table-card-view');
+                    scrollViewBtn.classList.add('active');
+                    cardViewBtn.classList.remove('active');
+                });
+                
+                cardViewBtn.addEventListener('click', function() {
+                    tableWrapper.classList.add('table-card-view');
+                    cardViewBtn.classList.add('active');
+                    scrollViewBtn.classList.remove('active');
+                });
+            }
+        }
+    });
+    
+    // Add data-label attributes to td elements for card view
+    const tables = document.querySelectorAll('.percentile-table');
+    tables.forEach(table => {
+        const headers = Array.from(table.querySelectorAll('thead th')).map(th => th.textContent.trim());
+        
+        table.querySelectorAll('tbody tr').forEach(row => {
+            Array.from(row.querySelectorAll('td')).forEach((cell, i) => {
+                if (headers[i] && !cell.hasAttribute('data-label')) {
+                    cell.setAttribute('data-label', headers[i]);
+                }
+            });
+        });
+    });
+}
+
+// Call function and set up resize listener
+document.addEventListener('DOMContentLoaded', function() {
+    // Call setup function
+    setupTableResponsiveness();
+    
+    // Re-initialize on window resize
+    window.addEventListener('resize', function() {
+        const toggleContainers = document.querySelectorAll('.table-view-toggle');
+        
+        toggleContainers.forEach(toggleContainer => {
+            if (window.innerWidth <= 480) {
+                toggleContainer.style.display = 'inline-block';
+            } else {
+                toggleContainer.style.display = 'none';
+                toggleContainer.nextElementSibling?.classList.remove('table-card-view');
+            }
+        });
+    });
+});
+// Replace the existing createTacticalProfilesRadarChart function
+const createTacticalProfilesRadarChart = () => {
+    const radarData = {{ radar_data|tojson }};
+    
+    if (!radarData || !radarData.tactical_profiles || Object.keys(radarData.tactical_profiles).length === 0) {
+        return;
+    }
+    
+    const ctx = document.getElementById('tacticalProfilesRadarChart');
+    if (!ctx) return;
+    
+    // Obter a primeira posição disponível
+    const firstPosition = Object.keys(radarData.tactical_profiles)[0];
+    const positionData = radarData.tactical_profiles[firstPosition];
+    
+    if (!positionData) return;
+    
+    const labels = positionData.labels;
+    const values = positionData.values;
+    
+    // Check if we're on mobile
+    const isMobile = window.innerWidth < 768;
+    
+    new Chart(ctx, {
+        type: 'radar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: firstPosition,
+                data: values,
+                backgroundColor: 'rgba(66, 153, 225, 0.2)',
+                borderColor: colors.secondary,
+                borderWidth: 2,
+                pointBackgroundColor: colors.secondary,
+                pointBorderColor: '#fff',
+                pointRadius: isMobile ? 3 : 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                r: {
+                    angleLines: {
+                        color: colors.light
+                    },
+                    grid: {
+                        color: colors.light
+                    },
+                    pointLabels: {
+                        font: {
+                            size: isMobile ? 10 : 12
+                        },
+                        callback: function(value) {
+                            // For mobile screens, abbreviate longer labels
+                            if (isMobile && value.length > 10) {
+                                return value.substring(0, 8) + '...';
+                            }
+                            return value;
+                        }
+                    },
+                    suggestedMin: 0,
+                    suggestedMax: 100,
+                    ticks: {
+                        stepSize: 20,
+                        display: !isMobile,
+                        callback: function(value) {
+                            return value + '%';
+                        }
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    position: 'top',
+                    labels: {
+                        boxWidth: isMobile ? 8 : 12,
+                        padding: isMobile ? 10 : 20,
+                        font: {
+                            size: isMobile ? 10 : 12
+                        }
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return context.dataset.label + ': ' + context.raw + '%';
+                        }
+                    }
+                },
+                datalabels: {
+                    display: false
+                }
+            }
+        }
+    });
+};      
+            // Inicializar todos os gráficos
+            createMarketValueChart();
+            createMetricsRadarChart();
+            createTacticalProfilesRadarChart();
+            // Add this resize handler
+            let resizeTimeout;
+            window.addEventListener('resize', function() {
+                clearTimeout(resizeTimeout);
+                resizeTimeout = setTimeout(function() {
+                    // Destroy and recreate charts on resize
+                    Chart.getChart('metricsRadarChart')?.destroy();
+                    Chart.getChart('tacticalProfilesRadarChart')?.destroy();
+                    createMetricsRadarChart();
+                    createTacticalProfilesRadarChart();
+                }, 250);
+            });
+        });
+    </script>
+</body>
+</html>

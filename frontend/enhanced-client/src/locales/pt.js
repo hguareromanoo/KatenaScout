@@ -48,13 +48,45 @@ export default {
     appName: "KatenaScout",
     loading: "Carregando...",
     error: "Desculpe, ocorreu um erro",
-    back: "Voltar"
+    back: "Voltar",
+    remove: "Remover"
   },
   navigation: {
     chat: "Chat de Scout IA",
     favorites: "Favoritos",
-    settings: "Configurações"
+    settings: "Configurações",
+    scoutReport: 'Relatório Scout Avançado'
   },
+  // Add inside the scoutReport object
+scoutReport: {
+  headerTitle: 'Relatório Scout Avançado',
+  headerSubtitle: 'Análise detalhada de jogadores',
+  title: 'Relatório Scout Avançado',
+  description: 'Gere um relatório scout completo com análise detalhada de estatísticas, perfil tático, histórico de lesões e valor de mercado.',
+  searchTitle: 'Buscar Jogador',
+  searchPlaceholder: 'Digite o nome do jogador...',
+  selectedPlayerTitle: 'Jogador Escolhido',
+  noPlayerSelected: 'Nenhum jogador selecionado',
+  selectPlayer: 'Selecione um jogador',
+  recentSearches: 'Buscas recentes',
+  clearSearchHistory: 'Limpar histórico',
+  dropPlayerHere: 'Arraste e solte um jogador aqui',
+  dragAndDropHint: 'Ou busque um jogador acima e clique para selecionar',
+  generateButton: 'Gerar Relatório',
+  unknownTeam: 'Time desconhecido',
+  noResults: 'Nenhum jogador encontrado',
+  generationFailed: 'Falha ao gerar o relatório. Por favor, tente novamente.',
+  reportReady: 'Relatório Pronto',
+  reportFor: 'Relatório Scout para',
+  openInNewTab: 'Abrir em nova aba',
+  steps: {
+    searchingDatabase: 'Buscando jogador no banco de dados',
+    analyzingMatches: 'Analisando partidas',
+    analyzingStats: 'Analisando estatísticas',
+    analyzingHistory: 'Analisando histórico',
+    generatingReport: 'Gerando relatório'
+  }
+},
   onboarding: {
     welcome: "Bem-vindo ao KatenaScout",
     description: "Seu assistente de scouting de futebol com IA",

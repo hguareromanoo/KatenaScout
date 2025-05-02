@@ -11,6 +11,7 @@ import PlayerCompletePage from './components/PlayerCompletePage';
 import PlayerComparisonModal from './components/PlayerComparisonModal';
 import FavoritesView from './components/FavoritesView';
 import SettingsView from './components/SettingsView';
+import ScoutReportView from './components/ScoutReportView';
 import ErrorBoundary from './components/ErrorBoundary';
 
 /**
@@ -89,6 +90,16 @@ function App() {
               className={`w-full flex items-center px-4 py-3 rounded-lg transition-colors ${currentView === 'chat' ? 'bg-green-700 text-white' : 'text-gray-300 hover:bg-gray-700'}`}
             >
               <span className="text-base">{t('navigation.chat')}</span>
+            </button>
+            
+            <button 
+              onClick={() => {
+                setSidebarOpen(false);
+                setCurrentView('scoutReport');
+              }}
+              className={`w-full flex items-center px-4 py-3 rounded-lg transition-colors ${currentView === 'scoutReport' ? 'bg-green-700 text-white' : 'text-gray-300 hover:bg-gray-700'}`}
+            >
+              <span className="text-base">{t('navigation.scoutReport')}</span>
             </button>
             
             <button 
@@ -190,6 +201,13 @@ function App() {
                 <PlayerComparisonModal />
               </ErrorBoundary>
             )}
+          </ErrorBoundary>
+        )}
+        
+        {/* Scout Report View */}
+        {currentView === 'scoutReport' && (
+          <ErrorBoundary>
+            <ScoutReportView />
           </ErrorBoundary>
         )}
         

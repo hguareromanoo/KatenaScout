@@ -3,22 +3,66 @@ flask==2.0.1
 werkzeug==2.0.3
 flask-cors==3.0.10
 gunicorn==20.1.0
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+starlette==0.41.3
 
 # Data Validation and Models
-pydantic==2.4.2
-typing-extensions==4.8.0
+pydantic==2.10.4  # Versão atualizada para compatibilidade com transfermarkt-api
+pydantic-core==2.27.2
+pydantic-settings==2.7.1
+typing-extensions==4.12.2  # Versão atualizada para compatibilidade com transfermarkt-api
+annotated-types==0.7.0
 
 # HTTP Requests and API
-requests==2.28.1
+requests==2.32.3  # Versão atualizada para compatibilidade com transfermarkt-api
+httptools==0.6.4
+h11==0.14.0
 
 # Text Processing
 unidecode==1.3.6
+beautifulsoup4==4.12.3
+lxml==5.3.0
+soupsieve==2.6
 
 # Environment Variables
-python-dotenv==1.0.0
+python-dotenv==1.0.1  # Versão atualizada para compatibilidade com transfermarkt-api
 
-# Progress Bar (for scripts)
+# Progress Bar and Utils
 tqdm==4.66.2
+six==1.17.0
+packaging==24.2
+colorama==0.4.6
 
 # JSON Handling
 ujson==5.8.0
+
+# Date Handling
+python-dateutil==2.9.0.post0
+
+# Async and Networking
+anyio==4.7.0
+sniffio==1.3.1
+websockets==14.1
+certifi==2024.12.14
+charset-normalizer==3.4.1
+idna==3.10
+urllib3==2.3.0
+
+# Rate Limiting and Performance
+limits==3.14.1
+slowapi==0.1.9
+uvloop==0.21.0 ; (sys_platform != "win32" and sys_platform != "cygwin") and platform_python_implementation != "PyPy"
+watchfiles==1.0.3
+
+# Error Handling and Deprecation
+exceptiongroup==1.2.2 ; python_version < "3.11"
+deprecated==1.2.15
+wrapt==1.17.0
+
+# Miscellaneous
+click==8.1.8
+pyyaml==6.0.2
+
+scipy==1.15.2
+pdfkit==1.0.0  # For PDF generation from HTML
