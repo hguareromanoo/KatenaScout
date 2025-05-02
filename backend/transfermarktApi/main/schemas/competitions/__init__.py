@@ -1,0 +1,2 @@
+from transfermarktApi.main.schemas.competitions.clubs import CompetitionClubs as CompetitionClubs
+from transfermarktApi.main.schemas.competitions.search import CompetitionSearch as CompetitionSearch
