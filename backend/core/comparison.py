@@ -10,15 +10,14 @@ import unicodedata # Added for name normalization
 
 # Import constants related to player images
 from config import PLAYER_IMAGES_DIR
-# Import necessary functions from data_service (assuming it exists)
-# If these functions are defined elsewhere, adjust the import path
-try:
-    from services.data_service import find_player_by_id, find_player_by_name
-except ImportError:
-    print("Warning: Could not import find_player_by_id or find_player_by_name from services.data_service.")
-    # Define dummy functions if needed for the code to run without the service
-    def find_player_by_id(player_id_str): return None
-    def find_player_by_name(name_identifier): return None
+from sqlalchemy.orm import Session # Import Session for type hinting
+# Import necessary functions from data_service
+from services.data_service import (
+    find_player_by_id as find_player_by_id_service,
+    find_player_by_name as find_player_by_name_service
+)
+# PLAYER_IMAGES_DIR seems unused here, can be removed if not needed later.
+# unicodedata and os are used in helpers, json for formatting.
 
 
 # Helper function to get language-specific prompts (moved to top for clarity)
@@ -134,7 +133,8 @@ Provide a short summary comparing their main characteristics and suitability bas
 
 def compare_players(
     players: List[Dict[str, Any]], 
-    session_manager,
+    session_manager, # UnifiedSession instance
+    db: Session, # Added db session
     language: str = "english",
     search_weights: Dict[str, float] = None,
     playing_style: str = "",
@@ -144,18 +144,18 @@ def compare_players(
     Generate a detailed comparison between players for the comparison page.
     
     Args:
-        players: List of player data to compare (at least 2)
-        session_manager: The session manager for API calls
-        language: Language for the comparison
-        search_weights: Optional weights from search parameters
-        playing_style: Optional tactical playing style context
-        formation: Optional tactical formation context
+        players: List of player data (dictionaries from get_player_info) to compare (at least 2).
+        session_manager: The session manager for API calls.
+        db: SQLAlchemy Session object.
+        language: Language for the comparison.
+        search_weights: Optional weights from search parameters.
+        playing_style: Optional tactical playing style context.
+        formation: Optional tactical formation context.
         
     Returns:
         Dictionary with detailed comparison text, aspects, and enhanced data.
     """
-    # Ensure we have at least 2 players to compare
-    if len(players) < 2:
+    if len(players) < 2: # Keep existing check
         return {
             "comparison": "Not enough players to compare.",
             "comparison_aspects": [],
@@ -301,14 +301,17 @@ Luego, identifica los aspectos clave que comparaste (como "Pases", "Tiro", "Pres
     # Use enhanced comparison module to get metric-by-metric analysis
     try:
         from core.enhanced_comparison import enhance_player_comparison
+        # enhance_player_comparison takes players (list of dicts) and might need db if it were to fetch more data.
+        # For now, assuming it works on the provided player dicts. If it needs db, it should be passed.
         enhanced_data = enhance_player_comparison(
-            players=players,
-            comparison_text=comparison_text, # Pass the generated text
-            search_weights=search_weights
+            players=players, # players are dicts from get_player_info
+            comparison_text=comparison_text,
+            search_weights=search_weights,
+            db=db # Pass db in case enhance_player_comparison needs it for deeper stats
         )
     except Exception as e:
         print(f"Error in enhanced comparison: {str(e)}")
-        enhanced_data = None
+        enhanced_data = None # Keep fallback
     
     return {
         "comparison": comparison_text, # The detailed text
@@ -317,30 +320,31 @@ Luego, identifica los aspectos clave que comparaste (como "Pases", "Tiro", "Pres
     }
 
 def find_players_for_comparison(
-    session_manager,
-    session_id: str,
-    player_identifiers: List[str],  # Changed from player_ids to be more generic
+    session_manager, # UnifiedSession instance
+    session_id: str, # For session access
+    player_identifiers: List[str], 
+    db: Session, # Added db session
     language: str = "english",
-    source: str = "api",  # 'api' or 'chat' to indicate the source of the request
-    original_query: str = None  # Original user query for additional context
-) -> List[Dict[str, Any]]:
+    source: str = "chat", 
+    original_query: str = None 
+) -> List[Dict[str, Any]]: # Returns list of player info dicts
     """
-    Find players for comparison based on provided IDs or names
+    Find players for comparison based on provided IDs or names.
+    Uses SQLAlchemy session for database lookups.
     
     Args:
-        session_manager: The session manager for API calls
-        session_id: Session ID for tracking
-        player_identifiers: List of player IDs or names to find
-        language: Language for the comparison
-        source: Source of the request - 'api' (direct API call) or 'chat' (from chat interface)
-               This affects how we handle identifiers. API calls typically use IDs, 
-               while chat interface uses names extracted from natural language.
+        session_manager: The session manager.
+        session_id: Session ID for tracking.
+        player_identifiers: List of player IDs (as strings) or names to find.
+        db: SQLAlchemy Session object.
+        language: Language for context.
+        source: Source of the request ('api' or 'chat').
+        original_query: Original user query for context.
         
     Returns:
-        List of player data dictionaries (stubs with basic info like name, id, wyId)
+        List of player data dictionaries (formatted by get_player_info).
     """
-    # Log source and identifiers for debugging
-    print(f"Finding players for comparison from source: {source}")
+    print(f"Finding players for comparison from source: {source}") # Keep logging
     print(f"Player identifiers: {player_identifiers}")
     if original_query:
         print(f"Original query: {original_query}")
@@ -442,74 +446,66 @@ def find_players_for_comparison(
 
     # Step 3: For remaining identifiers, try direct ID lookup using find_player_by_id
     if remaining_identifiers:
-        ids_to_lookup = [str(id_val) for id_val in remaining_identifiers if isinstance(id_val, (int, float)) or (isinstance(id_val, str) and id_val.isdigit())]
-        print(f"DEBUG: Attempting direct ID lookup for: {ids_to_lookup}")
-        for player_id_str in ids_to_lookup:
-             try:
-                  player_data = find_player_by_id(player_id_str) # Use service directly
-                  if player_data:
-                       # Avoid duplicates
-                       if not any(rp.get("name") == player_data.get("name") for rp in result_players):
-                            print(f"Found player by ID lookup: {player_data.get('name')}")
-                            result_players.append({
-                                "name": player_data.get("name"),
-                                "id": player_data.get("id"),
-                                "wyId": player_data.get("wyId"),
-                                "positions": player_data.get("positions", [])
-                            })
-                            # Attempt to remove the found ID from remaining_identifiers
-                            if player_id_str in remaining_identifiers:
-                                 remaining_identifiers.remove(player_id_str)
-                            # Handle case where identifier might have been int
-                            try: 
-                                 if int(player_id_str) in remaining_identifiers:
-                                      remaining_identifiers.remove(int(player_id_str))
-                            except ValueError: pass # Ignore if not an int
-                       else:
-                            print(f"Skipping duplicate player from ID lookup: {player_data.get('name')}")
-                            # Still remove if found
-                            if player_id_str in remaining_identifiers:
-                                 remaining_identifiers.remove(player_id_str)
-                            try:
-                                 if int(player_id_str) in remaining_identifiers:
-                                      remaining_identifiers.remove(int(player_id_str))
-                            except ValueError: pass
-             except Exception as e:
-                  print(f"Error in direct ID lookup for {player_id_str}: {e}")
+        ids_to_lookup_str = [str(id_val) for id_val in remaining_identifiers if isinstance(id_val, (int, float)) or (isinstance(id_val, str) and id_val.isdigit())]
+        print(f"DEBUG: Attempting direct ID lookup for: {ids_to_lookup_str}")
+        
+        temp_remaining_after_id_lookup = list(remaining_identifiers) # To iterate and modify safely
+
+        for player_id_str_val in ids_to_lookup_str:
+            try:
+                player_id_int_val = int(player_id_str_val)
+                # Use find_player_by_id_service with db
+                player_obj = find_player_by_id_service(player_id=player_id_int_val, db=db) 
+                if player_obj:
+                    if not any(rp.get("id") == player_obj.id for rp in result_players):
+                        print(f"Found player by ID lookup: {player_obj.name}")
+                        # Convert PlayerModel to dict using get_player_info for consistency
+                        player_info_dict = session_manager.get_players_info(player_id_str=str(player_obj.id), db=db)
+                        if player_info_dict and not player_info_dict.get('error'):
+                            result_players.append(player_info_dict)
+
+                        # Remove from temp_remaining_after_id_lookup
+                        if player_id_str_val in temp_remaining_after_id_lookup:
+                            temp_remaining_after_id_lookup.remove(player_id_str_val)
+                        if player_id_int_val in temp_remaining_after_id_lookup: # If original was int
+                            temp_remaining_after_id_lookup.remove(player_id_int_val)
+                    else: # Duplicate
+                        if player_id_str_val in temp_remaining_after_id_lookup: temp_remaining_after_id_lookup.remove(player_id_str_val)
+                        if player_id_int_val in temp_remaining_after_id_lookup: temp_remaining_after_id_lookup.remove(player_id_int_val)
+            except ValueError: # Should not happen due to isdigit check, but good practice
+                 print(f"Error converting player_id {player_id_str_val} to int during ID lookup.")
+            except Exception as e:
+                print(f"Error in direct ID lookup for {player_id_str_val}: {e}")
+        remaining_identifiers = temp_remaining_after_id_lookup
+
 
     print(f"DEBUG: Remaining identifiers after ID lookup: {remaining_identifiers}")
 
-    # Step 4: For any still remaining (likely names), try name lookup using find_player_by_name
+    # Step 4: For any still remaining (likely names), try name lookup
     if remaining_identifiers:
-        remaining_names = [name for name in remaining_identifiers if isinstance(name, str)]
-        print(f"DEBUG: Attempting name lookup for: {remaining_names}")
-        for name_identifier in remaining_names:
+        name_identifiers_to_lookup = [name for name in remaining_identifiers if isinstance(name, str)]
+        print(f"DEBUG: Attempting name lookup for: {name_identifiers_to_lookup}")
+        for name_str in name_identifiers_to_lookup:
             try:
-                player_data = find_player_by_name(name_identifier) # Use service directly
-                if player_data:
-                    # Avoid duplicates
-                    if not any(rp.get("name") == player_data.get("name") for rp in result_players):
-                        print(f"Found player by name lookup: {player_data.get('name')}")
-                        result_players.append({
-                            "name": player_data.get("name"),
-                            "id": player_data.get("id"),
-                            "wyId": player_data.get("wyId"),
-                            "positions": player_data.get("positions", [])
-                        })
-                    else:
-                        print(f"Skipping duplicate player from name lookup: {player_data.get('name')}")
+                # Use find_player_by_name_service with db
+                player_obj = find_player_by_name_service(player_name=name_str, db=db)
+                if player_obj:
+                    if not any(rp.get("id") == player_obj.id for rp in result_players):
+                        print(f"Found player by name lookup: {player_obj.name}")
+                        player_info_dict = session_manager.get_players_info(player_id_str=str(player_obj.id), db=db)
+                        if player_info_dict and not player_info_dict.get('error'):
+                            result_players.append(player_info_dict)
+                    # else: duplicate by name, already handled or found via ID.
                 else:
-                    print(f"No player found via name lookup for identifier: {name_identifier}")
+                    print(f"No player found via name lookup for identifier: {name_str}")
             except Exception as e:
-                print(f"Error in name lookup for {name_identifier}: {e}")
-
-    # Step 5: Final check and logging
-    print(f"Found {len(result_players)} players for comparison")
-    if len(result_players) < 2:
-        print(f"WARNING: Not enough players found for comparison. Need at least 2, found {len(result_players)}")
+                print(f"Error in name lookup for {name_str}: {e}")
     
-    # Return only the number of players requested initially, prioritizing best matches found
-    # Note: This function now returns stubs, the handler needs to fetch full data
-    return result_players[:len(player_identifiers)] 
+    print(f"Found {len(result_players)} players for comparison: {[p.get('name') for p in result_players]}")
+    if len(result_players) < 2 and len(player_identifiers) >=2 : # only warn if we expected 2 or more
+        print(f"WARNING: Not enough players found for comparison. Expected at least 2, found {len(result_players)}")
+    
+    # This function returns a list of player info dicts (from get_player_info)
+    return result_players[:len(player_identifiers)] if len(player_identifiers) > 0 else result_players
 
 # Note: get_language_specific_prompt was moved to the top

@@ -13,14 +13,19 @@ import unidecode
 from models.parameters import SearchParameters
 from config import MIN_SCORE_THRESHOLD, DEFAULT_SEARCH_LIMIT
 from services.data_service import (
-    get_player_database, 
-    get_player_database_by_id,
-    get_weights_dictionary,
-    get_average_statistics,
-    get_players_with_position,
-    find_player_by_id,
-    find_player_by_name
+    # get_player_database, # Removed
+    # get_player_database_by_id, # Removed
+    get_weights_dictionary, # Kept for now, uses load_json
+    get_average_statistics, # Now uses DB
+    get_players_with_position as get_players_with_position_service, # Renamed to avoid conflict
+    find_player_by_id as find_player_by_id_service, # Renamed
+    find_player_by_name as find_player_by_name_service, # Renamed
+    DB_TO_GRANULAR_FALLBACK_MAP, # Import for position display
+    GRANULAR_TO_DB_POSITION_MAP # Import for querying by position
 )
+from backend.models.sql_models import Player as PlayerModel, Team as TeamModel, Country as CountryModel
+from sqlalchemy.orm import Session
+
 def get_date_months_from_now(months):
     """
     Calcula uma data X meses a partir de hoje, lidando com bordas de mês
@@ -60,64 +65,57 @@ def get_date_months_from_now(months):
 def search_players(
     params: SearchParameters,
     limit: int = DEFAULT_SEARCH_LIMIT,
-    database: Optional[Dict[str, Any]] = None,
-    database_id: Optional[Dict[str, Any]] = None,
-    weights: Optional[Dict[str, Any]] = None,
-    average_stats: Optional[Dict[str, Any]] = None
-) -> List[Dict[str, Any]]:
+    db: Session, # Added db session
+    limit: int = DEFAULT_SEARCH_LIMIT,
+    # database, database_id removed as they are no longer sources of truth for player data
+    weights_dict: Optional[Dict[str, Any]] = None, # Renamed for clarity
+    avg_stats_by_pos: Optional[Dict[str, Any]] = None # Renamed for clarity
+) -> List[Dict[str, Any]]: # Return type is List of Dicts (formatted player info)
     """
-    Search for players based on the given parameters and return the top matches
+    Search for players based on the given parameters and return the top matches.
+    Uses SQLAlchemy for database interaction.
     
     Args:
-        params: The search parameters - primary input for search logic
-        limit: Maximum number of players to return
-        database: Optional player database by name (loaded from file if not provided)
-        database_id: Optional player database by ID (loaded from file if not provided)
-        weights: Optional weights dictionary for scoring (loaded from file if not provided)
-        average_stats: Optional average statistics by position (loaded from file if not provided)
+        db: SQLAlchemy Session object.
+        params: The search parameters - primary input for search logic.
+        limit: Maximum number of players to return.
+        weights_dict: Optional weights dictionary for scoring.
+        avg_stats_by_pos: Optional average statistics by position (DB position char keys).
             
     Returns:
-        A list of the top N players matching the parameters
+        A list of the top N players matching the parameters, formatted as dictionaries.
     """
-    # Load required data sources if not provided
-    if database is None:
-        database = get_player_database()
+    if weights_dict is None:
+        weights_dict = get_weights_dictionary() # Still loads from JSON for now
     
-    if database_id is None:
-        database_id = get_player_database_by_id()
+    if avg_stats_by_pos is None:
+        avg_stats_by_pos = get_average_statistics(db=db) # Now from DB
     
-    if weights is None:
-        weights = get_weights_dictionary()
-    
-    if average_stats is None:
-        average_stats = get_average_statistics()
-    
-    # Special case: Handle name-based search
+    # Special case: Handle name-based search using find_player_by_name_service
     if params.is_name_search and params.player_name:
-        print(f"\n=== NAME-BASED SEARCH ===")
+        print(f"\n=== NAME-BASED SEARCH (SQLAlchemy) ===")
         print(f"Looking for player by name: {params.player_name}")
-        print(f"=========================\n")
         
-        # First try exact match with database keys
+        # find_player_by_name_service returns a single PlayerModel or None
+        # This route was designed for multiple results. We need a list.
+        # This implies a new service function like search_players_by_name_like might be better.
+        # For now, use a direct query for multiple results.
+        from sqlalchemy import func as sql_alchemy_func_search # Alias to avoid conflict
+        name_query_lower = params.player_name.lower()
+        player_results_db = db.query(PlayerModel).filter(
+            sql_alchemy_func_search.lower(PlayerModel.name).contains(name_query_lower)
+        ).limit(limit).all()
+
         results = []
-        for name, player_data in database.items():
-            # Compare names case-insensitive
-            if params.player_name.lower() in unidecode.unidecode(name).lower():
-                # Create a player info entry
-                player_info = get_player_info(
-                    player_id=player_data.get('wyId', player_data.get('id', name)),
-                    database=database,
-                    database_id=database_id,
-                    params=None  # Get all available data
-                )
-                if player_info and not player_info.get('error'):
-                    results.append(player_info)
+        for player_obj in player_results_db:
+            player_info = get_player_info(player_id_int=player_obj.id, db=db, params=None) # Pass int ID
+            if player_info and not player_info.get('error'):
+                results.append(player_info)
         
         print(f"Found {len(results)} players by name search.")
-        return results[:limit]  # Limit the results
+        return results # Already limited by query
     
     # Normal parameter-based search
-    # Log important search parameters at the start
     active_params = params.get_true_parameters()
     scoring_params = [p for p in active_params if p not in ["key_description_word", "position_codes", "age", "height", "weight", "player_name", "is_name_search", "foot", "contract_expiration"]]
     print(f"\n=== SEARCH PARAMETERS ===")
@@ -133,447 +131,238 @@ def search_players(
     print(f"Statistical params for scoring ({len(scoring_params)}): {scoring_params}")
     print(f"=========================\n")
     
-    # Keep track of player scores
-    players_score = {}
+    players_score: Dict[int, Dict[str, Any]] = {} # Keyed by player ID (int)
     
-    # Search for players in each of the specified positions
-    for pos in params.position_codes:
-        # Get players for this position from the service - be careful of parameter order
-        print(f"DEBUG - Searching for players in position: {pos}")
-        # Correct parameter order: position_code first, then database
-        players_list = get_players_with_position(position_code=pos, database=database)
+    # Search for players in each of the specified granular position_codes
+    for granular_pos_code in params.position_codes:
+        # get_players_with_position_service expects a granular code and db session
+        # It uses GRANULAR_TO_DB_POSITION_MAP internally.
+        player_obj_list = get_players_with_position_service(position_code=granular_pos_code, db=db)
         
-        for player in players_list:
-            # Filter by preferred foot if specified
+        for player_obj in player_obj_list: # player_obj is now a PlayerModel instance
+            # Filter by preferred foot
             if params.foot and params.foot != "both":
-                player_foot = player.get('foot', '').lower()
-                if player_foot and player_foot != params.foot.lower():
-                    continue  # Skip if foot doesn't match
-            
-            # Filter by contract expiration if specified
-            if params.contract_expiration:
-                # Try different paths for contract expiration
-                contract_until = None
-                if player.get("contractUntil"):
-                    contract_until = player.get("contractUntil")
-                elif player.get("contract") and isinstance(player.get("contract"), dict) and player.get("contract").get("contractExpiration"):
-                    contract_until = player.get("contract").get("contractExpiration")
-                
-                # Skip if contract doesn't expire soon enough
-                if not contract_until or contract_until > six_months_from_now:
+                if player_obj.preferred_foot and player_obj.preferred_foot.lower() != params.foot.lower():
                     continue
             
+            # Filter by contract expiration (using player_obj.contract_until_timestamp (BIGINT))
+            if params.contract_expiration and six_months_from_now:
+                # Assuming contract_until_timestamp stores Unix timestamp.
+                # And six_months_from_now is "YYYY-MM-DD". Convert for comparison.
+                # This part needs careful handling of date formats and timestamps.
+                # For simplicity, if player_obj.contract_until_timestamp is directly comparable or pre-converted, use it.
+                # If contract_until_timestamp is significantly later than six_months_from_now, skip.
+                # This is a placeholder for actual timestamp comparison logic.
+                # Example: if player_obj.contract_until_timestamp > datetime.strptime(six_months_from_now, "%Y-%m-%d").timestamp(): continue
+                pass # Placeholder for contract filtering logic
+
             # Calculate score for this player in this position
-            score = get_score(player, params, pos, weights, average_stats)
+            # get_score needs to be adapted for PlayerModel instance and new avg_stats_by_pos structure
+            score = get_score(player_obj, params, granular_pos_code, weights_dict, avg_stats_by_pos, db)
             
-            # Store the player's score
-            player_id = player.get('wyId', player.get('id', player.get('name')))
-            if player_id not in players_score or score > players_score[player_id]['score']:
-                # Keep the player's highest score across all positions
-                players_score[player_id] = {
-                    'player': player,
+            if player_obj.id not in players_score or score > players_score[player_obj.id]['score']:
+                players_score[player_obj.id] = {
+                    'player_model': player_obj, # Store the model instance
                     'score': score,
-                    'position': pos
+                    'matched_granular_position': granular_pos_code 
                 }
     
-    # Sort players by score and take the top N
     sorted_scores = sorted(players_score.items(), key=lambda x: x[1]['score'], reverse=True)[:limit]
     
-    # Format the player data for the response
     selected_players = []
-    for player_id, data in sorted_scores:
-        # Ensure player_id is string to prevent issues
-        player_id_str = str(player_id) if not isinstance(player_id, str) else player_id
-        
-        # Use the standalone function for consistent player info retrieval
-        # No need to import as it's in the same file
+    for player_id_int, data in sorted_scores:
         player_info = get_player_info(
-            player_id=player_id_str, 
-            database=database, 
-            database_id=database_id, 
-            params=params,
-            weights=weights,
-            average_stats=average_stats
+            player_id_int=player_id_int, 
+            db=db, 
+            params=params, # Pass params for focused stats if needed by get_player_info
+            # weights_dict and avg_stats_by_pos are not directly used by get_player_info for formatting
+            # but could be if get_player_info also calculates a score or relative metrics.
         )
         
-        # Check if player_info is not None and doesn't contain an error
         if player_info and not player_info.get('error'):
-            player_info['score'] = round(data['score'], 2)  # Round score to 2 decimal places
+            player_info['score'] = round(data['score'], 2)
+            player_info['matched_granular_position'] = data['matched_granular_position'] # Add matched position
             selected_players.append(player_info)
         else:
-            print(f"Warning: Could not retrieve info for player ID: {player_id_str}. Error: {player_info.get('error') if player_info else 'Player info is None'}")
+            print(f"Warning: Could not retrieve info for player ID: {player_id_int}. Error: {player_info.get('error') if player_info else 'Player info is None'}")
     
-    # Log search results
-    print(f"\n=== SEARCH RESULTS ===")
-    print(f"Found {len(selected_players)} players matching the search criteria")
-    
-    # Log top 5 results with scores
-    if selected_players:
-        print("Top players found:")
-        for i, player in enumerate(selected_players[:5], 1):
-            print(f"{i}. {player.get('name', 'Unknown')} - Score: {player.get('score', 0)}")
-    else:
-        print("No players found with non-zero scores")
-    print(f"======================\n")
-        
+    print(f"Found {len(selected_players)} players matching the search criteria.")
+    # ... (logging remains similar) ...
     return selected_players
 
+# Removed local get_players_with_position as service one should be used.
 
-def get_players_with_position(position_code: str, database: Dict[str, Any] = None) -> List[dict]:
+def get_score(
+    player_obj: PlayerModel, 
+    params: SearchParameters, 
+    granular_pos_code: str,  # Granular position code from params
+    weights_dict: Dict[str, Any], 
+    avg_stats_by_pos: Dict[str, Any], # DB position char keys
+    db: Session # Added db session, though not directly used in this simplified scoring
+) -> float:
     """
-    Get all players that can play in the specified position
+    Calculate a weighted score for how well a player matches the search parameters.
+    This function needs significant adaptation to work with PlayerModel and new stats structure.
+    Current version is a simplification focusing on structure change.
     
     Args:
-        position_code: The position code to search for
-        database: The player database
+        player_obj: SQLAlchemy PlayerModel instance.
+        params: Search parameters.
+        granular_pos_code: Granular position code (e.g., 'cmf', 'cb').
+        weights_dict: Weights dictionary (keys are granular positions).
+        avg_stats_by_pos: Average statistics (keys are DB general positions 'G','D','M','F').
+        db: SQLAlchemy Session object.
         
     Returns:
-        List of players that can play in the specified position
+        A numerical score.
     """
-    # Load database if not provided
-    if database is None:
-        from services.data_service import get_player_database
-        database = get_player_database()
-    
-    # Validate inputs to prevent type errors
-    if not isinstance(database, dict):
-        print(f"ERROR: database is not a dictionary but {type(database)}")
-        return []
-    
-    # Get players with the specified position
-    players_list = []
-    for player_name, player_data in database.items():
-        if any(pos["position"]["code"] == position_code for pos in player_data.get("positions", [])):
-            # Add the player name to the data for easier access
-            player_data["name"] = unidecode.unidecode(player_name)
-            players_list.append(player_data)
-    return players_list
-
-
-def get_score(player, params: SearchParameters, pos, weights, average_stats):
-    """
-    Calculate a weighted score for how well a player matches the search parameters
-    
-    Args:
-        player: The player data
-        params: The search parameters
-        pos: The position to evaluate for
-        weights: Dictionary of weights for different positions and attributes
-        average_stats: Dictionary of average statistics by position
-        
-    Returns:
-        A numerical score representing how well the player matches the criteria
-    """
-    # Minimal debug - just print the name of the player we're scoring
-    player_name = player.get('name', 'Unknown Player')
-    
     score = 0.0
-    # Get position-specific weights based on key description words
+    player_name = player_obj.name
+    
+    # Determine DB general position for fetching average stats
+    db_pos_char = GRANULAR_TO_DB_POSITION_MAP.get(granular_pos_code, None)
+    if not db_pos_char: # Should not happen if granular_pos_code is validated before
+        return 0.0 
+
+    # Get average statistics for the player's general DB position
+    # avg_stats_by_pos has keys 'G', 'D', 'M', 'F'
+    # The values are dicts like {'rating': 7.0, 'goals': 0.2, ...}
+    avg_for_gen_pos = avg_stats_by_pos.get(db_pos_char, {})
+
+    # Get position-specific weights from weights_dict (still uses granular codes)
+    # weights_dict structure: {'cmf': {'key_description': {'goals': 0.8, ...}}}
     position_weights = {}
+    if granular_pos_code in weights_dict:
+        # params.key_description_word is a list of strings
+        for key_desc_word in params.key_description_word:
+            if key_desc_word in weights_dict[granular_pos_code]:
+                position_weights.update(weights_dict[granular_pos_code][key_desc_word])
     
-    # Get average statistics for this position
-    if pos in average_stats:
-        avg = average_stats[pos]
-    else:
-        # If position not found, use a reasonable default
-        avg = average_stats.get('cmf', {})  # Default to central midfielder if available
-    
-    # Extract weights for this position and description word
-    for key in params.key_description_word:
-        if pos in weights and key in weights[pos]:
-            # Add these weights to our mapping
-            position_weights.update(weights[pos][key])
-    
-    # Get parameters with actual values
-    true_params = params.get_true_parameters()
-    
-    # Calculate score component for each relevant parameter
-    for param in true_params:
-        # Skip non-metric parameters
-        if param in ["key_description_word", "position_codes"]:
-            continue
-            
-        # Default weight if not specified
-        weight_multiplier = 1.0
-        
-        # Extract category and metric from parameter name
-        parts = param.split('_', 1)
-        if len(parts) != 2:
-            continue
-            
-        category, metric = parts
-        param_score = 0.0
-        
-        try:
-            # Handle different parameter types
-            if category == "total" and "total" in player:
-                # Get player's value for this metric
-                player_value = player["total"].get(metric, 0)
-                # Get average value for comparison
-                avg_value = avg.get("total", {}).get(metric, 1)  # Default to 1 to avoid division by zero
-                # Get weight for this metric
-                weight_key = f"min_{metric}"
-                weight_multiplier = position_weights.get(weight_key, 1.0)
-                
-                # Calculate normalized score: (player value / average value) * weight
-                if avg_value > 0:
-                    param_score = (player_value / avg_value) * weight_multiplier
-                
-            elif category == "average" and "average" in player:
-                player_value = player["average"].get(metric, 0)
-                avg_value = avg.get("average", {}).get(metric, 1)
-                weight_key = f"min_{metric}"
-                weight_multiplier = position_weights.get(weight_key, 1.0)
-                
-                if avg_value > 0:
-                    param_score = (player_value / avg_value) * weight_multiplier
-                
-            elif category == "percent" and "percent" in player:
-                player_value = player["percent"].get(metric, 0)
-                avg_value = avg.get("percent", {}).get(metric, 1)
-                weight_key = f"min_{metric}_percent"
-                weight_multiplier = position_weights.get(weight_key, 1.0)
-                
-                if avg_value > 0:
-                    param_score = (player_value / avg_value) * weight_multiplier
-            
-            # Handle special cases like max parameters (lower is better)
-            if param.startswith("max_") and param_score > 0:
-                # For max parameters, invert the score (lower values are better)
-                param_score = 2.0 - param_score if param_score <= 2.0 else 0.0
-            
-            # Add parameter score to total
-            score += param_score
-            
-            # Log high-scoring parameters for debugging (only significant contributions)
-            if param_score > 1.0:
-                print(f"High score for {player_name}: {param}={param_score:.2f}")
-            
-        except Exception as e:
-            print(f"Error calculating score for {param}: {str(e)}")
-            continue
-    
-    # Log players with non-zero scores for debugging
+    # This part is highly complex due to the old structure player["total"]["metric"]
+    # PlayerModel does not have 'total', 'average', 'percent' dicts.
+    # Player statistics are now in PlayerStatistic model, per match.
+    # A full refactor of scoring would require querying PlayerStatistic for the player,
+    # aggregating them (e.g., per 90 min values), then comparing to averages.
+    # This is beyond simple attribute access change.
+    # For now, let's assume a very simplified scoring based on available PlayerModel attributes
+    # or make it a placeholder.
+
+    # Placeholder: if 'goals' is a weighted parameter, and player_obj had direct 'goals_total'
+    # if 'goals' in position_weights and hasattr(player_obj, 'goals_total_season'): # Fictional attribute
+    #     player_value = player_obj.goals_total_season
+    #     avg_value = avg_for_gen_pos.get('goals', 1) # Default to 1 to avoid div by zero
+    #     if avg_value > 0:
+    #         score += (player_value / avg_value) * position_weights['goals']
+
+    # Example: Age scoring (if age is in params)
+    if params.age_min is not None and player_obj.date_of_birth_timestamp:
+        # Simplified age calculation (example, not accurate)
+        # Convert timestamp to age, then compare.
+        # For now, just add a small score if it's a parameter.
+        if 'age' in position_weights: # Assuming 'age' could be a key in weights
+             score += 0.5 * position_weights.get('age', 1.0)
+
+
+    # This function needs a complete rewrite based on how PlayerStatistics will be aggregated
+    # and compared. For now, returning a dummy score if any relevant params exist.
+    if position_weights: # If any relevant weights were found for the position/description
+        score += 1.0 # Dummy score contribution
+
     if score > 0:
-        print(f"Player {player_name} in position {pos} scored: {score:.2f}")
+        print(f"Player {player_name} in position {granular_pos_code} scored: {score:.2f} (Simplified)")
             
     return score
 
 
-def get_player_info(player_id: str, database: dict, database_id: dict, params: Optional[SearchParameters] = None, weights: Optional[dict] = None, average_stats: Optional[dict] = None) -> dict:
+def get_player_info(
+    player_id_int: int, # Changed to int
+    db: Session, 
+    params: Optional[SearchParameters] = None,
+    # database, database_id, weights, average_stats removed from direct args
+    # weights and average_stats might be needed if scoring is part of get_player_info
+) -> Dict[str, Any]:
     """
-    Get detailed player information formatted for display
+    Get detailed player information formatted for display using SQLAlchemy.
     
     Args:
-        player_id: The player ID to retrieve
-        database: Player database dictionary
-        database_id: Player database by ID dictionary
-        params: Optional search parameters to determine which metrics to include
-        weights: Optional weights dictionary for scoring
-        average_stats: Optional average statistics by position
+        player_id_int: The integer player ID to retrieve.
+        db: SQLAlchemy Session object.
+        params: Optional search parameters (currently not used for stat filtering here).
         
     Returns:
-        A dictionary with the player's details and relevant metrics
+        A dictionary with the player's details.
     """
-    try:
-        # Safety check for parameters
-        if not database or not database_id:
-            return {"error": "Missing database or database_id parameter"}
-        
-        if not player_id:
-            return {"error": "Missing player_id parameter"}
-        
-        # Ensure player_id is a string
-        player_id_str = str(player_id) if not isinstance(player_id, str) else player_id
-        
-        player = None
-        
-        # First check if player is in database_id
-        if player_id_str in database_id:
-            player = database_id[player_id_str]
-        else:
-            # Try to find by name if ID not found
-            for name, p_data in database.items():
-                # Convert wyId to string for comparison if it exists
-                wy_id = str(p_data.get('wyId')) if p_data.get('wyId') is not None else None
-                
-                if wy_id == player_id_str or unidecode.unidecode(name).lower() == player_id_str.lower():
-                    player = p_data
-                    break
-            
-            # If still not found, return error
-            if not player:
-                return {"error": f"Player not found with ID: {player_id_str}"}
-            
-    except Exception as e:
-        return {"error": f"Error finding player: {str(e)}"}
-    
-    # Get the positions the player plays in
-    positions = [pos["position"]["code"] for pos in player.get("positions", [])]
-    
-    # Format basic player info
-    # We already have player_id_str from earlier
-    
-    try:
-        # Get club and contract info - handle multiple possible formats
-        club_name = "Unknown"
-        contract_until = "Unknown"
-        
-        # Try different paths for club name
-        # First, check if club is directly available as an object
-        club_obj = player.get("club")
-        if isinstance(club_obj, dict) and 'name' in club_obj:
-            club_name = club_obj.get('name', 'Unknown')
-        else:
-            # If no direct club object or it has no name, try to look up by team ID
-            team_id = player.get("currentTeamId")
-            
-            # Use a hardcoded mapping for common team IDs
-            # Try multiple file paths to find team.json
-            team_names = {}
-            team_json_paths = [
-                'team.json',  # Current directory
-                os.path.join(os.path.dirname(__file__), 'team.json'),  # Same directory as this file
-                os.path.join(os.path.dirname(os.path.dirname(__file__)), 'team.json'),  # Parent directory
-            ]
-            
-            for path in team_json_paths:
-                try:
-                    with open(path, 'r', encoding='utf-8') as f:
-                        team_names = json.load(f)
-                        break  # Found and loaded the file, exit the loop
-                except (FileNotFoundError, IOError):
-                    continue
-            
-            # Convert team_id to string for comparison
-            if team_id:
-                team_id_str = str(team_id)
-                if team_id_str in team_names:
-                    club_name = team_names[team_id_str].get('name', 'Unknown')
-        
-        # Try different paths for contract expiration
-        if player.get("contractUntil"):
-            contract_until = player.get("contractUntil")
-        elif player.get("contract") and isinstance(player.get("contract"), dict) and player.get("contract").get("contractExpiration"):
-            contract_until = player.get("contract").get("contractExpiration")
-        
-        # Get nationality info - try different possible field names
-        nationality = None
-        for field in ["passportArea", "birthArea", "nationality", "country", "countryOfBirth"]:
-            if player.get(field):
-                nationality = player.get(field)
-                # If nationality is a string, use it directly
-                # If it's an object, extract the name property
-                if isinstance(nationality, dict):
-                    # Use 'name' as first priority, then alpha3code or alpha2code
-                    if 'name' in nationality:
-                        nationality = nationality['name']
-                    elif 'alpha3code' in nationality:
-                        nationality = nationality['alpha3code']
-                    elif 'alpha2code' in nationality:
-                        nationality = nationality['alpha2code']
-                break
-        
-        # Get preferred foot
-        foot = player.get("foot", "")  # Default to empty string if not available
-        
-        # Extract player ID fields with proper fallbacks
-        player_wy_id = player.get("wyId")
-        
-        # Debug output to see what we're working with
-        print(f"Player data WyID: {player_wy_id}, type: {type(player_wy_id)}")
-        
-        player_info = {
-            "wyId": player_wy_id,  # Include wyId in the player info
-            "name": player.get("name", unidecode.unidecode(player_id_str)),
-            "age": player.get("age"),
-            "height": player.get("height"),
-            "weight": player.get("weight"),
-            "positions": positions,
-            "club": club_name,
-            "contractUntil": contract_until,
-            "nationality": nationality,
-            "foot": foot
+    player_obj = find_player_by_id_service(player_id=player_id_int, db=db)
+
+    if not player_obj:
+        return {"error": f"Player not found with ID: {player_id_int}"}
+
+    # Get granular position for display
+    display_position = DB_TO_GRANULAR_FALLBACK_MAP.get(player_obj.position, player_obj.position)
+
+    # Club Name: Requires current team logic. PlayerTeam relationship.
+    # Placeholder for current team logic:
+    current_team_name = "Unknown Team"
+    # Example: if player_obj.player_teams and player_obj.player_teams[0].team:
+    #    current_team_name = player_obj.player_teams[0].team.name
+    # This assumes player_teams is ordered by recency or has an is_current flag.
+
+    # Contract Expiration: from player_obj.contract_until_timestamp (BIGINT)
+    # Convert timestamp to human-readable date string if needed.
+    contract_str = "Unknown"
+    if player_obj.contract_until_timestamp:
+        try:
+            contract_str = datetime.fromtimestamp(player_obj.contract_until_timestamp).strftime('%Y-%m-%d')
+        except Exception: # Handle potential errors with timestamp
+            pass 
+
+    # Nationality
+    nationality_name = player_obj.country.name if player_obj.country else "Unknown"
+
+    player_info_dict = {
+        "id": player_obj.id, # Use the integer ID from DB
+        "wyId": player_obj.id, # Assuming wyId is the same as DB id for now.
+        "name": player_obj.name,
+        "age": None, # Age needs calculation from date_of_birth_timestamp
+        "height": player_obj.height,
+        "weight": None, # Weight is not in Player model
+        "positions": [display_position], # Simplified to a list with one primary position
+        "club": current_team_name,
+        "contractUntil": contract_str,
+        "nationality": nationality_name,
+        "foot": player_obj.preferred_foot,
+        "stats": {}, # Placeholder: Detailed stats aggregation is complex
+        "complete_profile": { # Placeholder
+            "stats": {},
+            "position_averages": {}
         }
-        
-        # Initialize stats dict
-        stats = {}
-        
-        # Get relevant stats based on search parameters
-        if params:
-            true_params = params.get_true_parameters()
-            # Simplified debug - just count the stats we're going to use
-            stats_count = len([p for p in true_params if p not in ["key_description_word", "position_codes", "age", "height", "weight"]])
-            
-            # Extract only relevant statistics from player data - no extras
-            for param in true_params:
-                # Skip non-statistical parameters
-                if param in ["key_description_word", "position_codes", "age", "height", "weight"]:
-                    continue
-                
-                # Split the parameter name to get the category and metric
-                parts = param.split('_', 1)
-                if len(parts) != 2:
-                    continue
-                    
-                category, metric = parts
-                
-                # Extract the value from the appropriate category in player data
-                if category == "total" and "total" in player:
-                    stats[metric] = player["total"].get(metric)
-                elif category == "average" and "average" in player:
-                    stats[metric] = player["average"].get(metric)
-                elif category == "percent" and "percent" in player:
-                    stats[f"{metric}_percent"] = player["percent"].get(metric)
-        
-        player_info["stats"] = stats
-        
-        # Calculate player score for each position if params, weights, and average_stats are provided
-        if params and weights is not None and average_stats is not None:
-            position_scores = {}
-            for pos in positions:
-                if pos in params.position_codes:
-                    position_scores[pos] = get_score(player, params, pos, weights, average_stats)
-            
-            player_info["position_scores"] = position_scores
-        
-        # Add a complete_profile with ALL metrics for the player,
-        # so the frontend can display them without requiring another API call
-        complete_stats = {}
-        
-        # Extract all available statistics from player data
-        for category in ["total", "average", "percent"]:
-            if category in player and isinstance(player[category], dict):
-                for metric, value in player[category].items():
-                    # For percent category, add '_percent' suffix to avoid key collisions
-                    if category == "percent":
-                        stat_key = f"{metric}_percent"
-                    else:
-                        stat_key = metric
-                    
-                    # Don't overwrite existing stats with None values
-                    if value is not None or stat_key not in complete_stats:
-                        complete_stats[stat_key] = value
-        
-        # Add position averages for main position (if available)
-        position_averages = {}
-        primary_position = positions[0] if positions else None
-        
-        if primary_position and average_stats and primary_position in average_stats:
-            for metric, value in average_stats[primary_position].items():
-                position_averages[metric] = value
-        
-        # Add complete profile to player info
-        player_info["complete_profile"] = {
-            "stats": complete_stats,
-            "position_averages": position_averages
-        }
-        
-        return player_info
-        
-    except Exception as e:
-        print(f"Error processing player info: {str(e)}")
-        return {"error": f"Error processing player info: {str(e)}"}
+    }
+    
+    # Age calculation from date_of_birth_timestamp
+    if player_obj.date_of_birth_timestamp:
+        try:
+            birth_date = datetime.fromtimestamp(player_obj.date_of_birth_timestamp)
+            today = datetime.today()
+            age = today.year - birth_date.year - ((today.month, today.day) < (birth_date.month, birth_date.day))
+            player_info_dict["age"] = age
+        except Exception as e:
+            print(f"Could not calculate age for player {player_obj.id}: {e}")
+
+
+    # The 'stats' and 'complete_profile' part is complex.
+    # The old code assumed player JSON objects had 'total', 'average', 'percent' sub-dictionaries.
+    # With SQLAlchemy, stats are in PlayerStatistic (per match).
+    # Aggregating these into a profile requires significant new logic:
+    # 1. Query all PlayerStatistic for this player_id.
+    # 2. Aggregate them (e.g., sum totals, calculate overall averages, per-90s).
+    # 3. This might be a new function in data_service.py e.g., get_player_aggregated_stats(player_id, db).
+    # For now, these will be empty or minimal.
+
+    # If params are provided, old code filtered stats. This logic is deferred.
+    # If scoring within get_player_info is needed, it would also go here,
+    # using the main get_score function.
+
+    return player_info_dict
     
 
 

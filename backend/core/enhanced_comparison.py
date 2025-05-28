@@ -286,10 +286,13 @@ def get_common_metrics(player1: Dict[str, Any], player2: Dict[str, Any]) -> List
     return valid_metrics
 
 
+from sqlalchemy.orm import Session # Added for type hint
+
 def enhance_player_comparison(
     players: List[Dict[str, Any]],
     comparison_text: str,
-    search_weights: Dict[str, float] = None
+    search_weights: Dict[str, float] = None,
+    db: Optional[Session] = None # Added db session, optional for now as it's not used directly
 ) -> Dict[str, Any]:
     """
     Enhance the player comparison with metric-by-metric analysis

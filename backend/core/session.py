@@ -69,14 +69,21 @@ class UnifiedSession:
         from services.claude_api import get_anthropic_api_key
         self.anthropic_api_key = get_anthropic_api_key()
         
-        # Load necessary data files
-        self.average = self._load_json('average_statistics_by_position.json')
-        self.weights = self._load_json('weights_dict.json')
-        self.database = self._load_json('database.json')
-        self.database_id = self._load_json('db_by_id.json')
+        # Load API keys
+        # from services.claude_api import get_anthropic_api_key # This is already there
+        # self.anthropic_api_key = get_anthropic_api_key() # Already there
+        
+        # Removed direct loading of database.json, db_by_id.json, average_statistics_by_position.json, weights_dict.json
+        # These will now be handled by data_service.py or passed through.
+        # self.average = self._load_json('average_statistics_by_position.json') # No longer needed here
+        # self.weights = self._load_json('weights_dict.json') # No longer needed here
+        # self.database = self._load_json('database.json') # No longer needed here
+        # self.database_id = self._load_json('db_by_id.json') # No longer needed here
         
         # Session storage
         self.sessions: Dict[str, SessionData] = {}
+        # Note: _load_json might still be used if other parts of UnifiedSession need other JSON files.
+        # If not, it can be removed later. For now, keeping it if other methods rely on it.
     
     def _load_json(self, filename: str) -> dict:
         """Load a JSON file, trying different paths"""
@@ -640,12 +647,13 @@ class UnifiedSession:
         print(f"DEBUG - In session.search_players with params: {params}")
         
         try:
-            # Call the search function which will load data from services as needed
-            players = search_players(params=params)
+            # Call the search function, now passing the db session
+            # search_players from core.player_search now expects db as its first arg after params
+            from sqlalchemy.orm import Session # Import Session for type hinting
+            players = search_players(params=params, db=db) # Pass db session
             print(f"DEBUG - search_players returned: {type(players)}")
             
-            # Ensure what we're returning is actually a list
-            if not isinstance(players, list):
+            if not isinstance(players, list): # Keep validation
                 error_msg = f"search_players returned a non-list: {players} of type {type(players)}"
                 print(f"DEBUG - ERROR: {error_msg}")
                 raise TypeError(error_msg)
@@ -653,28 +661,33 @@ class UnifiedSession:
             return players
         except Exception as e:
             print(f"DEBUG - ERROR in session.search_players: {str(e)}")
-            # Instead of silently returning an empty list, propagate the error
-            raise ValueError(f"Error searching for players: {str(e)}")
+            raise ValueError(f"Error searching for players: {str(e)}") # Keep error propagation
     
-    def get_players_info(self, player_id: str, params: Optional[SearchParameters] = None) -> Dict[str, Any]:
+    def get_players_info(self, player_id_str: str, db: Session, params: Optional[SearchParameters] = None) -> Dict[str, Any]:
         """
-        Get detailed information for a specific player
+        Get detailed information for a specific player using SQLAlchemy.
         
         Args:
-            player_id: The player ID
-            params: Optional search parameters to determine which stats to include
+            player_id_str: The player ID (as string, will be converted to int).
+            db: SQLAlchemy Session object.
+            params: Optional search parameters to determine which stats to include.
             
         Returns:
-            Player information dictionary
+            Player information dictionary.
         """
         from core.player_search import get_player_info
+        from sqlalchemy.orm import Session as TypeSession # For type hint
         
-        # Call the player info function which will load data from services as needed
+        try:
+            player_id_int = int(player_id_str)
+        except ValueError:
+            return {"error": f"Invalid player ID format: {player_id_str}"}
+
+        # Call the player info function, passing the db session.
+        # The get_player_info in player_search.py now expects player_id_int and db.
+        # It no longer takes database, database_id, weights, average_stats as these are handled by data_service.
         return get_player_info(
-            player_id=player_id, 
-            database=self.database, 
-            database_id=self.database_id, 
-            params=params,
-            weights=self.weights,
-            average_stats=self.average
+            player_id_int=player_id_int, 
+            db=db, 
+            params=params
         )

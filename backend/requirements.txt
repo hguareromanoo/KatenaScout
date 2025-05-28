@@ -66,3 +66,12 @@ pyyaml==6.0.2
 
 scipy==1.15.2
 pdfkit==1.0.0  # For PDF generation from HTML
+
+# SQLAlchemy and PostgreSQL Adapter
+SQLAlchemy==1.4.29  # Or a more recent stable version
+psycopg2-binary==2.9.3 # For PostgreSQL connection
+
+# Testing Frameworks
+pytest==7.4.0 # Or a more recent stable version
+pytest-flask==1.2.0 # For Flask app testing
+pytest-mock==3.10.0 # For mocking

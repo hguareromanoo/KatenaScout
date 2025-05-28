@@ -1,278 +1,268 @@
 """
 Data services for KatenaScout
 
-This module handles loading and accessing player data.
+This module handles loading and accessing player and team data using SQLAlchemy,
+and loads auxiliary statistical files from JSON.
 """
 
-import os
 import json
+import os 
 from typing import Dict, Any, Optional, List
 
-# Cache for loaded data files
-_data_cache = {}
+from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import func as sql_alchemy_func # Renamed to avoid conflict if we define a 'func'
+from sqlalchemy.sql import func as sql_func # For avg, stddev_samp etc.
 
+from backend.models.sql_models import Player, Team, Country, PlayerStatistic
 
-def find_club_by_id(club_id: str) -> Optional[Dict[str, Any]]:
-    team_json = load_json('team.json')
-    return team_json[club_id] if club_id in team_json else None
+# Cache for loaded auxiliary JSON files
+_json_data_cache: Dict[str, Any] = {}
+
 def load_json(filename: str) -> Dict[str, Any]:
     """
-    Load a JSON file, trying different paths
+    Load an auxiliary JSON file (e.g., statistics, weights) from the 'backend' directory.
     
     Args:
-        filename: The name of the JSON file to load
+        filename: The name of the JSON file to load (e.g., 'average_statistics_by_position.json').
         
     Returns:
-        The parsed JSON data
+        The parsed JSON data.
         
     Raises:
-        FileNotFoundError: If the file could not be found in any expected location
+        FileNotFoundError: If the file could not be found in 'backend/{filename}'.
+        ValueError: If the JSON file is malformed.
     """
-    # Check if already cached
-    if filename in _data_cache:
-        return _data_cache[filename]
+    if filename in _json_data_cache:
+        return _json_data_cache[filename]
     
-    # Try different paths
-    paths = [
-        filename,  # Current directory
-        os.path.join('backend', filename),  # Backend subdirectory
-        os.path.join(os.path.dirname(os.path.dirname(__file__)), filename)  # From services directory
-    ]
-    
-    for path in paths:
+    # Construct path: assumes JSON files are in the 'backend' directory,
+    # and this script is run from a context where 'backend' is a subdir.
+    path_to_file = os.path.join('backend', filename)
+
+    try:
+        with open(path_to_file, 'r', encoding='utf-8') as file:
+            data = json.load(file)
+            _json_data_cache[filename] = data
+            return data
+    except FileNotFoundError:
+        # Fallback for cases where CWD might be backend/ already (e.g. some test setups)
+        alternate_path = filename
         try:
-            with open(path, 'r', encoding='utf-8') as file:
+            with open(alternate_path, 'r', encoding='utf-8') as file:
                 data = json.load(file)
-                # Cache the result
-                _data_cache[filename] = data
+                _json_data_cache[filename] = data
                 return data
         except FileNotFoundError:
-            continue
-    
-    raise FileNotFoundError(f"Could not find {filename} in any expected location")
+            raise FileNotFoundError(
+                f"Could not find {filename}. Tried: {os.path.abspath(path_to_file)} and {os.path.abspath(alternate_path)}"
+            )
+    except json.JSONDecodeError as e:
+        raise ValueError(f"Error decoding JSON from {filename} (tried path: {path_to_file}): {e}")
 
-def get_player_database() -> Dict[str, Any]:
-    """Get the player database by name"""
-    try:
-        return load_json('database.json')
-    except FileNotFoundError:
-        # Return mock data for testing
-        return {
-            "João Silva": {
-                "wyId": "123456",
-                "age": 25,
-                "height": 180,
-                "weight": 75,
-                "positions": [
-                    {"position": {"code": "cmf", "name": "Central Midfielder"}}
-                ],
-                "stats": {
-                    "goals": 5,
-                    "assists": 8,
-                    "passing": 85.5,
-                    "progressivePasses": 12.3
-                },
-                "nationality": {"name": "Brazil"},
-                "foot": "right"
-            },
-            "Carlos Mendez": {
-                "wyId": "789012",
-                "age": 24,
-                "height": 178,
-                "weight": 72,
-                "positions": [
-                    {"position": {"code": "cmf", "name": "Central Midfielder"}},
-                    {"position": {"code": "amf", "name": "Attacking Midfielder"}}
-                ],
-                "stats": {
-                    "goals": 7,
-                    "assists": 6,
-                    "passing": 82.1,
-                    "progressivePasses": 10.8
-                },
-                "nationality": {"name": "Spain"},
-                "foot": "left"
-            }
-        }
+# --- Position Mapping Definitions ---
+# For converting granular frontend/logic codes to DB's single char storage
+GRANULAR_TO_DB_POSITION_MAP = {
+    # Goalkeepers
+    'gk': 'G',
+    # Defenders
+    'cb': 'D', 'lcb': 'D', 'rcb': 'D',
+    'lb': 'D', 'lwb': 'D',
+    'rb': 'D', 'rwb': 'D',
+    # Midfielders
+    'dmf': 'M', 'ldmf': 'M', 'rdmf': 'M',
+    'cmf': 'M', 'lcmf': 'M', 'rcmf': 'M',
+    'amf': 'M', 'lamf': 'M', 'ramf': 'M',
+    # Forwards
+    'lw': 'F', 'lwf': 'F',
+    'rw': 'F', 'rwf': 'F',
+    'cf': 'F',
+}
 
-def get_player_database_by_id() -> Dict[str, Any]:
-    """Get the player database by ID"""
-    try:
-        return load_json('db_by_id.json')
-    except FileNotFoundError:
-        # Return mock data for testing
-        return {
-            "123456": {
-                "wyId": "123456",
-                "name": "João Silva",
-                "age": 25,
-                "height": 180,
-                "weight": 75,
-                "positions": [
-                    {"position": {"code": "cmf", "name": "Central Midfielder"}}
-                ],
-                "stats": {
-                    "goals": 5,
-                    "assists": 8,
-                    "passing": 85.5,
-                    "progressivePasses": 12.3
-                },
-                "nationality": {"name": "Brazil"},
-                "foot": "right"
-            },
-            "789012": {
-                "wyId": "789012",
-                "name": "Carlos Mendez",
-                "age": 24,
-                "height": 178,
-                "weight": 72,
-                "positions": [
-                    {"position": {"code": "cmf", "name": "Central Midfielder"}},
-                    {"position": {"code": "amf", "name": "Attacking Midfielder"}}
-                ],
-                "stats": {
-                    "goals": 7,
-                    "assists": 6,
-                    "passing": 82.1,
-                    "progressivePasses": 10.8
-                },
-                "nationality": {"name": "Spain"},
-                "foot": "left"
-            }
-        }
+# For mapping DB's single char to a default granular code (FR11)
+DB_TO_GRANULAR_FALLBACK_MAP = {
+    'G': 'gk',
+    'D': 'cb', # Default for Defenders
+    'M': 'cmf',# Default for Midfielders (rcmf was in PRD, but cmf is more general)
+    'F': 'cf'  # Default for Forwards
+}
 
-def get_average_statistics() -> Dict[str, Any]:
-    """Get average statistics by position"""
-    try:
-        return load_json('average_statistics_by_position.json')
-    except FileNotFoundError:
-        # Return mock data for testing
-        return {
-            "cmf": {
-                "goals": 3,
-                "assists": 5,
-                "passing": 78,
-                "progressivePasses": 8
-            },
-            "amf": {
-                "goals": 6,
-                "assists": 7,
-                "passing": 75,
-                "progressivePasses": 9
+
+# --- Database-Derived Statistics and Auxiliary Data Functions ---
+
+def get_average_statistics(db: Session) -> Dict[str, Dict[str, Optional[float]]]:
+    """
+    Calculate average player statistics by general DB position (G, D, M, F).
+    Args:
+        db: SQLAlchemy Session object.
+    Returns:
+        Dictionary where keys are DB position characters ('G', 'D', 'M', 'F')
+        and values are dictionaries of average statistic values.
+        Example: {'D': {'avg_goals': 0.5, 'avg_accurate_pass': 75.2}, ...}
+    """
+    stats_query = db.query(
+        Player.position,
+        sql_func.avg(PlayerStatistic.rating).label('avg_rating'),
+        sql_func.avg(PlayerStatistic.minutes_played).label('avg_minutes_played'),
+        sql_func.avg(PlayerStatistic.goals).label('avg_goals'),
+        sql_func.avg(PlayerStatistic.goal_assist).label('avg_goal_assist'),
+        sql_func.avg(PlayerStatistic.total_pass).label('avg_total_pass'),
+        sql_func.avg(PlayerStatistic.accurate_pass).label('avg_accurate_pass'),
+        sql_func.avg(PlayerStatistic.total_long_balls).label('avg_total_long_balls'),
+        sql_func.avg(PlayerStatistic.accurate_long_balls).label('avg_accurate_long_balls'),
+        sql_func.avg(PlayerStatistic.key_pass).label('avg_key_pass'),
+        sql_func.avg(PlayerStatistic.total_tackle).label('avg_total_tackle'),
+        sql_func.avg(PlayerStatistic.touches).label('avg_touches'),
+        sql_func.avg(PlayerStatistic.expected_goals).label('avg_expected_goals'),
+        sql_func.avg(PlayerStatistic.expected_assists).label('avg_expected_assists')
+        # Add other relevant fields from PlayerStatistic model here
+    ).join(Player, PlayerStatistic.player_id == Player.id).group_by(Player.position)
+
+    results = {}
+    for row in stats_query.all():
+        pos = row.position
+        if pos: # Ensure position is not None
+            results[pos] = {
+                stat_name.replace('avg_', ''): getattr(row, stat_name)
+                for stat_name in row._fields if stat_name != 'position' # type: ignore
             }
-        }
+            # Convert Decimal to float for JSON compatibility if necessary, though SQLAlchemy usually handles this.
+            # For any fields that might be None (e.g., if all values for a group are NULL),
+            # they will be None here. The Optional[float] handles this.
+    return results
+
+
+def get_sigma_by_position(db: Session) -> Dict[str, Dict[str, Optional[float]]]:
+    """
+    Calculate standard deviation of player statistics by general DB position.
+    Args:
+        db: SQLAlchemy Session object.
+    Returns:
+        Dictionary similar to get_average_statistics but with stddev values.
+        Example: {'D': {'stddev_goals': 0.1, ...}, ...}
+    """
+    stats_query = db.query(
+        Player.position,
+        sql_func.stddev_samp(PlayerStatistic.rating).label('stddev_rating'),
+        sql_func.stddev_samp(PlayerStatistic.minutes_played).label('stddev_minutes_played'),
+        sql_func.stddev_samp(PlayerStatistic.goals).label('stddev_goals'),
+        sql_func.stddev_samp(PlayerStatistic.goal_assist).label('stddev_goal_assist'),
+        sql_func.stddev_samp(PlayerStatistic.total_pass).label('stddev_total_pass'),
+        sql_func.stddev_samp(PlayerStatistic.accurate_pass).label('stddev_accurate_pass'),
+        # Add other fields as needed
+    ).join(Player, PlayerStatistic.player_id == Player.id).group_by(Player.position)
+
+    results = {}
+    for row in stats_query.all():
+        pos = row.position
+        if pos:
+            results[pos] = {
+                stat_name.replace('stddev_', ''): getattr(row, stat_name)
+                for stat_name in row._fields if stat_name != 'position' # type: ignore
+            }
+    return results
 
 def get_weights_dictionary() -> Dict[str, Any]:
-    """Get weights dictionary for scoring"""
+    """
+    Get weights dictionary for scoring.
+    Currently loads from 'weights_dict.json'. Future implementation might change source.
+    """
     try:
         return load_json('weights_dict.json')
-    except FileNotFoundError:
-        # Return mock data for testing
+    except (FileNotFoundError, ValueError) as e:
+        print(f"Warning/Error loading 'weights_dict.json': {e}. Using mock data.")
+        # This mock data should ideally match the structure expected by consuming components.
         return {
-            "cmf": {
-                "goals": 0.5,
-                "assists": 0.7,
-                "passing": 0.9,
-                "progressivePasses": 0.8
-            },
-            "amf": {
-                "goals": 0.8,
-                "assists": 0.9,
-                "passing": 0.7,
-                "progressivePasses": 0.6
-            }
+            "cb": {"goals": 0.1, "accurate_pass": 0.8, "total_tackle": 0.9}, # Example for 'cb'
+            "cmf": {"goals": 0.5, "assists": 0.7, "passing": 0.9, "progressivePasses": 0.8},
+            "amf": {"goals": 0.8, "assists": 0.9, "passing": 0.7, "progressivePasses": 0.6},
+            "cf": {"goals": 1.0, "shot_off_target": -0.2} # Example for 'cf'
         }
 
-def get_team_names() -> Dict[str, Any]:
-    """Get team names dictionary"""
-    try:
-        return load_json('team.json')
-    except FileNotFoundError:
-        # Return mock data for testing
-        return {
-            "1": {"name": "Barcelona", "country": "Spain"},
-            "2": {"name": "Real Madrid", "country": "Spain"},
-            "3": {"name": "Manchester United", "country": "England"}
+# --- SQLAlchemy based Core Data Access Functions ---
+
+def get_team_names(db: Session) -> Dict[str, Dict[str, Any]]:
+    """
+    Get team names and their countries from the database.
+    
+    Args:
+        db: SQLAlchemy Session object.
+        
+    Returns:
+        Dictionary mapping team ID (as string) to team name and country name.
+    """
+    # Using sql_alchemy_func for general SQLAlchemy functions like lower, ilike
+    teams_data = db.query(Team).options(joinedload(Team.country)).all()
+    return {
+        str(team.id): {
+            "name": team.name,
+            "country": team.country.name if team.country else None
         }
+        for team in teams_data
+    }
 
-def find_player_by_id(player_id: str) -> Optional[Dict[str, Any]]:
+def find_player_by_id(player_id: int, db: Session) -> Optional[Player]:
     """
-    Find a player by ID in the database
+    Find a player by their ID.
     
     Args:
-        player_id: The player ID to find
+        player_id: The integer ID of the player to find.
+        db: SQLAlchemy Session object.
         
     Returns:
-        The player data or None if not found
+        A Player object if found, else None.
     """
-    db_by_id = get_player_database_by_id()
-    player_id_str = str(player_id)
-    
-    if player_id_str in db_by_id:
-        return db_by_id[player_id_str]
-    return None
+    return db.query(Player).filter(Player.id == player_id).first()
 
-def find_player_by_name(player_name: str) -> Optional[Dict[str, Any]]:
+def find_player_by_name(player_name: str, db: Session) -> Optional[Player]:
     """
-    Find a player by name in the database
+    Find a player by their name (case-insensitive, partial match).
+    Returns the first match found.
     
     Args:
-        player_name: The player name to find
+        player_name: The name of the player to search for.
+        db: SQLAlchemy Session object.
         
     Returns:
-        The player data or None if not found
+        A Player object if found, else None.
     """
-    db = get_player_database()
-    
-    # Case-insensitive search
-    player_name_lower = player_name.lower()
-    
-    for name, data in db.items():
-        if name.lower() == player_name_lower:
-            return data
-    
-    # Try a more flexible search if exact match not found
-    for name, data in db.items():
-        if player_name_lower in name.lower():
-            return data
-    
-    return None
+    search_term = f"%{player_name.lower()}%"
+    return db.query(Player).filter(sql_alchemy_func.lower(Player.name).ilike(search_term)).first()
 
-def get_players_with_position(
-    position_code: str, 
-    database: Optional[Dict[str, Any]] = None
-) -> List[Dict[str, Any]]:
+def find_club_by_id(club_id: int, db: Session) -> Optional[Team]:
     """
-    Get all players that can play in the specified position
+    Find a club (team) by its ID.
     
     Args:
-        position_code: The position code to filter by
-        database: Optional player database (loaded from file if not provided)
+        club_id: The integer ID of the club to find.
+        db: SQLAlchemy Session object.
         
     Returns:
-        List of players that can play in the position
+        A Team object if found, else None.
     """
-    import unidecode
-    
-    # Load the database if not provided
-    if database is None:
-        database = get_player_database()
-    
-    players_list = []
-    
-    for player_name, player_data in database.items():
-        if any(pos["position"]["code"] == position_code for pos in player_data.get("positions", [])):
-            # Add the player name to the data for easier access
-            player_data_copy = player_data.copy()
-            player_data_copy["name"] = unidecode.unidecode(player_name)
-            players_list.append(player_data_copy)
-    
-    return players_list
+    return db.query(Team).filter(Team.id == club_id).first()
 
-def get_sigma_by_position():
-    return load_json('sigma_statistics_by_position.json')
+def get_players_with_position(position_code: str, db: Session) -> List[Player]:
+    """
+    Get all players that play in the specified granular position.
+    Uses GRANULAR_TO_DB_POSITION_MAP to convert to DB's single character code.
+    
+    Args:
+        position_code: The granular position code (e.g., 'cb', 'amf', 'gk').
+        db: SQLAlchemy Session object.
+        
+    Returns:
+        List of Player objects matching the translated DB position.
+        Returns an empty list if the granular position code is not recognized.
+    """
+    db_position_char = GRANULAR_TO_DB_POSITION_MAP.get(position_code.lower().strip())
+    
+    if not db_position_char:
+        # Or raise ValueError("Invalid position_code")
+        print(f"Warning: Unrecognized granular position_code '{position_code}'. Returning empty list.")
+        return []
+        
+    return db.query(Player).filter(Player.position == db_position_char).all()
 
-
-if __name__ == "__main__":
-   team = find_club_by_id("3161")
-   print(team)
+# The `if __name__ == "__main__":` block has been removed as its original utility
+# (testing old JSON-based functions) is no longer applicable. Testing SQLAlchemy functions
+# requires a database session and is best done in dedicated test files.

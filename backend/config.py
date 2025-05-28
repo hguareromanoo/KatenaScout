@@ -55,3 +55,14 @@ DATA_FILES = {
 # Player image directory (absolute path for reliability)
 import os
 PLAYER_IMAGES_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "player_images"))
+
+# PostgreSQL Database Configuration
+POSTGRES_USER = os.getenv("POSTGRES_USER", "your_db_user")
+POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD", "your_db_password")
+POSTGRES_HOST = os.getenv("POSTGRES_HOST", "localhost")
+POSTGRES_PORT = os.getenv("POSTGRES_PORT", "5432")
+POSTGRES_DB = os.getenv("POSTGRES_DB", "soccer_scout_db")
+
+# SQLAlchemy Database URL
+# The dialect is psycopg2 for PostgreSQL
+DATABASE_URL = f"postgresql+psycopg2://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}"

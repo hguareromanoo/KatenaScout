@@ -6,13 +6,14 @@ This module contains handlers for different user intents.
 
 from typing import Dict, List, Any, Optional
 import json
-from core.session import SessionData, UnifiedSession # Need UnifiedSession for type hint
-from core.intent import generate_follow_up_suggestions, extract_comparison_entities # Keep entity extraction reference if needed elsewhere
-# Import the new function and keep the old ones for now
+from sqlalchemy.orm import Session # Import Session for type hinting
+from core.session import SessionData, UnifiedSession 
+from core.intent import generate_follow_up_suggestions, extract_comparison_entities
 from core.comparison import compare_players, find_players_for_comparison, generate_in_chat_comparison_text 
 from config import SUPPORTED_LANGUAGES
-from models.parameters import SearchParameters # Needed for aspect_params type hint
-from services.data_service import find_player_by_id # Needed to resolve names to IDs
+from models.parameters import SearchParameters
+# Use the aliased version from player_search or import directly if preferred
+from services.data_service import find_player_by_id as find_player_by_id_service 
 
 # Language-specific prompts for response generation (Keep this function as it might be used elsewhere)
 def get_language_specific_prompt(language: str) -> str:
@@ -71,7 +72,7 @@ def clean_players_for_claude(players):
             
     return cleaned_players
 
-def handle_player_search(session: SessionData, message: str, session_manager) -> Dict[str, Any]:
+def handle_player_search(session: SessionData, message: str, session_manager: UnifiedSession, db: Session) -> Dict[str, Any]:
     """
     Handle player search intent
     
@@ -119,11 +120,10 @@ def handle_player_search(session: SessionData, message: str, session_manager) ->
         session.search_params = params.model_dump()
         session.last_search_params = params.model_dump()
         
-        # Search for players
+        # Search for players, now passing db session
         print(f"DEBUG - About to search with params: {params}")
-        players = session_manager.search_players(params)
+        players = session_manager.search_players(params=params, db=db) # Pass db
         print(f"DEBUG - Search returned players of type: {type(players)}")
-        # print(f"DEBUG - Players value: {players}") # Avoid printing large data
         
         # Validate the players return value
         if not isinstance(players, list):
@@ -201,7 +201,7 @@ def handle_player_search(session: SessionData, message: str, session_manager) ->
             "message": f"Error searching for players: {str(e)}"
         }
 
-def handle_player_comparison(session: SessionData, message: str, session_manager: UnifiedSession) -> Dict[str, Any]:
+def handle_player_comparison(session: SessionData, message: str, session_manager: UnifiedSession, db: Session) -> Dict[str, Any]:
     """
     Handle player comparison intent, fetching focused data based on query aspects.
     
@@ -291,10 +291,26 @@ def handle_player_comparison(session: SessionData, message: str, session_manager
                  # Attempt to resolve ID if missing (e.g., if find_players_for_comparison only returned name)
                  print(f"Warning: No ID found for {player_name} in stub, attempting direct lookup.")
                  try:
-                      # This assumes find_player_by_id can handle name lookups if needed
-                      found_player_data = find_player_by_id(player_name) 
-                      if found_player_data:
-                           player_id = found_player_data.get("wyId") or found_player_data.get("id")
+                      # Use the new find_player_by_id_service and pass db
+                      # This service expects an int ID. If player_name is a name, need find_player_by_name_service.
+                      # Assuming player_name here might actually be an ID string from previous steps or needs resolving.
+                      # If it's a name, this part needs find_player_by_name_service.
+                      # For now, assuming it is an ID that can be converted to int for find_player_by_id_service
+                      # or the stub already contains an ID.
+                      # The original find_players_for_comparison should ideally provide IDs.
+                      # If player_name is indeed a name string, the logic here is flawed.
+                      # Let's assume player_name is actually an ID string for now.
+                      found_player_obj = None
+                      try:
+                          player_id_int_lookup = int(player_name) # player_name might be an ID string
+                          found_player_obj = find_player_by_id_service(player_id=player_id_int_lookup, db=db)
+                      except ValueError: # if player_name is not an int string
+                          # Try by name if not an int string
+                          from services.data_service import find_player_by_name as find_player_by_name_service_local
+                          found_player_obj = find_player_by_name_service_local(player_name=player_name, db=db)
+
+                      if found_player_obj:
+                           player_id = found_player_obj.id # Use .id for SQLAlchemy model
                            print(f"DEBUG: Resolved ID for {player_name} to {player_id}")
                       else:
                            print(f"Error: Could not resolve ID for player {player_name}. Skipping.")
@@ -305,12 +321,10 @@ def handle_player_comparison(session: SessionData, message: str, session_manager
 
             print(f"DEBUG: Fetching detailed info for player ID: {player_id} using aspect_params.")
             try:
-                # Call get_players_info with the aspect_params extracted earlier
-                # Ensure player_id is a string for the function call
-                detailed_info = session_manager.get_players_info(str(player_id), params=aspect_params) 
+                # Call get_players_info, now requires db session
+                detailed_info = session_manager.get_players_info(player_id_str=str(player_id), db=db, params=aspect_params)
                 
                 if detailed_info and not detailed_info.get('error'):
-                    # Ensure the fetched data includes the correct name for the comparison function
                     detailed_info['name'] = player_name # Explicitly set the correct name
                     focused_players_data.append(detailed_info) 
                 else:
@@ -362,7 +376,7 @@ def handle_player_comparison(session: SessionData, message: str, session_manager
             "message": f"Error comparing players: {str(e)}"
         }
 
-def handle_stats_explanation(session: SessionData, message: str, session_manager) -> Dict[str, Any]:
+def handle_stats_explanation(session: SessionData, message: str, session_manager: UnifiedSession, db: Session) -> Dict[str, Any]: # Added db
     """
     Handle stats explanation intent
     
@@ -464,7 +478,7 @@ def handle_stats_explanation(session: SessionData, message: str, session_manager
             "explanations": explanations
         }
 
-def handle_casual_chat(session: SessionData, message: str, session_manager) -> Dict[str, Any]:
+def handle_casual_chat(session: SessionData, message: str, session_manager: UnifiedSession, db: Session) -> Dict[str, Any]: # Added db
     """
     Handle casual conversation intent
     
@@ -555,7 +569,7 @@ def handle_casual_chat(session: SessionData, message: str, session_manager) -> D
             "text": fallback_text
         }
 
-def handle_fallback(session: SessionData, message: str, session_manager) -> Dict[str, Any]:
+def handle_fallback(session: SessionData, message: str, session_manager: UnifiedSession, db: Session) -> Dict[str, Any]: # Added db
     """
     Handle fallback for unrecognized intents
     
